@@ -1,0 +1,24 @@
+<xml>
+    <clients>
+        <client>
+        <no="1:2"/> <delay="10"><uplink="3"/>
+        <downlink="5"/> <loss="0.4"/>
+        </client>
+        <client>
+        <no="3:10"/><delay="30"> <uplink="3"/>
+        <downlink="5"/><loss="0.4"/></client>
+        <client>
+        <no="14"/><uplink="3"/>
+        <downlink="5"/> <loss="0.4"/><delay="12"></client>
+    </clients>
+    <appproto>
+    </appproto>
+    <streams>
+        <stream></stream>
+        <stream></stream>
+        <stream></stream>
+        <stream></stream>
+    </streams>
+
+
+</xml>
