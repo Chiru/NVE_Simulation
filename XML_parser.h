@@ -51,7 +51,9 @@ public:
 private:
     bool parseClients(std::string& file);
     bool parseStreams(std::string& file);
+    bool parseStream(std::string& streamElement, DataGenerator*& stream);
     bool parseApplicationProtocol(std::string& file);
+    uint16_t countStreams(std::string& file);
     template <class T> bool readValue(const std::string& file, const std::string& variable, T& result, size_t position = 0);
     bool getRunningValue(const std::string& value, uint16_t &from, uint16_t &to);
     bool getElement(const std::string& file, size_t position,const  std::string& start, const std::string& end, std::string &result);
@@ -60,6 +62,7 @@ private:
     bool correctFile;
     bool appProtoExists;
     ApplicationProtocol* appProto;
+    DataGenerator **streams;
     uint16_t numberOfClients;
     uint16_t numberOfStreams;
 
@@ -71,7 +74,7 @@ private:
 
 //class XMLParser function definitions
 
-XMLParser::XMLParser(std::string& filename): filename(filename), correctFile(true), appProto(0), clients(0){
+XMLParser::XMLParser(std::string& filename): filename(filename), correctFile(true), appProto(0), streams(0), clients(0){
 
     std::ifstream filestream(filename.c_str());
     std::string xmlFile;
@@ -102,6 +105,18 @@ XMLParser::~XMLParser(){
         delete (*it);
         it++;
     }
+
+    for(int i = 0; i < numberOfStreams; i++){
+        if(streams[i] != 0)
+            delete streams[i];
+    }
+
+    if(streams != 0)
+         delete[] streams;
+
+
+    if(appProto != 0)
+        delete appProto;
 
 }
 
@@ -259,21 +274,62 @@ bool XMLParser::parseClients(std::string &file){
     return true;
 }
 
+uint16_t XMLParser::countStreams(std::string &file){
+
+    uint16_t count;
+    size_t position = 0;
+
+    for(count = 0;(position = file.find("<stream>", position+1)) != std::string::npos; count++);
+
+    return count;
+
+}
+
+bool XMLParser::parseStream(std::string &streamElement, DataGenerator *&stream){
+
+    return true;
+}
+
 bool XMLParser::parseStreams(std::string &file){
 
     size_t latest_token = 0, temp_position = 0;
     int count = 0;
+    std::string streams;
+    std::string streamElement;
 
     if((latest_token = file.find("<streams>")) == std::string::npos){
         std::cerr << "Incorrect format in XML file: no <streams> tag found" << std::endl;
         return false;
     }
 
-    while((temp_position = file.find("<stream>", latest_token+1)) != std::string::npos){
+    if(!getElement(file, latest_token, "<streams>", "</streams>", streams)){
+        std::cerr << "Incorrect format in streams specifications" << std::cerr;
+        return false;
+    }
+
+    numberOfStreams = countStreams(streams);
+    this->streams = new DataGenerator*[numberOfStreams];
+
+    for(int i = 0; i < numberOfStreams; i++){
+        this->streams[i] = 0;
+    }
+
+    latest_token = 0;
+
+    while((temp_position = streams.find("<stream>", latest_token+1)) != std::string::npos){
         latest_token = temp_position;
-        if((file.find("</stream>", latest_token)) != std::string::npos){
-                count++;
+        if(!getElement(streams, latest_token, "<stream>", "</stream>", streamElement)){
+            std::cerr << "Incorrect format in stream specifications." << std::endl;
+            return false;
         }
+
+        if(!parseStream(streamElement, this->streams[count])){
+            std::cerr << "Incorrect format in stream specification." << std::endl;
+            return false;
+        }
+
+        count++;
+
     }
 
     if((latest_token = file.find("</streams>", latest_token)) == std::string::npos){
@@ -334,10 +390,11 @@ bool XMLParser::parseApplicationProtocol(std::string &file){
 
 bool XMLParser::getStreams(DataGenerator** &streams){
 
-    streams = new DataGenerator*[numberOfStreams];
+    //TODO: deep copy allocated streams
+  /*  streams = new DataGenerator*[numberOfStreams];
     for(int i = 0; i < numberOfStreams; i++)
         streams[i] = 0;
-
+*/
     return true;
 }
 

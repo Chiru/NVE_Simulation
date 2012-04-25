@@ -56,7 +56,7 @@ Client::Client(XMLParser& parser, uint16_t no): parser(parser), streams(0){
 Client::~Client(){
 
     for(int i = 0; i < parser.getNumberOfStreams(); i++){
-        if(streams[i] != 0)
+        if(streams != 0 && streams[i] != 0)
             delete streams[i];
     }
 

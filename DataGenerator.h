@@ -17,6 +17,7 @@
 #ifndef DATAGENERATOR_H
 #define DATAGENERATOR_H
 
+#include "ApplicationProtocol.h"
 
 class DataGenerator : public ns3::Application{
 
@@ -26,6 +27,9 @@ public:
 
     virtual void StartApplication();
     virtual void StopApplication();
+
+private:
+    ApplicationProtocol* appProto;
 
 };
 
