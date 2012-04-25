@@ -12,6 +12,9 @@
         <downlink="5"/> <loss="0.4"/><delay="12"></client>
     </clients>
     <appproto>
+        <acksize="25"/>
+        <delayedack="100"/>
+        <retransmit="200"/>
     </appproto>
     <streams>
         <stream></stream>

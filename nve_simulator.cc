@@ -80,6 +80,8 @@ int main(int argc, char** argv){
     InternetStackHelper stack;
     stack.Install(allNodes);
 
+    Simulator::Run();
+    Simulator::Destroy();
 
     for(int i = 0; i < numberOfClients; i++){
         if(clients[i] != 0)

@@ -51,13 +51,14 @@ public:
 private:
     bool parseClients(std::string& file);
     bool parseStreams(std::string& file);
+    bool parseApplicationProtocol(std::string& file);
     template <class T> bool readValue(const std::string& file, const std::string& variable, T& result, size_t position = 0);
     bool getRunningValue(const std::string& value, uint16_t &from, uint16_t &to);
     bool getElement(const std::string& file, size_t position,const  std::string& start, const std::string& end, std::string &result);
 
     std::string filename;
-    std::string file;
     bool correctFile;
+    bool appProtoExists;
     ApplicationProtocol* appProto;
     uint16_t numberOfClients;
     uint16_t numberOfStreams;
@@ -89,6 +90,7 @@ XMLParser::XMLParser(std::string& filename): filename(filename), correctFile(tru
 
     correctFile = parseClients(xmlFile);
     correctFile = parseStreams(xmlFile);
+    correctFile = parseApplicationProtocol(xmlFile);
 
 }
 
@@ -174,7 +176,6 @@ bool XMLParser::parseClients(std::string &file){
     size_t latest_token = 0, temp_position = 0;
     std::string token;
     std::string value;
-    std::stringstream stream;
     XMLParser::Client* tempClient;
 
     int count = 0;
@@ -291,6 +292,46 @@ bool XMLParser::parseStreams(std::string &file){
 
 }
 
+bool XMLParser::parseApplicationProtocol(std::string &file){
+
+    size_t position;
+    std::string token, value;
+    int acksize, delack, retransmit;
+
+    if((position = file.find("<appproto>")) == std::string::npos){
+        appProto = 0;
+        std::cout << "No application protocol found" << std::endl;
+        return true;
+    }
+
+    if(!getElement(file, position, "<appproto>", "</appproto>", token)){
+        std::cerr << "Incorrect format in application protocol specifications." << std::endl;
+        return false;
+    }
+
+    value = "";
+
+    if(!readValue<int>(file, "acksize", acksize, position)){
+        std::cerr << "Incorrect format in application protocol parameter: acksize" << std::endl;
+        return false;
+    }
+
+    if(!readValue<int>(file, "delayedack", delack, position)){
+        std::cerr << "Incorrect format in application protocol parameter: delayedack" << std::endl;
+        return false;
+    }
+
+    if(!readValue<int>(file, "retransmit", retransmit, position)){
+        std::cerr << "Incorrect format in application protocol parameter: retransmit" << std::endl;
+        return false;
+    }
+
+    appProto = new ApplicationProtocol(acksize, delack, retransmit);
+
+    return true;
+
+}
+
 bool XMLParser::getStreams(DataGenerator** &streams){
 
     streams = new DataGenerator*[numberOfStreams];
@@ -343,20 +384,11 @@ bool XMLParser::getClientStats(uint16_t clientIndex, uint16_t &clientNumber, int
 
  bool XMLParser::getApplicationProtocol(ApplicationProtocol* proto){
 
-    uint16_t size, ack, retransmit;
+    if(appProto == 0)
+        return false;
 
-    if(appProto == 0){
-        if(getAppProtoPacketSize(size) && getAppProtoDelayedAck(ack) && getAppProtoRetransmit(retransmit)){
-            appProto = new ApplicationProtocol(size, ack, retransmit);
-        }else{
-            correctFile = false;
-            std::cerr << "XML file format not correct, application protocol fields incorrect." << std::endl;
-            return false;
-        }
-
-    }
-
-    proto = new ApplicationProtocol(*appProto);
+    else
+        proto = new ApplicationProtocol(*appProto);
 
     return true;
 

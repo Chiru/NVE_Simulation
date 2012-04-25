@@ -28,15 +28,18 @@
 
 class ApplicationProtocol{
 
+    friend class XMLParser;
+
 public:
-    ApplicationProtocol(uint16_t packetSize, uint16_t delayedAck, uint16_t retransmit);
-    ApplicationProtocol(const ApplicationProtocol&);
+
     ~ApplicationProtocol();
 
     bool write(std::string&);
     std::string read();
 
 private:
+    ApplicationProtocol(uint16_t packetSize, uint16_t delayedAck, uint16_t retransmit);
+    ApplicationProtocol(const ApplicationProtocol&);
     std::vector<int> packetsWaitingAcks;
     ns3::Ptr<ns3::Socket> socket;
     uint16_t packetSize;
