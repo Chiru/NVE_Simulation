@@ -49,7 +49,10 @@ int main(int argc, char** argv){
 
     for(uint16_t i = 0; i < numberOfClients; i++){
         clients[i] = new Client(parser, i+1);
+        std::cout << *(clients[i]) << std::endl;
     }
+
+
 
     NodeContainer allNodes;
     allNodes.Create(numberOfClients +2);   //a node for each client, one for the router and one for the server

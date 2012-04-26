@@ -21,17 +21,26 @@
 
 class DataGenerator : public ns3::Application{
 
+    friend std::ostream& operator<<(std::ostream& out, const DataGenerator &stream){
+
+        return out;
+
+    }
 
 
 public:
     enum Protocol{TCP_NAGLE_DISABLED, TCP_NAGLE_ENABLED, UDP};
+    DataGenerator(){}
     DataGenerator(uint16_t streamNumber, Protocol proto, ApplicationProtocol* appProto);
     virtual ~DataGenerator();
 
     virtual void StartApplication();
     virtual void StopApplication();
+    uint16_t getStreamNumber() const{return streamNumber;}
+    Protocol getProtocol() const{return proto;}
+    ApplicationProtocol* getApplicationProtocol() const{return appProto;}
 
-private:
+protected:
     uint16_t streamNumber;
     Protocol proto;
     ApplicationProtocol* appProto;
@@ -42,6 +51,7 @@ class ClientDataGenerator : public DataGenerator{
 
 public:
     ClientDataGenerator(uint16_t streamNumber, Protocol proto, ApplicationProtocol* appProto);
+    ClientDataGenerator(const DataGenerator&);
     ~ClientDataGenerator();
 };
 
@@ -50,6 +60,7 @@ class ServerDataGenerator : public DataGenerator{
 
 public:
     ServerDataGenerator(uint16_t streamNumber, Protocol proto, ApplicationProtocol* appProto);
+    ServerDataGenerator(const DataGenerator&);
     ~ServerDataGenerator();
 
 };
@@ -64,8 +75,9 @@ DataGenerator::DataGenerator(uint16_t streamNumber, Protocol proto, ApplicationP
 
 DataGenerator::~DataGenerator(){
 
-    if(appProto != 0)
+    if(appProto != 0){
         delete appProto;
+    }
 
 }
 
@@ -87,16 +99,33 @@ ClientDataGenerator::ClientDataGenerator(uint16_t streamNumber, Protocol proto, 
 
 }
 
+ClientDataGenerator::ClientDataGenerator(const DataGenerator& stream){
+
+    this->streamNumber = stream.getStreamNumber();
+
+    if(stream.getApplicationProtocol() != 0)
+        this->appProto = new ApplicationProtocol((*(stream.getApplicationProtocol())));
+    else this->appProto = 0;
+
+    this->proto = stream.getProtocol();
+
+}
+
 ClientDataGenerator::~ClientDataGenerator(){
 
 
 }
 
 
+
 //Class ServerDataGenerator function definitions
 
 ServerDataGenerator::ServerDataGenerator(uint16_t streamNumber, Protocol proto, ApplicationProtocol* appProto): DataGenerator(streamNumber, proto, appProto){
 
+
+}
+
+ServerDataGenerator::ServerDataGenerator(const DataGenerator& stream){
 
 }
 

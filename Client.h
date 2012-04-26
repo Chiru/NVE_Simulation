@@ -23,6 +23,20 @@ class DataGenerator;
 
 class Client{
 
+    friend std::ostream& operator<<(std::ostream &out, const Client &client){
+
+        out << "Client number: " << client.clientNumber << "  Network delay: " << client.networkDelay
+            << "  Downlink bandwidth: " << client.downlinkBandwidth << "  Uplink bandwidth: " << client.uplinkBandwidth
+            << "  Packet loss rate: " << client.lossRate;
+
+        for(int i = 0; i < client.numberOfStreams; i++){
+             if((client.streams[i]) != 0)
+                out << *(client.streams[i]);
+        }
+
+        return out;
+    }
+
 public:
     Client(XMLParser&, uint16_t no);
     ~Client();
@@ -37,6 +51,7 @@ private:
     double downlinkBandwidth;
     double lossRate;
     uint16_t clientNumber;
+    uint16_t numberOfStreams;
 };
 
 
@@ -45,8 +60,8 @@ private:
 
 Client::Client(XMLParser& parser, uint16_t no): parser(parser), streams(0){
 
-
    parser.getStreams(streams);
+   numberOfStreams = parser.getNumberOfStreams();
 
    if(!parser.getClientStats(no, clientNumber, networkDelay, uplinkBandwidth, downlinkBandwidth, lossRate))
        std::cerr << "Mysterious error while creating " << no << ". client." << std::endl;
@@ -62,7 +77,6 @@ Client::~Client(){
 
     if(streams != 0)
          delete[] streams;
-
 }
 
 std::string Client::getDelayInMilliseconds(){
@@ -74,5 +88,6 @@ std::string Client::getDelayInMilliseconds(){
     return stream.str();
 
 }
+
 
 #endif // CLIENT_H

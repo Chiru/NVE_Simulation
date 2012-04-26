@@ -21,6 +21,7 @@
 #include "ApplicationProtocol.h"
 #include <string>
 #include <vector>
+#include <typeinfo>
 #include "DataGenerator.h"
 
 
@@ -85,7 +86,6 @@ XMLParser::XMLParser(std::string& filename): filename(filename), correctFile(tru
         xmlFile.append(token);
     }
 
-    //std::cout << xmlFile << std::endl;  //TODO: remove when not needed anymore
     filestream.close();
 
     correctFile = parseClients(xmlFile);
@@ -98,7 +98,6 @@ XMLParser::~XMLParser(){
 
     std::vector<XMLParser::Client*>::iterator it = clients.begin();
     while(it != clients.end()){
-        std::cout << (*it)->clientNumber <<" "<< (*it)->delay << " "<<(*it)->uplink << " " << (*it)->downlink <<" "<< (*it)->loss << std::endl;
         delete (*it);
         it++;
     }
@@ -132,7 +131,6 @@ bool XMLParser::getElement(const std::string &file, size_t position, const std::
 
     result = file.substr(position, end_position - position +1);
 
-    std::cout << result << std::endl;
     return true;
 }
 
@@ -391,7 +389,7 @@ bool XMLParser::parseApplicationProtocol(std::string &file){
 
     if((position = file.find("<appproto>")) == std::string::npos){
         appProto = 0;
-        std::cout << "No application protocol found" << std::endl;
+        std::cerr << "No application protocol found" << std::endl;
         return true;
     }
 
@@ -425,11 +423,22 @@ bool XMLParser::parseApplicationProtocol(std::string &file){
 
 bool XMLParser::getStreams(DataGenerator** &streams){
 
-    //TODO: deep copy allocated streams
-  /*  streams = new DataGenerator*[numberOfStreams];
+
+    streams = new DataGenerator*[numberOfStreams];
+
     for(int i = 0; i < numberOfStreams; i++)
         streams[i] = 0;
-*/
+
+    std::cout << typeid(*(this->streams[0])).name() << std::endl;
+
+    if(this->streams[0] != 0 && strstr(typeid(*(this->streams[0])).name(), "ClientDataGenerator") != NULL){
+        for(int i = 0; i < numberOfStreams; i++)
+            streams[i] = new ClientDataGenerator(*(this->streams[i]));
+    }
+    else
+        for(int i = 0; i < numberOfStreams; i++)
+            streams[i] = new ServerDataGenerator(*(this->streams[i]));
+
     return true;
 }
 
