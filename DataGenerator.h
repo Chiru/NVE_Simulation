@@ -23,6 +23,9 @@ class DataGenerator : public ns3::Application{
 
     friend std::ostream& operator<<(std::ostream& out, const DataGenerator &stream){
 
+        out << "\n\tStream: " << stream.streamNumber << "  protocol: "
+            << (stream.proto == TCP_NAGLE_DISABLED ? "TCP  Nagle's disabled" : stream.proto == TCP_NAGLE_ENABLED ? "TCP  Nagle's enabled" :
+            (stream.appProto == 0 ? "UDP  Application protocol: no" : "UDP  Application protocol: yes"));
         return out;
 
     }
