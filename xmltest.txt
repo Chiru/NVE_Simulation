@@ -17,10 +17,29 @@
         <retransmit="200"/>
     </appproto>
     <streams>
-        <stream></stream>
-        <stream></stream>
-        <stream></stream>
-        <stream></stream>
+        <stream>
+            type="tcp"
+            nagle="yes"
+            no="1"
+            useappproto="no"
+        </stream>
+        <stream>
+            type="tcp"
+            nagle="no"
+            no="2"
+            useappproto="no"
+        </stream>
+        <stream>
+            type="udp"
+            nagle="yes"
+            no="3"
+            useappproto="no"
+        </stream>
+        <stream>
+            type="udp"
+            no="4"
+            useappproto="yes"
+        </stream>
     </streams>
 
 

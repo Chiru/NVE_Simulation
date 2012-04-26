@@ -21,14 +21,19 @@
 
 class DataGenerator : public ns3::Application{
 
+
+
 public:
-    DataGenerator();
+    enum Protocol{TCP_NAGLE_DISABLED, TCP_NAGLE_ENABLED, UDP};
+    DataGenerator(uint16_t streamNumber, Protocol proto, ApplicationProtocol* appProto);
     virtual ~DataGenerator();
 
     virtual void StartApplication();
     virtual void StopApplication();
 
 private:
+    uint16_t streamNumber;
+    Protocol proto;
     ApplicationProtocol* appProto;
 
 };
@@ -36,7 +41,7 @@ private:
 class ClientDataGenerator : public DataGenerator{
 
 public:
-    ClientDataGenerator();
+    ClientDataGenerator(uint16_t streamNumber, Protocol proto, ApplicationProtocol* appProto);
     ~ClientDataGenerator();
 };
 
@@ -44,7 +49,7 @@ public:
 class ServerDataGenerator : public DataGenerator{
 
 public:
-    ServerDataGenerator();
+    ServerDataGenerator(uint16_t streamNumber, Protocol proto, ApplicationProtocol* appProto);
     ~ServerDataGenerator();
 
 };
@@ -52,12 +57,15 @@ public:
 
 //Class DataGenerator function definitions
 
-DataGenerator::DataGenerator(){
+DataGenerator::DataGenerator(uint16_t streamNumber, Protocol proto, ApplicationProtocol* appProto): streamNumber(streamNumber), proto(proto), appProto(appProto){
 
 
 }
 
 DataGenerator::~DataGenerator(){
+
+    if(appProto != 0)
+        delete appProto;
 
 }
 
@@ -74,7 +82,7 @@ void DataGenerator::StopApplication(){
 
 //Class ClientDataGenerator function definitions
 
-ClientDataGenerator::ClientDataGenerator(){
+ClientDataGenerator::ClientDataGenerator(uint16_t streamNumber, Protocol proto, ApplicationProtocol* appProto): DataGenerator(streamNumber, proto, appProto){
 
 
 }
@@ -87,7 +95,7 @@ ClientDataGenerator::~ClientDataGenerator(){
 
 //Class ServerDataGenerator function definitions
 
-ServerDataGenerator::ServerDataGenerator(){
+ServerDataGenerator::ServerDataGenerator(uint16_t streamNumber, Protocol proto, ApplicationProtocol* appProto): DataGenerator(streamNumber, proto, appProto){
 
 
 }

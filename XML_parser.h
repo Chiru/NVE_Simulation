@@ -42,10 +42,7 @@ public:
     uint16_t getNumberOfClients()const {return numberOfClients;}
     bool getStreams(DataGenerator**&);
     uint16_t getNumberOfStreams()const {return numberOfStreams;}
-    bool getApplicationProtocol(ApplicationProtocol*);
-    bool getAppProtoPacketSize(uint16_t &size);
-    bool getAppProtoDelayedAck(uint16_t &ack);
-    bool getAppProtoRetransmit(uint16_t &retransmit);
+    bool getApplicationProtocol(ApplicationProtocol*&);
     bool getClientStats(uint16_t clientIndex, uint16_t &clientNumber, int &delay, double &uplink, double &downlink, double &loss);
 
 private:
@@ -92,8 +89,8 @@ XMLParser::XMLParser(std::string& filename): filename(filename), correctFile(tru
     filestream.close();
 
     correctFile = parseClients(xmlFile);
-    correctFile = parseStreams(xmlFile);
     correctFile = parseApplicationProtocol(xmlFile);
+    correctFile = parseStreams(xmlFile);
 
 }
 
@@ -285,7 +282,45 @@ uint16_t XMLParser::countStreams(std::string &file){
 
 }
 
-bool XMLParser::parseStream(std::string &streamElement, DataGenerator *&stream){
+bool XMLParser::parseStream(std::string &streamElement, DataGenerator* &stream){
+
+    int stream_number;
+    DataGenerator::Protocol proto;
+    ApplicationProtocol* appProto;
+    std::string type;
+    std::string nagle("");
+    std::string useAppProto("");
+
+    if(!readValue<int>(streamElement, "no", stream_number, 0)){
+        std::cerr << "No stream number specified." << std::endl;
+        return false;
+    }
+
+    if(!readValue<std::string>(streamElement, "type", type, 0)){
+        std::cerr << "No stream type specified in stream number: " << stream_number << std::endl;
+        return false;
+    }
+
+    readValue<std::string>(streamElement, "nagle", nagle, 0);
+    if(nagle.compare("yes") == 0 && type.compare("tcp") == 0){
+        proto = DataGenerator::TCP_NAGLE_ENABLED;
+    }else if(type.compare("tcp") == 0){
+        proto = DataGenerator::TCP_NAGLE_DISABLED;
+    }else if(type.compare("udp") == 0)
+        proto = DataGenerator::UDP;
+    else {
+        std::cerr << "Invalid type in stream number: " << stream_number << std::endl;
+    }
+
+    readValue<std::string>(streamElement, "appproto", useAppProto, 0);
+
+    if(useAppProto.compare("yes")== 0 && type.compare("udp") == 0){
+        if(!getApplicationProtocol(appProto)){
+            appProto = 0;
+        }
+    }else appProto = 0;
+
+    stream = new ClientDataGenerator(stream_number, proto, appProto);
 
     return true;
 }
@@ -367,17 +402,17 @@ bool XMLParser::parseApplicationProtocol(std::string &file){
 
     value = "";
 
-    if(!readValue<int>(file, "acksize", acksize, position)){
+    if(!readValue<int>(token, "acksize", acksize)){
         std::cerr << "Incorrect format in application protocol parameter: acksize" << std::endl;
         return false;
     }
 
-    if(!readValue<int>(file, "delayedack", delack, position)){
+    if(!readValue<int>(token, "delayedack", delack)){
         std::cerr << "Incorrect format in application protocol parameter: delayedack" << std::endl;
         return false;
     }
 
-    if(!readValue<int>(file, "retransmit", retransmit, position)){
+    if(!readValue<int>(token, "retransmit", retransmit)){
         std::cerr << "Incorrect format in application protocol parameter: retransmit" << std::endl;
         return false;
     }
@@ -396,23 +431,6 @@ bool XMLParser::getStreams(DataGenerator** &streams){
         streams[i] = 0;
 */
     return true;
-}
-
-bool XMLParser::getAppProtoPacketSize(uint16_t &size){
-
-    return true; //TODO: hard-coding, parse actual file
-}
-
-bool XMLParser::getAppProtoDelayedAck(uint16_t &ack){
-
-    return true; //TODO: hard-coding, parse actual file
-
-}
-
-bool XMLParser::getAppProtoRetransmit(uint16_t &retransmit){
-
-    return true; //TODO: hard-coding, parse actual file
-
 }
 
 
@@ -439,7 +457,7 @@ bool XMLParser::getClientStats(uint16_t clientIndex, uint16_t &clientNumber, int
 }
 
 
- bool XMLParser::getApplicationProtocol(ApplicationProtocol* proto){
+ bool XMLParser::getApplicationProtocol(ApplicationProtocol* &proto){
 
     if(appProto == 0)
         return false;
