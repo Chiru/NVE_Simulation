@@ -19,10 +19,12 @@
 
 
 #include "ApplicationProtocol.h"
+#include "DataGenerator.h"
+#include "Messages.h"
 #include <string>
 #include <vector>
 #include <typeinfo>
-#include "DataGenerator.h"
+
 
 
 class XMLParser{
@@ -36,7 +38,7 @@ class XMLParser{
     };
 
 public:
-    XMLParser(std::string& filename);
+    XMLParser(std::string filename);
     ~XMLParser();
 
     bool isFileCorrect(){return correctFile;}
@@ -50,6 +52,7 @@ private:
     bool parseClients(std::string& file);
     bool parseStreams(std::string& file);
     bool parseStream(std::string& streamElement, DataGenerator*& stream);
+    bool parseMessages(std::string& messagesElement, std::vector<Message*>& messages);
     bool parseApplicationProtocol(std::string& file);
     uint16_t countStreams(std::string& file);
     template <class T> bool readValue(const std::string& file, const std::string& variable, T& result, size_t position = 0);
@@ -72,7 +75,7 @@ private:
 
 //class XMLParser function definitions
 
-XMLParser::XMLParser(std::string& filename): filename(filename), correctFile(true), appProto(0), streams(0), clients(0){
+XMLParser::XMLParser(std::string filename): filename(filename), correctFile(true), appProto(0), streams(0), clients(0){
 
     std::ifstream filestream(filename.c_str());
     std::string xmlFile;
@@ -143,7 +146,6 @@ template <class T> bool XMLParser::readValue(const std::string &file, const std:
     tempVariable.append("=\"");
 
     variable_begin = file.find(tempVariable, position);
-
     if(variable_begin == std::string::npos)
         return false;
 
@@ -154,6 +156,7 @@ template <class T> bool XMLParser::readValue(const std::string &file, const std:
     }
 
     stream >> result;
+    std::cout << tempVariable <<  " " <<  result << std::endl;
 
     if(stream.fail())
         return false;
@@ -285,9 +288,12 @@ bool XMLParser::parseStream(std::string &streamElement, DataGenerator* &stream){
     int stream_number;
     DataGenerator::Protocol proto;
     ApplicationProtocol* appProto;
+    uint16_t position;
     std::string type;
     std::string nagle("");
     std::string useAppProto("");
+    std::string messagesElement("");
+    std::vector<Message*> messages;
 
     if(!readValue<int>(streamElement, "no", stream_number, 0)){
         std::cerr << "No stream number specified." << std::endl;
@@ -318,7 +324,24 @@ bool XMLParser::parseStream(std::string &streamElement, DataGenerator* &stream){
         }
     }else appProto = 0;
 
-    stream = new ClientDataGenerator(stream_number, proto, appProto);
+    if((position = streamElement.find("<messages>")) == std::string::npos){
+        std::cerr << "No messages specified in stream number " << stream_number << std::endl;
+        return false;
+    }
+
+    if(!getElement(streamElement, position, "<messages>", "</messages>", messagesElement)){
+        std::cout << streamElement << std::endl;
+        std::cerr << "Incorrect format in message specification in stream number " << stream_number << std::endl;
+        return false;
+    }
+
+    if(!parseMessages(messagesElement, messages)){
+        std::cerr << "Incorrect format in message specifications." << std::endl;
+        return false;
+    }
+
+
+    stream = new ClientDataGenerator(stream_number, proto, appProto, messages);
 
     return true;
 }
@@ -381,6 +404,84 @@ bool XMLParser::parseStreams(std::string &file){
 
 }
 
+bool XMLParser::parseMessages(std::string &messagesElement, std::vector<Message*> &messages){
+
+    size_t latest_token = 0;
+    std::string messageElement("");
+    std::string type, reliable, name;
+    int size, timeInterval, timeRequirement;
+    double clientsOfInterest;
+
+    if((latest_token = messagesElement.find("<message>")) == std::string::npos){
+        std::cerr << "Error in message specifications" << std::endl;
+        return false;
+    }
+
+    while(getElement(messagesElement, latest_token, "<message>", "</message>", messageElement)){
+
+        if(!readValue<std::string>(messageElement, "type", type, 0)){
+            std::cerr << "Error in message type specification." << std::endl;
+            return false;
+        }
+
+        if(!readValue<std::string>(messageElement, "name", name, 0)){
+            std::cerr << "No message name specified." << std::endl;
+            return false;
+        }
+
+        if(!readValue<std::string>(messageElement, "reliable", reliable, 0)){
+            std::cerr << "Error in reliability specification." << std::endl;
+            return false;
+        }
+
+        if(!readValue<int>(messageElement, "size", size, 0)){
+            std::cerr << "Error in message size specification." << std::endl;
+            return false;
+        }
+
+        if(!readValue<int>(messageElement, "timeinterval", timeInterval, 0)){
+            std::cerr << "Error in message timeinterval specification." << std::endl;
+            return false;
+        }
+
+        if(type.compare("uam") == 0){
+
+            if(!readValue<int>(messageElement, "timerequirement", timeRequirement, 0)){
+                std::cerr << "Error in message timerequirement specification." << std::endl;
+                return false;
+            }
+
+            if(!readValue<double>(messageElement, "clientsofinterest", clientsOfInterest, 0)){
+                std::cerr << "Error in message clients of interest specification." << std::endl;
+                return false;
+            }
+
+            messages.push_back(new UserActionMessage(name, reliable.compare("no") == 0 ? false : true, timeInterval, size, clientsOfInterest, timeRequirement));
+
+        }
+
+        if(type.compare("odt") == 0){
+
+
+        }
+
+        if(type.compare("mm") == 0){
+
+
+        }
+
+        if((latest_token = messagesElement.find("</message>", latest_token)) == std::string::npos){
+            std::cerr << "Error in messages specification: missing </message> tag." << std::endl;
+            return false;
+        }
+        latest_token++;
+
+    }
+
+    return true;
+
+}
+
 bool XMLParser::parseApplicationProtocol(std::string &file){
 
     size_t position;
@@ -423,21 +524,20 @@ bool XMLParser::parseApplicationProtocol(std::string &file){
 
 bool XMLParser::getStreams(DataGenerator** &streams){
 
-
     streams = new DataGenerator*[numberOfStreams];
 
     for(int i = 0; i < numberOfStreams; i++)
         streams[i] = 0;
 
-    std::cout << typeid(*(this->streams[0])).name() << std::endl;
-
     if(this->streams[0] != 0 && strstr(typeid(*(this->streams[0])).name(), "ClientDataGenerator") != NULL){
         for(int i = 0; i < numberOfStreams; i++)
             streams[i] = new ClientDataGenerator(*(this->streams[i]));
     }
-    else
-        for(int i = 0; i < numberOfStreams; i++)
+    else if(this->streams[0] != 0 && strstr(typeid(*(this->streams[0])).name(), "ServerDataGenerator") != NULL){
+        for(int i = 0; i < numberOfStreams; i++){
             streams[i] = new ServerDataGenerator(*(this->streams[i]));
+        }
+    }
 
     return true;
 }

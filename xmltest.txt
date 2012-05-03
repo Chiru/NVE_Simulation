@@ -22,23 +22,67 @@
             nagle="yes"
             no="1"
             useappproto="no"
+            <messages>
+                <message>
+                     <type="uam">
+                     <name="eka">
+                     <reliable="yes">
+                     <size="100">
+                     <timeinterval="200">
+                     <clientsofinterest="90">
+                     <timerequirement="100">
+                </message>
+            </messages>
         </stream>
         <stream>
             type="tcp"
             nagle="no"
             no="2"
             useappproto="no"
+            <messages>
+                <message>
+                    <type="uam">
+                    <name="toka">
+                    <reliable="yes">
+                     <size="100">
+                     <timeinterval="200">
+                     <clientsofinterest="90">
+                     <timerequirement="100">
+                </message>
+            </messages>
         </stream>
         <stream>
             type="udp"
             nagle="yes"
             no="3"
             useappproto="no"
+            <messages>
+                <message>
+                    <type="uam">
+                    <name="kolmas">
+                    <reliable="no">
+                     <size="100">
+                     <timeinterval="200">
+                     <clientsofinterest="90">
+                     <timerequirement="100">
+                </message>
+            </messages>
         </stream>
         <stream>
             type="udp"
             no="4"
             useappproto="yes"
+            <messages>
+                <message>
+                    <type="uam">
+                    <name="neljäs">
+                    <reliable="yes">
+                     <size="150">
+                     <timeinterval="200">
+                     <clientsofinterest="90">
+                     <timerequirement="100">
+                </message>
+            </messages>
         </stream>
     </streams>
 

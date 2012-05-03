@@ -17,31 +17,37 @@
 #ifndef MESSAGES_H
 #define MESSAGES_H
 
+#include <string>
+
 class Message{
 
 public:
-    Message();
-    ~Message();
+    Message(std::string, bool, int, uint16_t);
+    virtual ~Message();
     virtual void startDataTransfer() = 0;
+    virtual Message* copyMessage() const = 0;
+    void getName() const{std::cout << name << std::endl;}
 
 protected:
+    std::string name;
     bool reliable;
-    ns3::Time timeInterval;
+    int timeInterval;
     uint16_t messageSize;
     uint32_t messageNumber;
-
+    enum MessageType{USER_ACTION, OTHER_DATA, MAINTENANCE} type;
 };
 
 class UserActionMessage : public Message{
 
 public:
-    UserActionMessage();
+    UserActionMessage(std::string name, bool reliable, int timeInterval, uint16_t messageSize, double clientsOfInterest, int requirement);
     ~UserActionMessage();
     void startDataTransfer();
+    Message* copyMessage() const;
 
 private:
     double clientsOfInterest;
-    ns3::Time timeRequirement;
+    int timeRequirement;
     void sendData();
 
 };
@@ -49,9 +55,10 @@ private:
 class OtherDataMessage : public Message{
 
 public:
-    OtherDataMessage();
+    OtherDataMessage(std::string name, bool reliable, int timeInterval, uint16_t messageSize);
     ~OtherDataMessage();
     void startDataTransfer();
+    Message* copyMessage() const;
 
 private:
     void sendData();
@@ -61,9 +68,10 @@ private:
 class MaintenanceMessage : public Message{
 
 public:
-    MaintenanceMessage();
+    MaintenanceMessage(std::string name, bool reliable, int timeInterval, uint16_t messageSize);
     ~MaintenanceMessage();
     void startDataTransfer();
+    Message* copyMessage() const;
 
 private:
     void sendData();
@@ -74,7 +82,8 @@ private:
 
 //Class Message function definitions
 
-Message::Message(){
+Message::Message(std::string name, bool reliable, int timeInterval, uint16_t size)
+    : name(name), reliable(reliable), timeInterval(timeInterval), messageSize(size){
 
 }
 
@@ -85,7 +94,10 @@ Message::~Message(){
 
 //Class UserActionMessage function definitions
 
-UserActionMessage::UserActionMessage(){
+UserActionMessage::UserActionMessage(std::string name, bool reliable, int timeInterval, uint16_t messageSize, double clientsOfInterest, int requirement)
+    :Message(name, reliable, timeInterval, messageSize), clientsOfInterest(clientsOfInterest), timeRequirement(requirement){
+
+    type = USER_ACTION;
 
 }
 
@@ -101,12 +113,23 @@ void UserActionMessage::sendData(){
 
 }
 
+Message* UserActionMessage::copyMessage() const{
+
+    Message *msg;
+    msg = new UserActionMessage(*this);
+
+    return msg;
+
+
+}
 
 //Class OtherDataMessage function definitions
 
 
-OtherDataMessage::OtherDataMessage(){
+OtherDataMessage::OtherDataMessage(std::string name, bool reliable, int timeInterval, uint16_t messageSize)
+    : Message(name, reliable, timeInterval, messageSize){
 
+    type = OTHER_DATA;
 
 }
 
@@ -125,12 +148,23 @@ void OtherDataMessage::sendData(){
 
 }
 
+Message* OtherDataMessage::copyMessage() const{
+
+    Message *msg;
+    msg = new OtherDataMessage(*this);
+
+    return msg;
+
+}
+
 
 //Class MaintenanceMessage function definitions
 
 
-MaintenanceMessage::MaintenanceMessage(){
+MaintenanceMessage::MaintenanceMessage(std::string name, bool reliable, int timeInterval, uint16_t messageSize)
+    : Message(name, reliable, timeInterval, messageSize){
 
+    type = MAINTENANCE;
 
 }
 
@@ -147,6 +181,14 @@ void MaintenanceMessage::startDataTransfer(){
 void MaintenanceMessage::sendData(){
 
 
+}
+
+Message* MaintenanceMessage::copyMessage() const{
+
+    Message *msg;
+    msg = new MaintenanceMessage(*this);
+
+    return msg;
 }
 
 #endif // MESSAGES_H

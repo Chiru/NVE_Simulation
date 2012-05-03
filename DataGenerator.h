@@ -18,6 +18,8 @@
 #define DATAGENERATOR_H
 
 #include "ApplicationProtocol.h"
+#include "Messages.h"
+#include <vector>
 
 class DataGenerator : public ns3::Application{
 
@@ -34,7 +36,7 @@ class DataGenerator : public ns3::Application{
 public:
     enum Protocol{TCP_NAGLE_DISABLED, TCP_NAGLE_ENABLED, UDP};
     DataGenerator(){}
-    DataGenerator(uint16_t streamNumber, Protocol proto, ApplicationProtocol* appProto);
+    DataGenerator(uint16_t streamNumber, Protocol proto, ApplicationProtocol* appProto, std::vector<Message*> messages);
     virtual ~DataGenerator();
 
     virtual void StartApplication();
@@ -42,18 +44,21 @@ public:
     uint16_t getStreamNumber() const{return streamNumber;}
     Protocol getProtocol() const{return proto;}
     ApplicationProtocol* getApplicationProtocol() const{return appProto;}
+    virtual std::vector<Message*> getMessages()const {return messages;}
+
 
 protected:
     uint16_t streamNumber;
     Protocol proto;
     ApplicationProtocol* appProto;
+    std::vector<Message*> messages;
 
 };
 
 class ClientDataGenerator : public DataGenerator{
 
 public:
-    ClientDataGenerator(uint16_t streamNumber, Protocol proto, ApplicationProtocol* appProto);
+    ClientDataGenerator(uint16_t streamNumber, Protocol proto, ApplicationProtocol* appProto, std::vector<Message*> messages);
     ClientDataGenerator(const DataGenerator&);
     ~ClientDataGenerator();
 };
@@ -62,7 +67,7 @@ public:
 class ServerDataGenerator : public DataGenerator{
 
 public:
-    ServerDataGenerator(uint16_t streamNumber, Protocol proto, ApplicationProtocol* appProto);
+    ServerDataGenerator(uint16_t streamNumber, Protocol proto, ApplicationProtocol* appProto, std::vector<Message*> messages);
     ServerDataGenerator(const DataGenerator&);
     ~ServerDataGenerator();
 
@@ -71,7 +76,8 @@ public:
 
 //Class DataGenerator function definitions
 
-DataGenerator::DataGenerator(uint16_t streamNumber, Protocol proto, ApplicationProtocol* appProto): streamNumber(streamNumber), proto(proto), appProto(appProto){
+DataGenerator::DataGenerator(uint16_t streamNumber, Protocol proto, ApplicationProtocol* appProto, std::vector<Message*> messages)
+    : streamNumber(streamNumber), proto(proto), appProto(appProto), messages(messages){
 
 
 }
@@ -80,6 +86,11 @@ DataGenerator::~DataGenerator(){
 
     if(appProto != 0){
         delete appProto;
+    }
+
+    for(std::vector<Message*>::iterator it = messages.begin(); it != messages.end(); it++){
+        ;delete *it;
+
     }
 
 }
@@ -97,7 +108,8 @@ void DataGenerator::StopApplication(){
 
 //Class ClientDataGenerator function definitions
 
-ClientDataGenerator::ClientDataGenerator(uint16_t streamNumber, Protocol proto, ApplicationProtocol* appProto): DataGenerator(streamNumber, proto, appProto){
+ClientDataGenerator::ClientDataGenerator(uint16_t streamNumber, Protocol proto, ApplicationProtocol* appProto, std::vector<Message*> messages)
+    : DataGenerator(streamNumber, proto, appProto, messages){
 
 
 }
@@ -112,6 +124,13 @@ ClientDataGenerator::ClientDataGenerator(const DataGenerator& stream){
 
     this->proto = stream.getProtocol();
 
+    std::vector<Message*> messages = stream.getMessages();
+
+    for(std::vector<Message*>::iterator it = messages.begin(); it != messages.end(); it++){
+        this->messages.push_back((*it)->copyMessage());
+
+    }
+
 }
 
 ClientDataGenerator::~ClientDataGenerator(){
@@ -123,7 +142,8 @@ ClientDataGenerator::~ClientDataGenerator(){
 
 //Class ServerDataGenerator function definitions
 
-ServerDataGenerator::ServerDataGenerator(uint16_t streamNumber, Protocol proto, ApplicationProtocol* appProto): DataGenerator(streamNumber, proto, appProto){
+ServerDataGenerator::ServerDataGenerator(uint16_t streamNumber, Protocol proto, ApplicationProtocol* appProto, std::vector<Message*> messages)
+    : DataGenerator(streamNumber, proto, appProto, messages){
 
 
 }
