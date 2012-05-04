@@ -20,6 +20,8 @@
 #include "ns3/core-module.h"
 #include "ns3/point-to-point-helper.h"
 #include "ns3/internet-stack-helper.h"
+#include "ns3/ipv4-address-helper.h"
+#include "ns3/ipv4-interface-container.h"
 #include "XML_parser.h"
 #include "Server.h"
 #include "Client.h"
@@ -30,10 +32,17 @@
 
 using namespace ns3;
 
+void printAddresses(NetDeviceContainer *deviceContainer, Ipv4InterfaceContainer *ipv4Container,  int count);
 
 int main(int argc, char** argv){
 
     int i;
+    std::stringstream str;
+    std::string addressBase;
+    uint16_t numberOfClients;
+    uint16_t totalNumberOfNodes;
+    Ipv4InterfaceContainer* clientRouterIpInterfaces;
+    Ipv4InterfaceContainer routerServerIpInterfaces;
 
     std::string XML_filename = "scratch/xmltest.txt";
     XMLParser parser = XMLParser(XML_filename);
@@ -42,7 +51,8 @@ int main(int argc, char** argv){
         return 0;
     }
 
-    uint16_t numberOfClients = parser.getNumberOfClients();
+    numberOfClients = parser.getNumberOfClients();
+    totalNumberOfNodes = numberOfClients + 2;
 
     Server server = Server(parser);
     Client* clients[numberOfClients];
@@ -53,9 +63,8 @@ int main(int argc, char** argv){
     }
 
 
-
     NodeContainer allNodes;
-    allNodes.Create(numberOfClients +2);   //a node for each client, one for the router and one for the server
+    allNodes.Create(totalNumberOfNodes);   //a node for each client, one for the router and one for the server
 
     NodeContainer clientRouterNodes[numberOfClients];
 
@@ -83,12 +92,58 @@ int main(int argc, char** argv){
     InternetStackHelper stack;
     stack.Install(allNodes);
 
+    //TODO: add network configurations maybe here
+
+    Ipv4AddressHelper address;
+    str.str("");
+
+    clientRouterIpInterfaces = new Ipv4InterfaceContainer[numberOfClients];
+
+    for(i = 0; i < numberOfClients; i++, str.str("")){
+        str << "10.1." << i+1 << ".0";
+        addressBase = str.str();
+        address.SetBase(addressBase.c_str(), "255.255.255.0", "0.0.0.1");
+        clientRouterIpInterfaces[i] = address.Assign(clientRouterDevices[i]);
+    }
+
+    str << "10.1." << numberOfClients+1 << ".0";
+    address.SetBase(str.str().c_str(), "255.255.255.0", "0.0.0.1");
+    routerServerIpInterfaces = address.Assign(routerServerDevices);
+
+    printAddresses(clientRouterDevices, clientRouterIpInterfaces, numberOfClients);
+    printAddresses(&routerServerDevices, &routerServerIpInterfaces, 1);
+
     Simulator::Run();
     Simulator::Destroy();
 
-    for(int i = 0; i < numberOfClients; i++){
+    for(i = 0; i < numberOfClients; i++){
         if(clients[i] != 0)
             delete clients[i];
     }
 
+    delete[] clientRouterIpInterfaces;
+
 }
+
+void printAddresses(NetDeviceContainer *deviceContainer, Ipv4InterfaceContainer *ipv4Container, int count){
+
+    NetDevice* device;
+    Ipv4InterfaceAddress address;
+    Ipv4* tempAddress;
+    std::vector<Ptr<NetDevice> >::const_iterator macIt;
+    std::vector<std::pair<Ptr<Ipv4>, uint32_t > >::const_iterator ipIt;
+
+    for(int i = 0; i < count; i++){
+
+        for(macIt =(deviceContainer +i)->Begin(), ipIt = (ipv4Container +i)->Begin(); (macIt != (deviceContainer +i)->End()) && (ipIt != (ipv4Container +i)->End()); macIt++, ipIt++){
+            device = GetPointer(*macIt);
+            tempAddress = GetPointer(ipIt->first);
+            address = tempAddress->GetAddress(ipIt->second, 0);
+            tempAddress->Unref();
+            device->Unref();
+
+            std::cout << "MAC address: "  << device->GetAddress() <<  "   ipv4 address: " <<  address << std::endl;
+        }
+    }
+}
+

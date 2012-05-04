@@ -41,7 +41,7 @@ public:
     Client(XMLParser&, uint16_t no);
     ~Client();
 
-    std::string getDelayInMilliseconds();
+    std::string getDelayInMilliseconds() const;
 
 private:
     XMLParser &parser;
@@ -79,7 +79,7 @@ Client::~Client(){
          delete[] streams;
 }
 
-std::string Client::getDelayInMilliseconds(){
+std::string Client::getDelayInMilliseconds() const{
 
     std::stringstream stream;
 
