@@ -19,62 +19,89 @@
 
 #include <string>
 
+
 class Message{
+
+    friend std::ostream& operator<<( std::ostream& out, const Message& msg){
+        msg.printStats(out, msg);
+        return out;
+    }
 
 public:
     Message(std::string, bool, int, uint16_t);
     virtual ~Message();
     virtual void startDataTransfer() = 0;
-    virtual Message* copyMessage() const = 0;
-    void getName() const{std::cout << name << std::endl;}
+    virtual Message* copyMessage()  = 0;
+    std::string getName() const{return name;}
+    bool getReliable() const{return reliable;}
+    int getTimeInterval() const{return timeInterval;}
+    uint16_t getMessageSize() const{return messageSize;}
+    uint16_t getmessagesCreated() const {return messagesCreated;}
 
-protected:
+
+  protected:
+    Message(const Message&);
     std::string name;
     bool reliable;
     int timeInterval;
     uint16_t messageSize;
-    uint32_t messageNumber;
+    uint16_t messageID;
     enum MessageType{USER_ACTION, OTHER_DATA, MAINTENANCE} type;
+    virtual void printStats(std::ostream& out, const Message& msg)const = 0;
+
+    static uint16_t messagesCreated;
 };
 
 class UserActionMessage : public Message{
 
+    friend class XMLParser;
+
 public:
-    UserActionMessage(std::string name, bool reliable, int timeInterval, uint16_t messageSize, double clientsOfInterest, int requirement);
     ~UserActionMessage();
     void startDataTransfer();
-    Message* copyMessage() const;
+    Message* copyMessage();
 
 private:
+    UserActionMessage(std::string name, bool reliable, int timeInterval, uint16_t messageSize, double clientsOfInterest, int requirement);
+
     double clientsOfInterest;
     int timeRequirement;
     void sendData();
+    void printStats(std::ostream& out, const Message& msg) const;
 
 };
 
 class OtherDataMessage : public Message{
 
+    friend class XMLParser;
+
 public:
-    OtherDataMessage(std::string name, bool reliable, int timeInterval, uint16_t messageSize);
     ~OtherDataMessage();
     void startDataTransfer();
-    Message* copyMessage() const;
+    Message* copyMessage();
 
 private:
+    OtherDataMessage(std::string name, bool reliable, int timeInterval, uint16_t messageSize);
+
     void sendData();
+    void printStats(std::ostream& out, const Message& msg)const;
 
 };
 
 class MaintenanceMessage : public Message{
 
+    friend class XMLParser;
+
 public:
-    MaintenanceMessage(std::string name, bool reliable, int timeInterval, uint16_t messageSize);
     ~MaintenanceMessage();
     void startDataTransfer();
-    Message* copyMessage() const;
+    Message* copyMessage();
 
 private:
+    MaintenanceMessage(std::string name, bool reliable, int timeInterval, uint16_t messageSize);
+
     void sendData();
+    void printStats(std::ostream& out, const Message& msg)const;
 
 };
 
@@ -82,8 +109,16 @@ private:
 
 //Class Message function definitions
 
+uint16_t Message::messagesCreated = 0;
+
 Message::Message(std::string name, bool reliable, int timeInterval, uint16_t size)
     : name(name), reliable(reliable), timeInterval(timeInterval), messageSize(size){
+
+}
+
+Message::Message(const Message &msg): name(msg.getName()), reliable(msg.getReliable()), timeInterval(msg.getTimeInterval()), messageSize(msg.getMessageSize()){
+
+    this->messageID = ++messagesCreated;
 
 }
 
@@ -113,13 +148,20 @@ void UserActionMessage::sendData(){
 
 }
 
-Message* UserActionMessage::copyMessage() const{
+Message* UserActionMessage::copyMessage(){
 
     Message *msg;
     msg = new UserActionMessage(*this);
 
     return msg;
 
+}
+
+void UserActionMessage::printStats(std::ostream &out, const Message &msg) const{
+
+    out << "UserActionMessage  " << "  ID:" << messageID <<  "  Name: " << name << "  Reliable: " << (reliable == true ? "yes" : "no")
+           << "  Size: " << messageSize << " TimeInterval: " <<  timeInterval <<  "  ClientOfInterest: "
+           << clientsOfInterest << "  TimeRequirement: " << timeRequirement;
 
 }
 
@@ -148,7 +190,7 @@ void OtherDataMessage::sendData(){
 
 }
 
-Message* OtherDataMessage::copyMessage() const{
+Message* OtherDataMessage::copyMessage(){
 
     Message *msg;
     msg = new OtherDataMessage(*this);
@@ -157,6 +199,12 @@ Message* OtherDataMessage::copyMessage() const{
 
 }
 
+void OtherDataMessage::printStats(std::ostream &out, const Message &msg) const{
+
+    out << "OtherDataMessage  " << "  ID:" << messageID << "  Name: " << name << "  Reliable: " << (reliable == true ? "yes" : "no")
+        << "  Size: " << messageSize << " TimeInterval: " <<  timeInterval;
+
+}
 
 //Class MaintenanceMessage function definitions
 
@@ -183,12 +231,20 @@ void MaintenanceMessage::sendData(){
 
 }
 
-Message* MaintenanceMessage::copyMessage() const{
+Message* MaintenanceMessage::copyMessage(){
 
     Message *msg;
     msg = new MaintenanceMessage(*this);
-
     return msg;
 }
+
+void MaintenanceMessage::printStats(std::ostream &out, const Message &msg) const{
+
+    out << "MaintenanceMessage  " << "  ID:" << messageID << "  Name: " << name << "  Reliable: " << (reliable == true ? "yes" : "no")
+        << "  Size: " << messageSize << " TimeInterval: " <<  timeInterval;
+
+}
+
+
 
 #endif // MESSAGES_H

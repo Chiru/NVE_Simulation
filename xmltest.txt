@@ -79,8 +79,16 @@
                     <reliable="yes">
                      <size="150">
                      <timeinterval="200">
-                     <clientsofinterest="90">
+                     <clientsofinterest="20">
                      <timerequirement="100">
+                </message>
+                <message>
+                        <type="mm">
+                        <name="ping">
+                        <reliable="true">
+                        <size="30">
+                        <timeinterval="3000">
+                        <from="client">	//tämän voi poistaa???
                 </message>
             </messages>
         </stream>

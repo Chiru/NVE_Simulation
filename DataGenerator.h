@@ -28,6 +28,13 @@ class DataGenerator : public ns3::Application{
         out << "\n\tStream: " << stream.streamNumber << "  protocol: "
             << (stream.proto == TCP_NAGLE_DISABLED ? "TCP  Nagle's disabled" : stream.proto == TCP_NAGLE_ENABLED ? "TCP  Nagle's enabled" :
             (stream.appProto == 0 ? "UDP  Application protocol: no" : "UDP  Application protocol: yes"));
+
+
+        for(std::vector<Message*>::const_iterator it = stream.messages.begin(); it != stream.messages.end(); it++){
+            out << "\n\t\t";
+            out << (**it);
+        }
+
         return out;
 
     }
@@ -89,8 +96,7 @@ DataGenerator::~DataGenerator(){
     }
 
     for(std::vector<Message*>::iterator it = messages.begin(); it != messages.end(); it++){
-        ;delete *it;
-
+        delete *it;
     }
 
 }

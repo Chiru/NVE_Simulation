@@ -39,7 +39,7 @@ int main(int argc, char** argv){
     XMLParser parser = XMLParser(XML_filename);
     if(!parser.isFileCorrect()){
         std::cerr << "Terminating due to a incorrect XML format" << std::endl;
-        //TODO: terminate simulation
+        return 0;
     }
 
     uint16_t numberOfClients = parser.getNumberOfClients();

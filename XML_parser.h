@@ -114,15 +114,18 @@ XMLParser::~XMLParser(){
          delete[] streams;
 
 
-    if(appProto != 0)
+    if(appProto != 0){
         delete appProto;
-
+    }
 }
 
 bool XMLParser::getElement(const std::string &file, size_t position, const std::string &start, const std::string &end, std::string &result){
 
     size_t end_position;
     end_position = file.find(end, position);
+
+    if((position = file.find(start, position)) == std::string::npos)
+        return false;
 
     if(end_position == std::string::npos){
         return false;
@@ -215,6 +218,8 @@ bool XMLParser::parseClients(std::string &file){
 
                 for(int i = 0; i < to-from+1; i++){
                     tempClient = new XMLParser::Client();
+                    clients.push_back(tempClient);
+
                     tempClient->clientNumber = from + i;
 
                     if(!readValue<int>(token, "delay", tempClient->delay, latest_token)){
@@ -240,8 +245,6 @@ bool XMLParser::parseClients(std::string &file){
                         return false;
                     }
 
-
-                    clients.push_back(tempClient);
                 }
 
             }else{
@@ -326,17 +329,23 @@ bool XMLParser::parseStream(std::string &streamElement, DataGenerator* &stream){
 
     if((position = streamElement.find("<messages>")) == std::string::npos){
         std::cerr << "No messages specified in stream number " << stream_number << std::endl;
+        delete appProto;
         return false;
     }
 
     if(!getElement(streamElement, position, "<messages>", "</messages>", messagesElement)){
         std::cout << streamElement << std::endl;
         std::cerr << "Incorrect format in message specification in stream number " << stream_number << std::endl;
+        delete appProto;
         return false;
     }
 
     if(!parseMessages(messagesElement, messages)){
         std::cerr << "Incorrect format in message specifications." << std::endl;
+        delete appProto;
+        for(std::vector<Message*>::iterator it = messages.begin(); it != messages.end(); it++){
+            delete *it;
+        }
         return false;
     }
 
@@ -398,8 +407,6 @@ bool XMLParser::parseStreams(std::string &file){
         return false;
     }
 
-    numberOfStreams = count;
-
     return true;
 
 }
@@ -444,6 +451,17 @@ bool XMLParser::parseMessages(std::string &messagesElement, std::vector<Message*
             return false;
         }
 
+        if(size <= 0){
+            std::cerr << "Message size must be more than 0." << std::endl;
+            return false;
+        }
+
+        if(timeInterval <= 0){
+            std::cerr << "TimeInterval must be more than 0." << std::endl;
+            return false;
+        }
+
+
         if(type.compare("uam") == 0){
 
             if(!readValue<int>(messageElement, "timerequirement", timeRequirement, 0)){
@@ -451,8 +469,18 @@ bool XMLParser::parseMessages(std::string &messagesElement, std::vector<Message*
                 return false;
             }
 
+            if(timeRequirement <= 0){
+                std::cerr << "TimeRequirement must be more than 0." << std::endl;
+                return false;
+            }
+
             if(!readValue<double>(messageElement, "clientsofinterest", clientsOfInterest, 0)){
                 std::cerr << "Error in message clients of interest specification." << std::endl;
+                return false;
+            }
+
+            if(clientsOfInterest < 0 || clientsOfInterest > 100){
+                std::cerr << "ClientsOfInterest must be between 0 and 100." << std::endl;
                 return false;
             }
 
@@ -462,11 +490,12 @@ bool XMLParser::parseMessages(std::string &messagesElement, std::vector<Message*
 
         if(type.compare("odt") == 0){
 
-
+            //nothing special here yet
         }
 
         if(type.compare("mm") == 0){
 
+            messages.push_back(new MaintenanceMessage(name, reliable.compare("no") == 0 ? false : true, timeInterval, size));
 
         }
 
@@ -474,6 +503,7 @@ bool XMLParser::parseMessages(std::string &messagesElement, std::vector<Message*
             std::cerr << "Error in messages specification: missing </message> tag." << std::endl;
             return false;
         }
+
         latest_token++;
 
     }
