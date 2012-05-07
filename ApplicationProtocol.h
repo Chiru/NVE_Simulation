@@ -24,6 +24,7 @@
 #include "ns3/core-module.h"
 #include <vector>
 #include <string>
+#include "utilities.h"
 
 
 class ApplicationProtocol{

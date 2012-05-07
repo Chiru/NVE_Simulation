@@ -17,11 +17,22 @@
 #ifndef STATISTICSCOLLECTOR_H
 #define STATISTICSCOLLECTOR_H
 
+#include <iostream>
+#include "utilities.h"
+
+
 class StatisticsCollector{
 
 public:
-    StatisticsCollector();
+
     ~StatisticsCollector();
+    static bool getVerbose() {return verbose;}
+    static StatisticsCollector* createStatisticsCollector(bool);
+
+private:
+    StatisticsCollector(bool);
+    static bool verbose;
+    static bool collectorCreated;
 
 };
 
@@ -29,13 +40,32 @@ public:
 
 //Class StatisticsCollector function definitions
 
-StatisticsCollector::StatisticsCollector(){
+bool StatisticsCollector::collectorCreated = false;
+bool StatisticsCollector::verbose = false;
 
+StatisticsCollector* StatisticsCollector::createStatisticsCollector(bool verbose){
+
+    if(!collectorCreated)
+        return new StatisticsCollector(verbose);
+
+    else {
+        PRINT_ERROR( "Already one StatisticsCollector exists." << std::endl);
+        return NULL;
+    }
+
+
+}
+
+StatisticsCollector::StatisticsCollector(bool verbose){
+
+    StatisticsCollector::verbose = verbose;
 
 }
 
 StatisticsCollector::~StatisticsCollector(){
 
 }
+
+
 
 #endif // STATISTICSCOLLECTOR_H

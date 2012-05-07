@@ -19,6 +19,7 @@
 
 #include "ApplicationProtocol.h"
 #include "Messages.h"
+#include "utilities.h"
 #include <vector>
 
 class DataGenerator : public ns3::Application{

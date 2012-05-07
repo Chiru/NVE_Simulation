@@ -24,7 +24,9 @@
 #include "ns3/ipv4-interface-container.h"
 #include "XML_parser.h"
 #include "Server.h"
+#include "StatisticsCollector.h"
 #include "Client.h"
+#include "utilities.h"
 #include <cstdlib>
 #include <fstream>
 #include <sstream>
@@ -46,6 +48,7 @@ int main(int argc, char** argv){
     Ipv4InterfaceContainer routerServerIpInterfaces;
     Ipv4AddressHelper address;
     NodeContainer allNodes;
+    StatisticsCollector* stats;
     bool verbose = false;
     bool fileNameGiven = false;
     std::string XML_filename;
@@ -56,7 +59,7 @@ int main(int argc, char** argv){
         }
         if(strcmp(argv[i], "--filename") == 0){
             if(++i >= argc){
-                std::cerr << "No filename given" << std::endl;
+                PRINT_ERROR( "No filename given" << std::endl);
                 printHelpAndQuit();
             }else{
                 XML_filename = std::string(argv[i]);
@@ -70,18 +73,24 @@ int main(int argc, char** argv){
     }
 
     if(!fileNameGiven){
-        std::cerr << "No filename given." << std::endl;
+        PRINT_ERROR( "No filename given." << std::endl);
         printHelpAndQuit();
     }
 
 
-    if(verbose);
+    stats = StatisticsCollector::createStatisticsCollector(verbose);
+
+    if(stats == NULL){
+        PRINT_ERROR( "Can't create statistics collector!" << std::endl);
+        return EXIT_FAILURE;
+    }
 
 
     XMLParser parser = XMLParser(XML_filename);
 
     if(!parser.isFileCorrect()){
-        std::cerr << "Terminating due to an incorrect XML file" << std::endl;
+        PRINT_ERROR( "Terminating due to an incorrect XML file" << std::endl);
+        delete stats;
         return EXIT_FAILURE;
     }
 
@@ -93,7 +102,7 @@ int main(int argc, char** argv){
 
     for(uint16_t i = 0; i < numberOfClients; i++){
         clients[i] = new Client(parser, i+1);
-        std::cout << *(clients[i]) << std::endl;
+        PRINT_INFO(*(clients[i]) << std::endl);
     }
 
 
@@ -153,6 +162,8 @@ int main(int argc, char** argv){
             delete clients[i];
     }
 
+    delete stats;
+
     return EXIT_SUCCESS;
 
 }
@@ -174,16 +185,16 @@ void printAddresses(NetDeviceContainer *deviceContainer, Ipv4InterfaceContainer 
             tempAddress->Unref();
             device->Unref();
 
-            std::cout << "MAC address: "  << device->GetAddress() <<  "   ipv4 address: " <<  address << std::endl;
+            PRINT_INFO("MAC address: "  << device->GetAddress() <<  "   ipv4 address: " <<  address << std::endl);
         }
     }
 }
 
 void printHelpAndQuit(){
 
-    std::cout << "Usage: nve_simulator --filename <file>  [--verbose]\n" << "--help    Print this help message."
+    PRINT_INFO("Usage: nve_simulator --filename <file>  [--verbose]\n" << "--help    Print this help message.\n"
               << "--filename <file>     Give filename (mandatory)\n"
-              << "--verbose     Print info about configuration" << std::endl;
+              << "--verbose     Print info about configuration" << std::endl);
 
     exit(EXIT_SUCCESS);
 

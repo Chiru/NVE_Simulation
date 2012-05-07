@@ -18,9 +18,11 @@
 #define XML_PARSER_H
 
 
+#include "utilities.h"
 #include "ApplicationProtocol.h"
 #include "DataGenerator.h"
 #include "Messages.h"
+#include "StatisticsCollector.h"
 #include <string>
 #include <vector>
 #include <typeinfo>
@@ -82,7 +84,7 @@ XMLParser::XMLParser(std::string filename): filename(filename), correctFile(true
     std::string token;
 
     if(filestream == 0){
-        std::cerr << "XML file \"" << filename << "\" could not be opened." << std::endl;
+        PRINT_ERROR( "XML file \"" << filename << "\" could not be opened." << std::endl);
         correctFile = false;
         return;
     }
@@ -161,7 +163,7 @@ template <class T> bool XMLParser::readValue(const std::string &file, const std:
     }
 
     stream >> result;
-    std::cout << tempVariable <<  " " <<  result << std::endl;
+    PRINT_INFO(tempVariable <<  " " <<  result << std::endl);
 
     if(stream.fail())
         return false;
@@ -200,14 +202,14 @@ bool XMLParser::parseClients(std::string &file){
     uint16_t from = 0, to = 0;
 
     if((temp_position = file.find("<clients>")) == std::string::npos){
-        std::cerr << "Incorrect format in XML file: no <clients> tag found" << std::endl;
+        PRINT_ERROR( "Incorrect format in XML file: no <clients> tag found" << std::endl);
         return false;
     }
 
     while((temp_position = file.find("<client>", temp_position+1)) != std::string::npos){
 
         if(!getElement(file, temp_position, "<client>", "</client>", token)){
-            std::cerr << "Incorrect format in client specifications" << std::endl;
+            PRINT_ERROR( "Incorrect format in client specifications" << std::endl);
             return false;
         }
 
@@ -225,36 +227,36 @@ bool XMLParser::parseClients(std::string &file){
                     tempClient->clientNumber = from + i;
 
                     if(!readValue<int>(token, "delay", tempClient->delay, latest_token)){
-                        std::cerr << "Incorrect format in client parameters" << std::endl;
+                        PRINT_ERROR( "Incorrect format in client parameters" << std::endl);
                         return false;
                     }
 
 
                     if(!readValue<double>(token, "uplink", tempClient->uplink, latest_token)){
-                        std::cerr << "Incorrect format in client parameters" << std::endl;
+                        PRINT_ERROR( "Incorrect format in client parameters" << std::endl);
                         return false;
                     }
 
 
                     if(!readValue<double>(token, "downlink", tempClient->downlink, latest_token)){
-                        std::cerr << "Incorrect format in client parameters" << std::endl;
+                        PRINT_ERROR( "Incorrect format in client parameters" << std::endl);
                         return false;
                     }
 
 
                     if(!readValue<double>(token, "loss", tempClient->loss, latest_token)){
-                        std::cerr << "Incorrect format in client parameters" << std::endl;
+                        PRINT_ERROR( "Incorrect format in client parameters" << std::endl);
                         return false;
                     }
 
                 }
 
             }else{
-                std::cerr << "Incorrect format in XML file." << value << std::endl;
+                PRINT_ERROR( "Incorrect format in XML file." << value << std::endl);
                 return false;
             }
         }else{
-            std::cerr << "Incorrect format in XML file." << value << std::endl;
+            PRINT_ERROR( "Incorrect format in XML file." << value << std::endl);
             return false;
         }
 
@@ -263,12 +265,12 @@ bool XMLParser::parseClients(std::string &file){
     }
 
     if((latest_token = file.find("</clients>", latest_token)) == std::string::npos){
-        std::cerr << "Incorrect format in XML file: no </clients> tag found or clients defined after it" << std::endl;
+        PRINT_ERROR( "Incorrect format in XML file: no </clients> tag found or clients defined after it" << std::endl);
         return false;
     }
 
     if(count == 0){
-        std::cerr << "No clients specified" << std::endl;
+        PRINT_ERROR( "No clients specified" << std::endl);
         return false;
     }
 
@@ -301,12 +303,12 @@ bool XMLParser::parseStream(std::string &streamElement, DataGenerator* &stream){
     std::vector<Message*> messages;
 
     if(!readValue<int>(streamElement, "no", stream_number, 0)){
-        std::cerr << "No stream number specified." << std::endl;
+        PRINT_ERROR( "No stream number specified." << std::endl);
         return false;
     }
 
     if(!readValue<std::string>(streamElement, "type", type, 0)){
-        std::cerr << "No stream type specified in stream number: " << stream_number << std::endl;
+        PRINT_ERROR( "No stream type specified in stream number: " << stream_number << std::endl);
         return false;
     }
 
@@ -318,7 +320,7 @@ bool XMLParser::parseStream(std::string &streamElement, DataGenerator* &stream){
     }else if(type.compare("udp") == 0)
         proto = DataGenerator::UDP;
     else {
-        std::cerr << "Invalid type in stream number: " << stream_number << std::endl;
+        PRINT_ERROR( "Invalid type in stream number: " << stream_number << std::endl);
     }
 
     readValue<std::string>(streamElement, "appproto", useAppProto, 0);
@@ -330,20 +332,20 @@ bool XMLParser::parseStream(std::string &streamElement, DataGenerator* &stream){
     }else appProto = 0;
 
     if((position = streamElement.find("<messages>")) == std::string::npos){
-        std::cerr << "No messages specified in stream number " << stream_number << std::endl;
+        PRINT_ERROR( "No messages specified in stream number " << stream_number << std::endl);
         delete appProto;
         return false;
     }
 
     if(!getElement(streamElement, position, "<messages>", "</messages>", messagesElement)){
-        std::cout << streamElement << std::endl;
-        std::cerr << "Incorrect format in message specification in stream number " << stream_number << std::endl;
+        PRINT_ERROR( streamElement << std::endl);
+        PRINT_ERROR( "Incorrect format in message specification in stream number " << stream_number << std::endl);
         delete appProto;
         return false;
     }
 
     if(!parseMessages(messagesElement, messages)){
-        std::cerr << "Incorrect format in message specifications." << std::endl;
+        PRINT_ERROR( "Incorrect format in message specifications." << std::endl);
         delete appProto;
         for(std::vector<Message*>::iterator it = messages.begin(); it != messages.end(); it++){
             delete *it;
@@ -365,12 +367,12 @@ bool XMLParser::parseStreams(std::string &file){
     std::string streamElement;
 
     if((latest_token = file.find("<streams>")) == std::string::npos){
-        std::cerr << "Incorrect format in XML file: no <streams> tag found" << std::endl;
+        PRINT_ERROR( "Incorrect format in XML file: no <streams> tag found" << std::endl);
         return false;
     }
 
     if(!getElement(file, latest_token, "<streams>", "</streams>", streams)){
-        std::cerr << "Incorrect format in streams specifications" << std::cerr;
+        PRINT_ERROR( "Incorrect format in streams specifications" << std::endl);
         return false;
     }
 
@@ -386,12 +388,12 @@ bool XMLParser::parseStreams(std::string &file){
     while((temp_position = streams.find("<stream>", latest_token+1)) != std::string::npos){
         latest_token = temp_position;
         if(!getElement(streams, latest_token, "<stream>", "</stream>", streamElement)){
-            std::cerr << "Incorrect format in stream specifications." << std::endl;
+            PRINT_ERROR( "Incorrect format in stream specifications." << std::endl);
             return false;
         }
 
         if(!parseStream(streamElement, this->streams[count])){
-            std::cerr << "Incorrect format in stream specification." << std::endl;
+            PRINT_ERROR( "Incorrect format in stream specification." << std::endl);
             return false;
         }
 
@@ -400,12 +402,12 @@ bool XMLParser::parseStreams(std::string &file){
     }
 
     if((latest_token = file.find("</streams>", latest_token)) == std::string::npos){
-        std::cerr << "Incorrect format in XML file: no </streams> tag found or streams defined after it" << std::endl;
+        PRINT_ERROR( "Incorrect format in XML file: no </streams> tag found or streams defined after it" << std::endl);
         return false;
     }
 
     if(count == 0){
-        std::cerr << "No streams specified" << std::endl;
+        PRINT_ERROR( "No streams specified" << std::endl);
         return false;
     }
 
@@ -422,44 +424,44 @@ bool XMLParser::parseMessages(std::string &messagesElement, std::vector<Message*
     double clientsOfInterest;
 
     if((latest_token = messagesElement.find("<message>")) == std::string::npos){
-        std::cerr << "Error in message specifications" << std::endl;
+        PRINT_ERROR( "Error in message specifications" << std::endl);
         return false;
     }
 
     while(getElement(messagesElement, latest_token, "<message>", "</message>", messageElement)){
 
         if(!readValue<std::string>(messageElement, "type", type, 0)){
-            std::cerr << "Error in message type specification." << std::endl;
+            PRINT_ERROR( "Error in message type specification." << std::endl);
             return false;
         }
 
         if(!readValue<std::string>(messageElement, "name", name, 0)){
-            std::cerr << "No message name specified." << std::endl;
+            PRINT_ERROR( "No message name specified." << std::endl);
             return false;
         }
 
         if(!readValue<std::string>(messageElement, "reliable", reliable, 0)){
-            std::cerr << "Error in reliability specification." << std::endl;
+            PRINT_ERROR( "Error in reliability specification." << std::endl);
             return false;
         }
 
         if(!readValue<int>(messageElement, "size", size, 0)){
-            std::cerr << "Error in message size specification." << std::endl;
+            PRINT_ERROR( "Error in message size specification." << std::endl);
             return false;
         }
 
         if(!readValue<int>(messageElement, "timeinterval", timeInterval, 0)){
-            std::cerr << "Error in message timeinterval specification." << std::endl;
+            PRINT_ERROR( "Error in message timeinterval specification." << std::endl);
             return false;
         }
 
         if(size <= 0){
-            std::cerr << "Message size must be more than 0." << std::endl;
+            PRINT_ERROR( "Message size must be more than 0." << std::endl);
             return false;
         }
 
         if(timeInterval <= 0){
-            std::cerr << "TimeInterval must be more than 0." << std::endl;
+            PRINT_ERROR( "TimeInterval must be more than 0." << std::endl);
             return false;
         }
 
@@ -467,22 +469,22 @@ bool XMLParser::parseMessages(std::string &messagesElement, std::vector<Message*
         if(type.compare("uam") == 0){
 
             if(!readValue<int>(messageElement, "timerequirement", timeRequirement, 0)){
-                std::cerr << "Error in message timerequirement specification." << std::endl;
+                PRINT_ERROR( "Error in message timerequirement specification." << std::endl);
                 return false;
             }
 
             if(timeRequirement <= 0){
-                std::cerr << "TimeRequirement must be more than 0." << std::endl;
+                PRINT_ERROR( "TimeRequirement must be more than 0." << std::endl);
                 return false;
             }
 
             if(!readValue<double>(messageElement, "clientsofinterest", clientsOfInterest, 0)){
-                std::cerr << "Error in message clients of interest specification." << std::endl;
+                PRINT_ERROR( "Error in message clients of interest specification." << std::endl);
                 return false;
             }
 
             if(clientsOfInterest < 0 || clientsOfInterest > 100){
-                std::cerr << "ClientsOfInterest must be between 0 and 100." << std::endl;
+                PRINT_ERROR( "ClientsOfInterest must be between 0 and 100." << std::endl);
                 return false;
             }
 
@@ -502,7 +504,7 @@ bool XMLParser::parseMessages(std::string &messagesElement, std::vector<Message*
         }
 
         if((latest_token = messagesElement.find("</message>", latest_token)) == std::string::npos){
-            std::cerr << "Error in messages specification: missing </message> tag." << std::endl;
+            PRINT_ERROR( "Error in messages specification: missing </message> tag." << std::endl);
             return false;
         }
 
@@ -522,29 +524,29 @@ bool XMLParser::parseApplicationProtocol(std::string &file){
 
     if((position = file.find("<appproto>")) == std::string::npos){
         appProto = 0;
-        std::cerr << "No application protocol found" << std::endl;
+        PRINT_ERROR( "No application protocol found" << std::endl);
         return true;
     }
 
     if(!getElement(file, position, "<appproto>", "</appproto>", token)){
-        std::cerr << "Incorrect format in application protocol specifications." << std::endl;
+        PRINT_ERROR( "Incorrect format in application protocol specifications." << std::endl);
         return false;
     }
 
     value = "";
 
     if(!readValue<int>(token, "acksize", acksize)){
-        std::cerr << "Incorrect format in application protocol parameter: acksize" << std::endl;
+        PRINT_ERROR( "Incorrect format in application protocol parameter: acksize" << std::endl);
         return false;
     }
 
     if(!readValue<int>(token, "delayedack", delack)){
-        std::cerr << "Incorrect format in application protocol parameter: delayedack" << std::endl;
+        PRINT_ERROR( "Incorrect format in application protocol parameter: delayedack" << std::endl);
         return false;
     }
 
     if(!readValue<int>(token, "retransmit", retransmit)){
-        std::cerr << "Incorrect format in application protocol parameter: retransmit" << std::endl;
+        PRINT_ERROR( "Incorrect format in application protocol parameter: retransmit" << std::endl);
         return false;
     }
 

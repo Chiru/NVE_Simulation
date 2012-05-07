@@ -18,6 +18,7 @@
 #define MESSAGES_H
 
 #include <string>
+#include "utilities.h"
 
 
 class Message{

@@ -16,6 +16,8 @@
 
 #ifndef SERVER_H
 #define SERVER_H
+#include "utilities.h"
+
 
 class XMLParser;
 

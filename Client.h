@@ -17,6 +17,7 @@
 #ifndef CLIENT_H
 #define CLIENT_H
 
+#include "utilities.h"
 
 class XMLParser;
 class DataGenerator;
@@ -64,7 +65,7 @@ Client::Client(XMLParser& parser, uint16_t no): parser(parser), streams(0){
    numberOfStreams = parser.getNumberOfStreams();
 
    if(!parser.getClientStats(no, clientNumber, networkDelay, uplinkBandwidth, downlinkBandwidth, lossRate))
-       std::cerr << "Mysterious error while creating " << no << ". client." << std::endl;
+       PRINT_ERROR( "Mysterious error while creating " << no << ". client." << std::endl);
 
 }
 
