@@ -20,16 +20,19 @@
 #include "ApplicationProtocol.h"
 #include "Messages.h"
 #include "utilities.h"
+#include "ns3/tcp-socket-factory.h"
+#include "ns3/udp-socket-factory.h"
 #include <vector>
 
 class DataGenerator : public ns3::Application{
+
+    friend class Client;
 
     friend std::ostream& operator<<(std::ostream& out, const DataGenerator &stream){
 
         out << "\n\tStream: " << stream.streamNumber << "  protocol: "
             << (stream.proto == TCP_NAGLE_DISABLED ? "TCP  Nagle's disabled" : stream.proto == TCP_NAGLE_ENABLED ? "TCP  Nagle's enabled" :
             (stream.appProto == 0 ? "UDP  Application protocol: no" : "UDP  Application protocol: yes"));
-
 
         for(std::vector<Message*>::const_iterator it = stream.messages.begin(); it != stream.messages.end(); it++){
             out << "\n\t\t";
@@ -56,10 +59,13 @@ public:
 
 
 protected:
+    bool createSocket(Ptr<Node> node);
+
     uint16_t streamNumber;
     Protocol proto;
     ApplicationProtocol* appProto;
     std::vector<Message*> messages;
+    Ptr<Socket> socket;
 
 };
 
@@ -109,6 +115,28 @@ void DataGenerator::StartApplication(){
 
 void DataGenerator::StopApplication(){
 
+
+}
+
+bool DataGenerator::createSocket(Ptr<Node> node){
+
+
+    switch(proto){
+
+        case TCP_NAGLE_DISABLED:
+            socket = Socket::CreateSocket(node, TcpSocketFactory::GetTypeId());
+            break;
+
+        case TCP_NAGLE_ENABLED:
+            socket = Socket::CreateSocket(node, TcpSocketFactory::GetTypeId());
+            break;
+
+        case UDP:
+            socket = Socket::CreateSocket(node, UdpSocketFactory::GetTypeId());
+            break;
+    }
+
+    return true;
 
 }
 

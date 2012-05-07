@@ -39,7 +39,7 @@ class Client{
     }
 
 public:
-    Client(XMLParser&, uint16_t no);
+    Client(XMLParser&, uint16_t no, int runningTime, Ptr<Node>);
     ~Client();
 
     std::string getDelayInMilliseconds() const;
@@ -53,19 +53,28 @@ private:
     double lossRate;
     uint16_t clientNumber;
     uint16_t numberOfStreams;
+    int runningTime;
+    Ptr<Node> node;
+
 };
 
 
 
 //Class Client function definitions
 
-Client::Client(XMLParser& parser, uint16_t no): parser(parser), streams(0){
+Client::Client(XMLParser& parser, uint16_t no, int runningTime, Ptr<Node> node): parser(parser), streams(0), runningTime(runningTime), node(node){
 
    parser.getStreams(streams);
    numberOfStreams = parser.getNumberOfStreams();
 
    if(!parser.getClientStats(no, clientNumber, networkDelay, uplinkBandwidth, downlinkBandwidth, lossRate))
        PRINT_ERROR( "Mysterious error while creating " << no << ". client." << std::endl);
+
+   for(int i = 0; i < numberOfStreams; i++){
+       streams[i]->SetStartTime(Seconds(0));
+       streams[i]->SetStopTime(Seconds(runningTime));
+       streams[i]->createSocket(node);
+   }
 
 }
 

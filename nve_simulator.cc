@@ -32,13 +32,12 @@
 #include <sstream>
 
 
-
-using namespace ns3;
-
 void printAddresses(NetDeviceContainer *deviceContainer, Ipv4InterfaceContainer *ipv4Container,  int count);
 void printHelpAndQuit();
 
 int main(int argc, char** argv){
+
+    int runningTime = 100; //TODO: change to be configurable
 
     int i;
     std::stringstream str;
@@ -100,12 +99,6 @@ int main(int argc, char** argv){
     Server server = Server(parser);
     Client* clients[numberOfClients];
 
-    for(uint16_t i = 0; i < numberOfClients; i++){
-        clients[i] = new Client(parser, i+1);
-        PRINT_INFO(*(clients[i]) << std::endl);
-    }
-
-
     allNodes.Create(totalNumberOfNodes);   //a node for each client, one for the router and one for the server
 
     NodeContainer clientRouterNodes[numberOfClients];
@@ -118,11 +111,6 @@ int main(int argc, char** argv){
 
     PointToPointHelper pointToPoint[numberOfClients + 1];    //point-to-point connection for each client-router connection and one for router-server connection
 
-    for(i = 0; i < numberOfClients; i++){
-        //TODO: implement data rate configuration
-        pointToPoint[i].SetChannelAttribute("Delay", StringValue(clients[i]->getDelayInMilliseconds()));
-    }
-
     NetDeviceContainer clientRouterDevices[numberOfClients];
 
     for(i = 0; i < numberOfClients; i++){
@@ -133,6 +121,16 @@ int main(int argc, char** argv){
 
     InternetStackHelper stack;
     stack.Install(allNodes);
+
+    for(uint16_t i = 0; i < numberOfClients; i++){
+        clients[i] = new Client(parser, i+1, runningTime, clientRouterNodes[i].Get(0));
+        PRINT_INFO(*(clients[i]) << std::endl);
+    }
+
+    for(i = 0; i < numberOfClients; i++){
+        //TODO: implement data rate configuration
+        pointToPoint[i].SetChannelAttribute("Delay", StringValue(clients[i]->getDelayInMilliseconds()));
+    }
 
     //TODO: add network configurations maybe here
 
@@ -151,8 +149,12 @@ int main(int argc, char** argv){
     address.SetBase(str.str().c_str(), "255.255.255.0", "0.0.0.1");
     routerServerIpInterfaces = address.Assign(routerServerDevices);
 
-    printAddresses(clientRouterDevices, clientRouterIpInterfaces, numberOfClients);
-    printAddresses(&routerServerDevices, &routerServerIpInterfaces, 1);
+    if(verbose){
+        printAddresses(clientRouterDevices, clientRouterIpInterfaces, numberOfClients);
+        printAddresses(&routerServerDevices, &routerServerIpInterfaces, 1);
+    }
+
+
 
     Simulator::Run();
     Simulator::Destroy();
