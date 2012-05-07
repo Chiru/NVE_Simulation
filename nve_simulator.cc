@@ -25,6 +25,7 @@
 #include "XML_parser.h"
 #include "Server.h"
 #include "Client.h"
+#include <cstdlib>
 #include <fstream>
 #include <sstream>
 
@@ -33,6 +34,7 @@
 using namespace ns3;
 
 void printAddresses(NetDeviceContainer *deviceContainer, Ipv4InterfaceContainer *ipv4Container,  int count);
+void printHelpAndQuit();
 
 int main(int argc, char** argv){
 
@@ -41,14 +43,46 @@ int main(int argc, char** argv){
     std::string addressBase;
     uint16_t numberOfClients;
     uint16_t totalNumberOfNodes;
-    Ipv4InterfaceContainer* clientRouterIpInterfaces;
     Ipv4InterfaceContainer routerServerIpInterfaces;
+    Ipv4AddressHelper address;
+    NodeContainer allNodes;
+    bool verbose = false;
+    bool fileNameGiven = false;
+    std::string XML_filename;
 
-    std::string XML_filename = "scratch/xmltest.txt";
+    for(i = 0; i < argc; i++){
+        if(strcmp(argv[i], "--verbose") == 0){
+            verbose = true;
+        }
+        if(strcmp(argv[i], "--filename") == 0){
+            if(++i >= argc){
+                std::cerr << "No filename given" << std::endl;
+                printHelpAndQuit();
+            }else{
+                XML_filename = std::string(argv[i]);
+                fileNameGiven = true;
+            }
+        }
+        if(strcmp(argv[i], "--help") == 0){
+            printHelpAndQuit();
+        }
+
+    }
+
+    if(!fileNameGiven){
+        std::cerr << "No filename given." << std::endl;
+        printHelpAndQuit();
+    }
+
+
+    if(verbose);
+
+
     XMLParser parser = XMLParser(XML_filename);
+
     if(!parser.isFileCorrect()){
-        std::cerr << "Terminating due to a incorrect XML format" << std::endl;
-        return 0;
+        std::cerr << "Terminating due to an incorrect XML file" << std::endl;
+        return EXIT_FAILURE;
     }
 
     numberOfClients = parser.getNumberOfClients();
@@ -63,7 +97,6 @@ int main(int argc, char** argv){
     }
 
 
-    NodeContainer allNodes;
     allNodes.Create(totalNumberOfNodes);   //a node for each client, one for the router and one for the server
 
     NodeContainer clientRouterNodes[numberOfClients];
@@ -94,10 +127,9 @@ int main(int argc, char** argv){
 
     //TODO: add network configurations maybe here
 
-    Ipv4AddressHelper address;
     str.str("");
 
-    clientRouterIpInterfaces = new Ipv4InterfaceContainer[numberOfClients];
+    Ipv4InterfaceContainer clientRouterIpInterfaces[numberOfClients];
 
     for(i = 0; i < numberOfClients; i++, str.str("")){
         str << "10.1." << i+1 << ".0";
@@ -121,7 +153,7 @@ int main(int argc, char** argv){
             delete clients[i];
     }
 
-    delete[] clientRouterIpInterfaces;
+    return EXIT_SUCCESS;
 
 }
 
@@ -146,4 +178,15 @@ void printAddresses(NetDeviceContainer *deviceContainer, Ipv4InterfaceContainer 
         }
     }
 }
+
+void printHelpAndQuit(){
+
+    std::cout << "Usage: nve_simulator --filename <file>  [--verbose]\n" << "--help    Print this help message."
+              << "--filename <file>     Give filename (mandatory)\n"
+              << "--verbose     Print info about configuration" << std::endl;
+
+    exit(EXIT_SUCCESS);
+
+}
+
 

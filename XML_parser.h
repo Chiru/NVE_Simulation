@@ -75,14 +75,17 @@ private:
 
 //class XMLParser function definitions
 
-XMLParser::XMLParser(std::string filename): filename(filename), correctFile(true), appProto(0), streams(0), clients(0){
+XMLParser::XMLParser(std::string filename): filename(filename), correctFile(true), appProto(0), streams(0), numberOfClients(0), numberOfStreams(0), clients(0){
 
     std::ifstream filestream(filename.c_str());
     std::string xmlFile;
     std::string token;
 
-    if(filestream == 0)
-        std::cerr << "XML file could not be opened" << std::endl;
+    if(filestream == 0){
+        std::cerr << "XML file \"" << filename << "\" could not be opened." << std::endl;
+        correctFile = false;
+        return;
+    }
 
     while(!filestream.eof()){
         filestream >> token;
@@ -112,7 +115,6 @@ XMLParser::~XMLParser(){
 
     if(streams != 0)
          delete[] streams;
-
 
     if(appProto != 0){
         delete appProto;
