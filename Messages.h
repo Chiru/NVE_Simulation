@@ -20,6 +20,7 @@
 #include <string>
 #include "utilities.h"
 
+class DataGenerator;
 
 class Message{
 
@@ -31,8 +32,8 @@ class Message{
 public:
     Message(std::string, bool, int, uint16_t);
     virtual ~Message();
-    virtual void startDataTransfer() = 0;
     virtual Message* copyMessage()  = 0;
+    virtual void scheduleSendEvent(Callback<void, Message*, uint8_t*>) = 0;
     std::string getName() const{return name;}
     bool getReliable() const{return reliable;}
     int getTimeInterval() const{return timeInterval;}
@@ -49,6 +50,7 @@ public:
     uint16_t messageID;
     enum MessageType{USER_ACTION, OTHER_DATA, MAINTENANCE} type;
     virtual void printStats(std::ostream& out, const Message& msg)const = 0;
+    Callback<void, Message*,  uint8_t*> sendFunction;
 
     static uint16_t messagesCreated;
 };
@@ -59,8 +61,8 @@ class UserActionMessage : public Message{
 
 public:
     ~UserActionMessage();
-    void startDataTransfer();
     Message* copyMessage();
+    void scheduleSendEvent(Callback<void, Message*, uint8_t*>);
 
 private:
     UserActionMessage(std::string name, bool reliable, int timeInterval, uint16_t messageSize, double clientsOfInterest, int requirement);
@@ -80,6 +82,8 @@ public:
     ~OtherDataMessage();
     void startDataTransfer();
     Message* copyMessage();
+    void scheduleSendEvent(Callback<void, Message*, uint8_t*>);
+
 
 private:
     OtherDataMessage(std::string name, bool reliable, int timeInterval, uint16_t messageSize);
@@ -95,7 +99,7 @@ class MaintenanceMessage : public Message{
 
 public:
     ~MaintenanceMessage();
-    void startDataTransfer();
+    void scheduleSendEvent(Callback<void, Message*, uint8_t*>);
     Message* copyMessage();
 
 private:
@@ -141,11 +145,27 @@ UserActionMessage::~UserActionMessage(){
 
 }
 
-void UserActionMessage::startDataTransfer(){
+void UserActionMessage::scheduleSendEvent(Callback<void, Message*, uint8_t*> sendFunction){
+
+   this->sendFunction = sendFunction;
+
+    Simulator::Schedule(Time(MilliSeconds(timeInterval)), &UserActionMessage::sendData, this);
 
 }
 
 void UserActionMessage::sendData(){
+
+    char buffer[30];
+    strcpy(buffer, name.c_str());
+
+    std::stringstream str;
+    str << messageID;
+
+    strcat(buffer, str.str().c_str());
+   // char* buffer = new char[messageSize];
+ //   strcpy(buffer, "testmessage");
+
+    sendFunction(this, (uint8_t*)buffer);
 
 }
 
@@ -181,12 +201,6 @@ OtherDataMessage::~OtherDataMessage(){
 
 }
 
-
-void OtherDataMessage::startDataTransfer(){
-
-
-}
-
 void OtherDataMessage::sendData(){
 
 }
@@ -207,6 +221,13 @@ void OtherDataMessage::printStats(std::ostream &out, const Message &msg) const{
 
 }
 
+void OtherDataMessage::scheduleSendEvent(Callback<void, Message*, uint8_t*> function){
+
+    this->sendFunction = function;
+
+}
+
+
 //Class MaintenanceMessage function definitions
 
 
@@ -222,8 +243,9 @@ MaintenanceMessage::~MaintenanceMessage(){
 
 }
 
-void MaintenanceMessage::startDataTransfer(){
+void MaintenanceMessage::scheduleSendEvent(Callback<void, Message*, uint8_t*> function){
 
+    this->sendFunction = function;
 
 }
 

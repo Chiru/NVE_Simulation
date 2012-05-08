@@ -22,6 +22,8 @@
 #include "ns3/internet-stack-helper.h"
 #include "ns3/ipv4-address-helper.h"
 #include "ns3/ipv4-interface-container.h"
+#include "ns3/ipv4-global-routing-helper.h"
+#include "ns3/inet-socket-address.h"
 #include "XML_parser.h"
 #include "Server.h"
 #include "StatisticsCollector.h"
@@ -48,6 +50,7 @@ int main(int argc, char** argv){
     Ipv4AddressHelper address;
     NodeContainer allNodes;
     StatisticsCollector* stats;
+    uint16_t* serverPorts;
     bool verbose = false;
     bool fileNameGiven = false;
     std::string XML_filename;
@@ -68,14 +71,12 @@ int main(int argc, char** argv){
         if(strcmp(argv[i], "--help") == 0){
             printHelpAndQuit();
         }
-
     }
 
     if(!fileNameGiven){
         PRINT_ERROR( "No filename given." << std::endl);
         printHelpAndQuit();
     }
-
 
     stats = StatisticsCollector::createStatisticsCollector(verbose);
 
@@ -96,8 +97,7 @@ int main(int argc, char** argv){
     numberOfClients = parser.getNumberOfClients();
     totalNumberOfNodes = numberOfClients + 2;
 
-    Server server = Server(parser);
-    Client* clients[numberOfClients];
+    serverPorts = new uint16_t[parser.getNumberOfStreams()];
 
     allNodes.Create(totalNumberOfNodes);   //a node for each client, one for the router and one for the server
 
@@ -122,18 +122,6 @@ int main(int argc, char** argv){
     InternetStackHelper stack;
     stack.Install(allNodes);
 
-    for(uint16_t i = 0; i < numberOfClients; i++){
-        clients[i] = new Client(parser, i+1, runningTime, clientRouterNodes[i].Get(0));
-        PRINT_INFO(*(clients[i]) << std::endl);
-    }
-
-    for(i = 0; i < numberOfClients; i++){
-        //TODO: implement data rate configuration
-        pointToPoint[i].SetChannelAttribute("Delay", StringValue(clients[i]->getDelayInMilliseconds()));
-    }
-
-    //TODO: add network configurations maybe here
-
     str.str("");
 
     Ipv4InterfaceContainer clientRouterIpInterfaces[numberOfClients];
@@ -149,12 +137,33 @@ int main(int argc, char** argv){
     address.SetBase(str.str().c_str(), "255.255.255.0", "0.0.0.1");
     routerServerIpInterfaces = address.Assign(routerServerDevices);
 
+    Address serverAddress(InetSocketAddress(routerServerIpInterfaces.GetAddress(1), 10000));
+
+    Client* clients[numberOfClients];
+    Server server = Server(parser, runningTime, routerServerNodes.Get(1), serverAddress);
+
+    for(uint16_t i = 0; i < numberOfClients; i++){
+        clients[i] = new Client(parser, i+1, runningTime, clientRouterNodes[i].Get(0), serverAddress);
+        PRINT_INFO(*(clients[i]) << std::endl);
+    }
+
+    for(i = 0; i < numberOfClients; i++){
+        //TODO: implement data rate configuration
+        pointToPoint[i].SetChannelAttribute("Delay", StringValue(clients[i]->getDelayInMilliseconds()));
+    }
+
+    //TODO: add network configurations maybe here
+
     if(verbose){
         printAddresses(clientRouterDevices, clientRouterIpInterfaces, numberOfClients);
         printAddresses(&routerServerDevices, &routerServerIpInterfaces, 1);
     }
 
+    Ipv4GlobalRoutingHelper::PopulateRoutingTables();
 
+    for(i = 0; i < numberOfClients; i++){
+        pointToPoint[i].EnablePcapAll("results/results.txt");
+    }
 
     Simulator::Run();
     Simulator::Destroy();
@@ -163,6 +172,8 @@ int main(int argc, char** argv){
         if(clients[i] != 0)
             delete clients[i];
     }
+
+    delete[] serverPorts;
 
     delete stats;
 

@@ -22,11 +22,10 @@
 #include "utilities.h"
 #include "ns3/tcp-socket-factory.h"
 #include "ns3/udp-socket-factory.h"
+#include "ns3/address.h"
 #include <vector>
 
 class DataGenerator : public ns3::Application{
-
-    friend class Client;
 
     friend std::ostream& operator<<(std::ostream& out, const DataGenerator &stream){
 
@@ -40,7 +39,6 @@ class DataGenerator : public ns3::Application{
         }
 
         return out;
-
     }
 
 
@@ -49,23 +47,25 @@ public:
     DataGenerator(){}
     DataGenerator(uint16_t streamNumber, Protocol proto, ApplicationProtocol* appProto, std::vector<Message*> messages);
     virtual ~DataGenerator();
+    virtual void StartApplication() = 0;
+    virtual void StopApplication() = 0;
+    virtual void dataReceived(Ptr<Socket>) = 0;
+    virtual void moreBufferSpaceAvailable(Ptr<Socket>, uint32_t) = 0;
+    bool setupStream(Ptr<Node> node, Address addr);
 
-    virtual void StartApplication();
-    virtual void StopApplication();
     uint16_t getStreamNumber() const{return streamNumber;}
     Protocol getProtocol() const{return proto;}
     ApplicationProtocol* getApplicationProtocol() const{return appProto;}
     virtual std::vector<Message*> getMessages()const {return messages;}
 
-
 protected:
-    bool createSocket(Ptr<Node> node);
-
     uint16_t streamNumber;
     Protocol proto;
     ApplicationProtocol* appProto;
     std::vector<Message*> messages;
     Ptr<Socket> socket;
+    bool running;
+    Address peerAddr;
 
 };
 
@@ -75,6 +75,14 @@ public:
     ClientDataGenerator(uint16_t streamNumber, Protocol proto, ApplicationProtocol* appProto, std::vector<Message*> messages);
     ClientDataGenerator(const DataGenerator&);
     ~ClientDataGenerator();
+
+    virtual void StartApplication();
+    virtual void StopApplication();
+
+private:
+    void dataReceived(Ptr<Socket>);
+    void moreBufferSpaceAvailable(Ptr<Socket>, uint32_t);
+    void sendData(Message*, uint8_t* buffer);
 };
 
 
@@ -85,13 +93,21 @@ public:
     ServerDataGenerator(const DataGenerator&);
     ~ServerDataGenerator();
 
+    virtual void StartApplication();
+    virtual void StopApplication();
+
+private:
+    void dataReceived(Ptr<Socket>);
+    void moreBufferSpaceAvailable(Ptr<Socket>, uint32_t);
+    bool connectionRequest(Ptr<Socket>, const Address&);
+    void newConnectionCreated(Ptr<Socket>, const Address&);
 };
 
 
 //Class DataGenerator function definitions
 
 DataGenerator::DataGenerator(uint16_t streamNumber, Protocol proto, ApplicationProtocol* appProto, std::vector<Message*> messages)
-    : streamNumber(streamNumber), proto(proto), appProto(appProto), messages(messages){
+    : streamNumber(streamNumber), proto(proto), appProto(appProto), messages(messages), running(false){
 
 
 }
@@ -108,18 +124,10 @@ DataGenerator::~DataGenerator(){
 
 }
 
-void DataGenerator::StartApplication(){
 
+bool DataGenerator::setupStream(Ptr<Node> node, Address addr){
 
-}
-
-void DataGenerator::StopApplication(){
-
-
-}
-
-bool DataGenerator::createSocket(Ptr<Node> node){
-
+    peerAddr = addr;
 
     switch(proto){
 
@@ -135,6 +143,8 @@ bool DataGenerator::createSocket(Ptr<Node> node){
             socket = Socket::CreateSocket(node, UdpSocketFactory::GetTypeId());
             break;
     }
+
+    node->AddApplication(this);
 
     return true;
 
@@ -173,6 +183,39 @@ ClientDataGenerator::~ClientDataGenerator(){
 
 }
 
+void ClientDataGenerator::StartApplication(){
+
+    running = true;
+    socket->Connect(peerAddr);
+
+    socket->SetRecvCallback(MakeCallback(&ClientDataGenerator::dataReceived, this));
+    socket->SetSendCallback(MakeCallback(&ClientDataGenerator::moreBufferSpaceAvailable, this));
+
+    for(std::vector<Message*>::iterator it = messages.begin(); it != messages.end(); it++){
+        (*it)->scheduleSendEvent(MakeCallback(&ClientDataGenerator::sendData, this));
+    }
+
+
+}
+
+void ClientDataGenerator::StopApplication(){
+
+
+}
+
+void ClientDataGenerator::dataReceived(Ptr<Socket>){
+
+}
+
+void ClientDataGenerator::moreBufferSpaceAvailable(Ptr<Socket> sock, uint32_t size){
+
+}
+
+void ClientDataGenerator::sendData(Message *msg, uint8_t* buffer){
+
+    socket->Send(buffer, msg->getMessageSize(), 0);
+
+}
 
 
 //Class ServerDataGenerator function definitions
@@ -185,9 +228,62 @@ ServerDataGenerator::ServerDataGenerator(uint16_t streamNumber, Protocol proto, 
 
 ServerDataGenerator::ServerDataGenerator(const DataGenerator& stream){
 
+    this->streamNumber = stream.getStreamNumber();
+
+    if(stream.getApplicationProtocol() != 0)
+        this->appProto = new ApplicationProtocol((*(stream.getApplicationProtocol())));
+    else this->appProto = 0;
+
+    this->proto = stream.getProtocol();
+
+    std::vector<Message*> messages = stream.getMessages();
+
+    for(std::vector<Message*>::iterator it = messages.begin(); it != messages.end(); it++){
+        this->messages.push_back((*it)->copyMessage());
+
+    }
+
 }
 
 ServerDataGenerator::~ServerDataGenerator(){
+
+}
+
+void ServerDataGenerator::StartApplication(){
+
+    running = true;
+    socket->Bind(peerAddr);
+    socket->Listen();
+    socket->SetAcceptCallback(MakeCallback(&ServerDataGenerator::connectionRequest,this), MakeCallback(&ServerDataGenerator::newConnectionCreated, this));
+    socket->SetRecvCallback(MakeCallback(&ServerDataGenerator::dataReceived, this));
+
+}
+
+void ServerDataGenerator::StopApplication(){
+
+
+}
+
+void ServerDataGenerator::dataReceived(Ptr<Socket> sock){
+
+    uint8_t buffer[1000];
+    sock->Recv(buffer, 1000, 0);
+
+    std::cout << buffer << std::endl;
+
+}
+
+void ServerDataGenerator::moreBufferSpaceAvailable(Ptr<Socket> sock, uint32_t size){
+
+}
+
+bool ServerDataGenerator::connectionRequest(Ptr<Socket> sock, const Address &addr){
+
+    return true;
+
+}
+
+void ServerDataGenerator::newConnectionCreated(Ptr<Socket> sock, const Address &addr){
 
 }
 

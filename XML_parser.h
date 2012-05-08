@@ -45,7 +45,7 @@ public:
 
     bool isFileCorrect(){return correctFile;}
     uint16_t getNumberOfClients()const {return numberOfClients;}
-    bool getStreams(DataGenerator**&);
+    bool getStreams(DataGenerator**&, bool client);
     uint16_t getNumberOfStreams()const {return numberOfStreams;}
     bool getApplicationProtocol(ApplicationProtocol*&);
     bool getClientStats(uint16_t clientIndex, uint16_t &clientNumber, int &delay, double &uplink, double &downlink, double &loss);
@@ -556,22 +556,22 @@ bool XMLParser::parseApplicationProtocol(std::string &file){
 
 }
 
-bool XMLParser::getStreams(DataGenerator** &streams){
+bool XMLParser::getStreams(DataGenerator** &streams, bool isClient){
 
     streams = new DataGenerator*[numberOfStreams];
 
     for(int i = 0; i < numberOfStreams; i++)
         streams[i] = 0;
 
-    if(this->streams[0] != 0 && strstr(typeid(*(this->streams[0])).name(), "ClientDataGenerator") != NULL){
+    if(this->streams[0] != 0 && isClient){
         for(int i = 0; i < numberOfStreams; i++)
             streams[i] = new ClientDataGenerator(*(this->streams[i]));
     }
-    else if(this->streams[0] != 0 && strstr(typeid(*(this->streams[0])).name(), "ServerDataGenerator") != NULL){
+    else if(this->streams[0]){
         for(int i = 0; i < numberOfStreams; i++){
             streams[i] = new ServerDataGenerator(*(this->streams[i]));
         }
-    }
+    }else return false;
 
     return true;
 }

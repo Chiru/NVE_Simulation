@@ -17,6 +17,8 @@
 #ifndef SERVER_H
 #define SERVER_H
 #include "utilities.h"
+#include "DataGenerator.h"
+#include "ns3/address.h"
 
 
 class XMLParser;
@@ -24,23 +26,43 @@ class XMLParser;
 class Server{
 
 public:
-    Server(XMLParser&);
+    Server(XMLParser&, int, Ptr<Node>, Address);
     ~Server();
 
 private:
     XMLParser &parser;
+    uint16_t numberOfStreams;
+    DataGenerator** streams;
+    int runningTime;
+    Ptr<Node> node;
+    Address address;
 
 };
 
 
 //Class Server function definitions
 
-Server::Server(XMLParser& parser): parser(parser){
+Server::Server(XMLParser& parser, int runningTime, Ptr<Node> node, Address addr): parser(parser), runningTime(runningTime), node(node), address(addr){
 
+    parser.getStreams(streams, false);
+    numberOfStreams = parser.getNumberOfStreams();
+
+    for(int i = 0; i < numberOfStreams; i++){
+        streams[i]->SetStartTime(Seconds(0));
+        streams[i]->SetStopTime(Seconds(runningTime));
+        streams[i]->setupStream(node, address);
+        node->AddApplication(streams[i]);
+    }
 
 }
 
 Server::~Server(){
+
+    for(int i = 0; i < numberOfStreams; i++){
+        delete streams[i];
+    }
+
+    delete[] streams;
 
 }
 
