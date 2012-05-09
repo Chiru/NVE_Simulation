@@ -27,11 +27,15 @@ public:
 
     ~StatisticsCollector();
     static bool getVerbose() {return verbose;}
-    static StatisticsCollector* createStatisticsCollector(bool);
+    static bool getClientLog() {return clientLog;}
+    static bool getServerLog() {return serverLog;}
+    static StatisticsCollector* createStatisticsCollector(bool, bool, bool);
 
 private:
-    StatisticsCollector(bool);
+    StatisticsCollector(bool, bool, bool);
     static bool verbose;
+    static bool clientLog;
+    static bool serverLog;
     static bool collectorCreated;
 
 };
@@ -42,11 +46,13 @@ private:
 
 bool StatisticsCollector::collectorCreated = false;
 bool StatisticsCollector::verbose = false;
+bool StatisticsCollector::clientLog = false;
+bool StatisticsCollector::serverLog = false;
 
-StatisticsCollector* StatisticsCollector::createStatisticsCollector(bool verbose){
+StatisticsCollector* StatisticsCollector::createStatisticsCollector(bool verbose, bool clientLog, bool serverLog){
 
     if(!collectorCreated)
-        return new StatisticsCollector(verbose);
+        return new StatisticsCollector(verbose, clientLog, serverLog);
 
     else {
         PRINT_ERROR( "Already one StatisticsCollector exists." << std::endl);
@@ -56,9 +62,11 @@ StatisticsCollector* StatisticsCollector::createStatisticsCollector(bool verbose
 
 }
 
-StatisticsCollector::StatisticsCollector(bool verbose){
+StatisticsCollector::StatisticsCollector(bool verbose, bool clientLog, bool serverLog){
 
     StatisticsCollector::verbose = verbose;
+    StatisticsCollector::clientLog = clientLog;
+    StatisticsCollector::serverLog = serverLog;
 
 }
 

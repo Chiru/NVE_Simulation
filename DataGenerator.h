@@ -20,6 +20,7 @@
 #include "ApplicationProtocol.h"
 #include "Messages.h"
 #include "utilities.h"
+#include "StatisticsCollector.h"
 #include "ns3/tcp-socket-factory.h"
 #include "ns3/udp-socket-factory.h"
 #include "ns3/address.h"
@@ -279,6 +280,7 @@ void ServerDataGenerator::moreBufferSpaceAvailable(Ptr<Socket> sock, uint32_t si
 
 bool ServerDataGenerator::connectionRequest(Ptr<Socket> sock, const Address &addr){
 
+    SERVER_INFO(addr << std::endl);
     return true;
 
 }

@@ -51,13 +51,19 @@ int main(int argc, char** argv){
     NodeContainer allNodes;
     StatisticsCollector* stats;
     uint16_t* serverPorts;
-    bool verbose = false;
+    bool verbose = false, clientLog = false, serverLog = false;
     bool fileNameGiven = false;
     std::string XML_filename;
 
     for(i = 0; i < argc; i++){
         if(strcmp(argv[i], "--verbose") == 0){
-            verbose = true;
+            verbose = clientLog = serverLog = true;
+        }
+        if(strcmp(argv[i], "--serverLog") == 0){
+            serverLog = true;
+        }
+        if(strcmp(argv[i], "--clientLog") == 0){
+            clientLog = true;
         }
         if(strcmp(argv[i], "--filename") == 0){
             if(++i >= argc){
@@ -78,7 +84,7 @@ int main(int argc, char** argv){
         printHelpAndQuit();
     }
 
-    stats = StatisticsCollector::createStatisticsCollector(verbose);
+    stats = StatisticsCollector::createStatisticsCollector(verbose, clientLog, serverLog);
 
     if(stats == NULL){
         PRINT_ERROR( "Can't create statistics collector!" << std::endl);
