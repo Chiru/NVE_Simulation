@@ -24,6 +24,7 @@
 #include "ns3/tcp-socket-factory.h"
 #include "ns3/udp-socket-factory.h"
 #include "ns3/address.h"
+#include "ns3/inet-socket-address.h"
 #include <vector>
 
 class DataGenerator : public ns3::Application{
@@ -102,6 +103,7 @@ private:
     void moreBufferSpaceAvailable(Ptr<Socket>, uint32_t);
     bool connectionRequest(Ptr<Socket>, const Address&);
     void newConnectionCreated(Ptr<Socket>, const Address&);
+    std::vector<Ptr<Socket> > clientSockets;
 };
 
 
@@ -267,7 +269,7 @@ void ServerDataGenerator::StopApplication(){
 
 void ServerDataGenerator::dataReceived(Ptr<Socket> sock){
 
-    uint8_t buffer[1000];
+    uint8_t buffer[1000];   //TODO: hard-coding
     sock->Recv(buffer, 1000, 0);
 
     std::cout << buffer << std::endl;
@@ -280,12 +282,16 @@ void ServerDataGenerator::moreBufferSpaceAvailable(Ptr<Socket> sock, uint32_t si
 
 bool ServerDataGenerator::connectionRequest(Ptr<Socket> sock, const Address &addr){
 
-    SERVER_INFO(addr << std::endl);
+    SERVER_INFO("Connection request from: " << addr << std::endl);   //TODO: getting ip-addresses impossible???
     return true;
 
 }
 
 void ServerDataGenerator::newConnectionCreated(Ptr<Socket> sock, const Address &addr){
+
+    SERVER_INFO("Connection accepted from: " << addr << std::endl);
+    clientSockets.push_back(sock);
+    sock->SetRecvCallback(MakeCallback(&ServerDataGenerator::dataReceived, this));
 
 }
 

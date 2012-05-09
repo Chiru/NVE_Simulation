@@ -204,7 +204,7 @@ void printAddresses(NetDeviceContainer *deviceContainer, Ipv4InterfaceContainer 
             tempAddress->Unref();
             device->Unref();
 
-            PRINT_INFO("MAC address: "  << device->GetAddress() <<  "   ipv4 address: " <<  address << std::endl);
+            PRINT_INFO("Ipv4 address: " <<  address << std::endl);
         }
     }
 }
