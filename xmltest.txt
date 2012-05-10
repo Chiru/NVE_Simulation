@@ -1,15 +1,10 @@
 <xml>
     <clients>
         <client>
-        <no="1:2"/> <delay="10"><uplink="3"/>
+        <no="1:10"/> <delay="10"><uplink="3"/>
         <downlink="5"/> <loss="0.4"/>
         </client>
-        <client>
-        <no="3:10"/><delay="30"> <uplink="3"/>
-        <downlink="5"/><loss="0.4"/></client>
-        <client>
-        <no="14"/><uplink="3"/>
-        <downlink="5"/> <loss="0.4"/><delay="12"></client>
+
     </clients>
     <appproto>
         <acksize="25"/>
@@ -34,23 +29,7 @@
                 </message>
             </messages>
         </stream>
-        <stream>
-            type="tcp"
-            nagle="no"
-            no="2"
-            useappproto="no"
-            <messages>
-                <message>
-                    <type="uam">
-                    <name="toka">
-                    <reliable="yes">
-                     <size="100">
-                     <timeinterval="200">
-                     <clientsofinterest="90">
-                     <timerequirement="100">
-                </message>
-            </messages>
-        </stream>
+
         <stream>
             type="udp"
             nagle="yes"
@@ -68,30 +47,7 @@
                 </message>
             </messages>
         </stream>
-        <stream>
-            type="udp"
-            no="4"
-            useappproto="yes"
-            <messages>
-                <message>
-                    <type="uam">
-                    <name="neljäs">
-                    <reliable="yes">
-                     <size="150">
-                     <timeinterval="200">
-                     <clientsofinterest="20">
-                     <timerequirement="100">
-                </message>
-                <message>
-                        <type="mm">
-                        <name="ping">
-                        <reliable="true">
-                        <size="30">
-                        <timeinterval="3000">
-                        <from="client">	//tämän voi poistaa???
-                </message>
-            </messages>
-        </stream>
+
     </streams>
 
 

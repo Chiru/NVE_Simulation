@@ -54,7 +54,7 @@ public:
     virtual void dataReceived(Ptr<Socket>) = 0;
     virtual void moreBufferSpaceAvailable(Ptr<Socket>, uint32_t) = 0;
     bool setupStream(Ptr<Node> node, Address addr);
-
+    uint64_t getBytesSent() const{return totalBytesSent;}
     uint16_t getStreamNumber() const{return streamNumber;}
     Protocol getProtocol() const{return proto;}
     ApplicationProtocol* getApplicationProtocol() const{return appProto;}
@@ -68,7 +68,7 @@ protected:
     Ptr<Socket> socket;
     bool running;
     Address peerAddr;
-
+    uint64_t totalBytesSent;
 };
 
 class ClientDataGenerator : public DataGenerator{
@@ -80,11 +80,15 @@ public:
 
     virtual void StartApplication();
     virtual void StopApplication();
+    void setClientNumber(uint16_t clientNumber);
+    uint16_t getClientNumber()const {return ownerClient;}
 
 private:
+    uint16_t ownerClient;
+
     void dataReceived(Ptr<Socket>);
     void moreBufferSpaceAvailable(Ptr<Socket>, uint32_t);
-    void sendData(Message*, uint8_t* buffer);
+    bool sendData(Message*, uint8_t* buffer);
 };
 
 
@@ -110,7 +114,7 @@ private:
 //Class DataGenerator function definitions
 
 DataGenerator::DataGenerator(uint16_t streamNumber, Protocol proto, ApplicationProtocol* appProto, std::vector<Message*> messages)
-    : streamNumber(streamNumber), proto(proto), appProto(appProto), messages(messages), running(false){
+    : streamNumber(streamNumber), proto(proto), appProto(appProto), messages(messages), running(false), totalBytesSent(0){
 
 
 }
@@ -157,7 +161,7 @@ bool DataGenerator::setupStream(Ptr<Node> node, Address addr){
 //Class ClientDataGenerator function definitions
 
 ClientDataGenerator::ClientDataGenerator(uint16_t streamNumber, Protocol proto, ApplicationProtocol* appProto, std::vector<Message*> messages)
-    : DataGenerator(streamNumber, proto, appProto, messages){
+    : DataGenerator(streamNumber, proto, appProto, messages), ownerClient(0){
 
 
 }
@@ -165,6 +169,7 @@ ClientDataGenerator::ClientDataGenerator(uint16_t streamNumber, Protocol proto, 
 ClientDataGenerator::ClientDataGenerator(const DataGenerator& stream){
 
     this->streamNumber = stream.getStreamNumber();
+    this->ownerClient = (dynamic_cast<const ClientDataGenerator&>(stream)).getClientNumber();
 
     if(stream.getApplicationProtocol() != 0)
         this->appProto = new ApplicationProtocol((*(stream.getApplicationProtocol())));
@@ -176,20 +181,24 @@ ClientDataGenerator::ClientDataGenerator(const DataGenerator& stream){
 
     for(std::vector<Message*>::iterator it = messages.begin(); it != messages.end(); it++){
         this->messages.push_back((*it)->copyMessage());
-
     }
 
 }
 
 ClientDataGenerator::~ClientDataGenerator(){
 
+}
 
+void ClientDataGenerator::setClientNumber(uint16_t clientNumber){
+    ownerClient = clientNumber;
 }
 
 void ClientDataGenerator::StartApplication(){
 
     running = true;
     socket->Connect(peerAddr);
+
+    CLIENT_INFO("Client number: " << ownerClient <<  " is starting stream no: " << this->streamNumber << std::endl);
 
     socket->SetRecvCallback(MakeCallback(&ClientDataGenerator::dataReceived, this));
     socket->SetSendCallback(MakeCallback(&ClientDataGenerator::moreBufferSpaceAvailable, this));
@@ -203,7 +212,17 @@ void ClientDataGenerator::StartApplication(){
 
 void ClientDataGenerator::StopApplication(){
 
+    running = false;
 
+    for(std::vector<Message*>::iterator it = messages.begin(); it != messages.end(); it++){
+        (*it)->cancelEvent();
+    }
+
+    if(socket){
+       socket->ShutdownSend();
+       socket->Close();
+       CLIENT_INFO("Closed client socket for stream number: " << this->streamNumber << std::endl);
+    }
 }
 
 void ClientDataGenerator::dataReceived(Ptr<Socket>){
@@ -214,10 +233,22 @@ void ClientDataGenerator::moreBufferSpaceAvailable(Ptr<Socket> sock, uint32_t si
 
 }
 
-void ClientDataGenerator::sendData(Message *msg, uint8_t* buffer){
+bool ClientDataGenerator::sendData(Message *msg, uint8_t* buffer){
 
-    socket->Send(buffer, msg->getMessageSize(), 0);
+    uint16_t bytesSent;
 
+    if(running){
+        if(socket->GetTxAvailable() < msg->getMessageSize())           //TODO: how to remember messages when buffer overflows
+            return false;
+
+        if((bytesSent = socket->Send(buffer, msg->getMessageSize(), 0)) == -1){
+            return false;
+        }
+
+        totalBytesSent += bytesSent;
+    }
+
+    return true;
 }
 
 
@@ -250,12 +281,19 @@ ServerDataGenerator::ServerDataGenerator(const DataGenerator& stream){
 
 ServerDataGenerator::~ServerDataGenerator(){
 
+    for(std::vector<Ptr<Socket> >::iterator it = clientSockets.begin(); it != clientSockets.end(); it++){
+        (*it)->Close();
+    }
+
 }
 
 void ServerDataGenerator::StartApplication(){
 
     running = true;
     socket->Bind(peerAddr);
+
+    SERVER_INFO("Starting server stream no: " << this->streamNumber << std::endl);
+
     socket->Listen();
     socket->SetAcceptCallback(MakeCallback(&ServerDataGenerator::connectionRequest,this), MakeCallback(&ServerDataGenerator::newConnectionCreated, this));
     socket->SetRecvCallback(MakeCallback(&ServerDataGenerator::dataReceived, this));
@@ -264,15 +302,30 @@ void ServerDataGenerator::StartApplication(){
 
 void ServerDataGenerator::StopApplication(){
 
+    running = false;
+
+    for(std::vector<Message*>::iterator it = messages.begin(); it != messages.end(); it++){
+        (*it)->cancelEvent();
+    }
+
+    if(socket){
+        socket->Close();
+    }
+
+    for(std::vector<Ptr<Socket> >::iterator it = clientSockets.begin(); it != clientSockets.end(); it++){
+        (*it)->ShutdownRecv();
+        (*it)->Close();
+        SERVER_INFO("Closed server socket for stream number: " << this->getStreamNumber() << std::endl);
+    }
 
 }
 
 void ServerDataGenerator::dataReceived(Ptr<Socket> sock){
 
-    uint8_t buffer[1000];   //TODO: hard-coding
-    sock->Recv(buffer, 1000, 0);
-
-    std::cout << buffer << std::endl;
+    if(running){
+        uint8_t buffer[1000];   //TODO: hard-coding
+        sock->Recv(buffer, 1000, 0);
+    }
 
 }
 

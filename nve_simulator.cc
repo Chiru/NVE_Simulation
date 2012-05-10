@@ -24,6 +24,7 @@
 #include "ns3/ipv4-interface-container.h"
 #include "ns3/ipv4-global-routing-helper.h"
 #include "ns3/inet-socket-address.h"
+#include "ns3/drop-tail-queue.h"
 #include "XML_parser.h"
 #include "Server.h"
 #include "StatisticsCollector.h"
@@ -39,7 +40,7 @@ void printHelpAndQuit();
 
 int main(int argc, char** argv){
 
-    int runningTime = 100; //TODO: change to be configurable
+    int runningTime = 20; //TODO: change to be configurable
 
     int i;
     std::stringstream str;
@@ -54,6 +55,10 @@ int main(int argc, char** argv){
     bool verbose = false, clientLog = false, serverLog = false;
     bool fileNameGiven = false;
     std::string XML_filename;
+
+    DropTailQueue::GetTypeId();
+
+    Config::SetDefault("ns3::DropTailQueue::MaxPackets", UintegerValue(2000));    //TODO: change to be configurable
 
     for(i = 0; i < argc; i++){
         if(strcmp(argv[i], "--verbose") == 0){
@@ -158,6 +163,8 @@ int main(int argc, char** argv){
         pointToPoint[i].SetChannelAttribute("Delay", StringValue(clients[i]->getDelayInMilliseconds()));
     }
 
+    pointToPoint[numberOfClients].SetDeviceAttribute("DataRate", StringValue("1Gbps"));
+
     //TODO: add network configurations maybe here
 
     if(verbose){
@@ -170,6 +177,9 @@ int main(int argc, char** argv){
     for(i = 0; i < numberOfClients; i++){
         pointToPoint[i].EnablePcapAll("results/results.txt");
     }
+
+    AsciiTraceHelper ascii;
+    pointToPoint[numberOfClients].EnableAsciiAll(ascii.CreateFileStream ("results/nve.tr"));
 
     Simulator::Run();
     Simulator::Destroy();

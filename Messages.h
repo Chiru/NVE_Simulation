@@ -18,6 +18,7 @@
 #define MESSAGES_H
 
 #include <string>
+#include "ns3/event-id.h"
 #include "utilities.h"
 
 class DataGenerator;
@@ -33,12 +34,14 @@ public:
     Message(std::string, bool, int, uint16_t);
     virtual ~Message();
     virtual Message* copyMessage()  = 0;
-    virtual void scheduleSendEvent(Callback<void, Message*, uint8_t*>) = 0;
+    virtual void scheduleSendEvent(Callback<bool, Message*, uint8_t*>) = 0;
     std::string getName() const{return name;}
     bool getReliable() const{return reliable;}
     int getTimeInterval() const{return timeInterval;}
     uint16_t getMessageSize() const{return messageSize;}
     uint16_t getmessagesCreated() const {return messagesCreated;}
+    uint16_t getMessageId() const {return messageID;}
+    void cancelEvent();
 
 
   protected:
@@ -50,7 +53,9 @@ public:
     uint16_t messageID;
     enum MessageType{USER_ACTION, OTHER_DATA, MAINTENANCE} type;
     virtual void printStats(std::ostream& out, const Message& msg)const = 0;
-    Callback<void, Message*,  uint8_t*> sendFunction;
+    Callback<bool, Message*,  uint8_t*> sendFunction;
+    EventId sendEvent;
+    bool running;
 
     static uint16_t messagesCreated;
 };
@@ -62,7 +67,7 @@ class UserActionMessage : public Message{
 public:
     ~UserActionMessage();
     Message* copyMessage();
-    void scheduleSendEvent(Callback<void, Message*, uint8_t*>);
+    void scheduleSendEvent(Callback<bool, Message*, uint8_t*>);
 
 private:
     UserActionMessage(std::string name, bool reliable, int timeInterval, uint16_t messageSize, double clientsOfInterest, int requirement);
@@ -82,7 +87,7 @@ public:
     ~OtherDataMessage();
     void startDataTransfer();
     Message* copyMessage();
-    void scheduleSendEvent(Callback<void, Message*, uint8_t*>);
+    void scheduleSendEvent(Callback<bool, Message*, uint8_t*>);
 
 
 private:
@@ -99,7 +104,7 @@ class MaintenanceMessage : public Message{
 
 public:
     ~MaintenanceMessage();
-    void scheduleSendEvent(Callback<void, Message*, uint8_t*>);
+    void scheduleSendEvent(Callback<bool, Message*, uint8_t*>);
     Message* copyMessage();
 
 private:
@@ -131,6 +136,15 @@ Message::~Message(){
 
 }
 
+void Message::cancelEvent(){
+
+    if(sendEvent.IsRunning())
+        Simulator::Cancel(sendEvent);
+
+    running = false;
+
+}
+
 
 //Class UserActionMessage function definitions
 
@@ -145,11 +159,11 @@ UserActionMessage::~UserActionMessage(){
 
 }
 
-void UserActionMessage::scheduleSendEvent(Callback<void, Message*, uint8_t*> sendFunction){
+void UserActionMessage::scheduleSendEvent(Callback<bool, Message*, uint8_t*> sendFunction){
 
    this->sendFunction = sendFunction;
-
-    Simulator::Schedule(Time(MilliSeconds(timeInterval)), &UserActionMessage::sendData, this);
+    running = true;
+    sendEvent = Simulator::Schedule(Time(MilliSeconds(timeInterval)), &UserActionMessage::sendData, this);
 
 }
 
@@ -162,10 +176,13 @@ void UserActionMessage::sendData(){
     str << messageID;
 
     strcat(buffer, str.str().c_str());
-   // char* buffer = new char[messageSize];
- //   strcpy(buffer, "testmessage");
 
-    sendFunction(this, (uint8_t*)buffer);
+    if(!sendFunction(this, (uint8_t*)buffer))
+        PRINT_ERROR("Problems with socket buffer" << std::endl);   //TODO: socket buffer
+
+    if(running){
+        sendEvent = Simulator::Schedule(Time(MilliSeconds(timeInterval)), &UserActionMessage::sendData, this);
+    }
 
 }
 
@@ -221,7 +238,7 @@ void OtherDataMessage::printStats(std::ostream &out, const Message &msg) const{
 
 }
 
-void OtherDataMessage::scheduleSendEvent(Callback<void, Message*, uint8_t*> function){
+void OtherDataMessage::scheduleSendEvent(Callback<bool, Message*, uint8_t*> function){
 
     this->sendFunction = function;
 
@@ -243,7 +260,7 @@ MaintenanceMessage::~MaintenanceMessage(){
 
 }
 
-void MaintenanceMessage::scheduleSendEvent(Callback<void, Message*, uint8_t*> function){
+void MaintenanceMessage::scheduleSendEvent(Callback<bool, Message*, uint8_t*> function){
 
     this->sendFunction = function;
 
