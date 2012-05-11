@@ -25,6 +25,7 @@
 #include "ns3/ipv4-global-routing-helper.h"
 #include "ns3/inet-socket-address.h"
 #include "ns3/drop-tail-queue.h"
+#include "ns3/csma-helper.h"
 #include "XML_parser.h"
 #include "Server.h"
 #include "StatisticsCollector.h"
@@ -128,7 +129,9 @@ int main(int argc, char** argv){
         clientRouterDevices[i] = pointToPoint[i].Install(clientRouterNodes[i]);
     }
 
-    NetDeviceContainer routerServerDevices = pointToPoint[numberOfClients].Install(routerServerNodes);
+    CsmaHelper csma;
+
+    NetDeviceContainer routerServerDevices = csma.Install(routerServerNodes);
 
     InternetStackHelper stack;
     stack.Install(allNodes);
@@ -177,6 +180,8 @@ int main(int argc, char** argv){
     for(i = 0; i < numberOfClients; i++){
         pointToPoint[i].EnablePcapAll("results/results.txt");
     }
+
+    csma.EnablePcapAll("results/results.txt");
 
     AsciiTraceHelper ascii;
     pointToPoint[numberOfClients].EnableAsciiAll(ascii.CreateFileStream ("results/nve.tr"));
