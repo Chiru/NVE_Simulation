@@ -140,10 +140,12 @@ bool DataGenerator::setupStream(Ptr<Node> node, Address addr){
 
         case TCP_NAGLE_DISABLED:
             socket = Socket::CreateSocket(node, TcpSocketFactory::GetTypeId());
+            socket->SetAttribute("TcpNoDelay", BooleanValue(true));
             break;
 
         case TCP_NAGLE_ENABLED:
             socket = Socket::CreateSocket(node, TcpSocketFactory::GetTypeId());
+            socket->SetAttribute("TcpNoDelay", BooleanValue(false));
             break;
 
         case UDP:
