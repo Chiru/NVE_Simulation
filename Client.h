@@ -46,6 +46,7 @@ public:
     std::string getDelayInMilliseconds() const;
     std::string getUplinkBandwidthInMegabits() const;
     std::string getDownlinkBandwidthInMegabits() const;
+    double getLossRate() const {return lossRate;}
 
 private:
     XMLParser &parser;

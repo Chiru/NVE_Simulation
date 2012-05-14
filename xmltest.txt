@@ -1,8 +1,12 @@
 <xml>
     <clients>
         <client>
-        <no="1:10"/> <delay="1000"><uplink="3"/>
-        <downlink="5"/> <loss="0.4"/>
+        <no="1"/> <delay="10"><uplink="3"/>
+        <downlink="5"/> <loss="0.1"/>
+        </client>
+        <client>
+        <no="2:3"/> <delay="20"/><uplink="1.4"/>
+        <downlink="3"/> <loss="0.02"/>
         </client>
 
     </clients>
@@ -33,7 +37,6 @@
             type="tcp"
             nagle="no"
             no="2"
-            useappproto="no"
             <messages>
                 <message>
                      <type="uam">
@@ -44,7 +47,31 @@
                      <clientsofinterest="90">
                      <timerequirement="100">
                 </message>
+                <message>
+                     <type="uam">
+                     <name="nonagle">
+                     <reliable="yes">
+                     <size="400">
+                     <timeinterval="50">
+                     <clientsofinterest="90">
+                     <timerequirement="100">
+                </message>
             </messages>
+        </stream>
+        <stream>
+            type="udp"
+            no="3"
+            <messages>
+                <message>
+                    <type="uam">
+                    <name="udpstream">
+                    <reliable="no">
+                    <size="200">
+                    <timeinterval="200">
+                    <clientsofinterest="50">
+                    <timerequirement="100">
+                 </message>
+             </messages>
         </stream>
 
     </streams>

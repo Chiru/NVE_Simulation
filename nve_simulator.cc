@@ -25,6 +25,7 @@
 #include "ns3/ipv4-global-routing-helper.h"
 #include "ns3/inet-socket-address.h"
 #include "ns3/drop-tail-queue.h"
+#include "ns3/error-model.h"
 #include "ns3/channel.h"
 #include "XML_parser.h"
 #include "Server.h"
@@ -56,6 +57,7 @@ int main(int argc, char** argv){
     bool verbose = false, clientLog = false, serverLog = false;
     bool fileNameGiven = false;
     std::string XML_filename;
+    Ptr<RateErrorModel>* packetLoss;
 
     DropTailQueue::GetTypeId();
 
@@ -119,6 +121,8 @@ int main(int argc, char** argv){
         clientRouterNodes[i] = NodeContainer(allNodes.Get(i), allNodes.Get(numberOfClients));
     }
 
+    packetLoss = new Ptr<RateErrorModel>[numberOfClients];
+
     NodeContainer routerServerNodes = NodeContainer(allNodes.Get(numberOfClients), allNodes.Get(numberOfClients+1));
 
     PointToPointHelper pointToPoint[numberOfClients + 1];    //point-to-point connection for each client-router connection and one for router-server connection
@@ -160,6 +164,11 @@ int main(int argc, char** argv){
     }
 
     for(i = 0; i < numberOfClients; i++){
+        packetLoss[i] = CreateObjectWithAttributes<RateErrorModel>("RanVar", RandomVariableValue(UniformVariable(0,1)),
+                                                                   "ErrorUnit", EnumValue(EU_PKT),
+                                                                   "ErrorRate", DoubleValue(clients[i]->getLossRate()));
+        //clientRouterDevices[i].Get(0)->SetAttribute("ReceiveErrorModel", PointerValue(packetLoss[i]));
+        clientRouterDevices[i].Get(1)->SetAttribute("ReceiveErrorModel", PointerValue(packetLoss[i]));
         clientRouterDevices[i].Get(0)->SetMtu(1514);
         clientRouterDevices[i].Get(1)->SetMtu(1514);
         clientRouterDevices[i].Get(0)->SetAttribute("DataRate", DataRateValue(DataRate(clients[i]->getUplinkBandwidthInMegabits())));
@@ -167,7 +176,7 @@ int main(int argc, char** argv){
         clientRouterDevices[i].Get(0)->GetChannel()->SetAttribute("Delay", TimeValue(Time(clients[i]->getDelayInMilliseconds())));
     }
 
-    //router server link must not crash
+    //let's make sure that router-server link does not crash
     routerServerDevices.Get(0)->SetAttribute("DataRate", DataRateValue(DataRate("1Gbps")));
     routerServerDevices.Get(1)->SetAttribute("DataRate", DataRateValue(DataRate("1Gbps")));
     routerServerDevices.Get(0)->GetChannel()->SetAttribute("Delay", TimeValue(Time("0ms")));
@@ -191,11 +200,11 @@ int main(int argc, char** argv){
     Simulator::Destroy();
 
     for(i = 0; i < numberOfClients; i++){
-        if(clients[i] != 0)
-            delete clients[i];
+        delete clients[i];
     }
 
     delete[] serverPorts;
+    delete[] packetLoss;
 
     delete stats;
 

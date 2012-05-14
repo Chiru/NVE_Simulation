@@ -142,14 +142,12 @@ bool DataGenerator::setupStream(Ptr<Node> node, Address addr){
             socket = Socket::CreateSocket(node, TcpSocketFactory::GetTypeId());
             socket->SetAttribute("TcpNoDelay", BooleanValue(true));
             socket->SetAttribute("SegmentSize", UintegerValue(1400));
-            std::cout << "nonagle"<<  std::endl;
             break;
 
         case TCP_NAGLE_ENABLED:
             socket = Socket::CreateSocket(node, TcpSocketFactory::GetTypeId());
             socket->SetAttribute("TcpNoDelay", BooleanValue(false));
             socket->SetAttribute("SegmentSize", UintegerValue(1400));
-            std::cout << "yesnagle" << std::endl;
             break;
 
         case UDP:
@@ -193,6 +191,10 @@ ClientDataGenerator::ClientDataGenerator(const DataGenerator& stream){
 
 ClientDataGenerator::~ClientDataGenerator(){
 
+     if(socket != 0)
+         socket->Close();
+     CLIENT_INFO("Closed client socket for stream number: " << this->streamNumber << std::endl);
+
 }
 
 void ClientDataGenerator::setClientNumber(uint16_t clientNumber){
@@ -225,9 +227,8 @@ void ClientDataGenerator::StopApplication(){
     }
 
     if(socket){
+        std::cout << "shutdown" << std::endl;
        socket->ShutdownSend();
-       socket->Close();
-       CLIENT_INFO("Closed client socket for stream number: " << this->streamNumber << std::endl);
     }
 }
 
@@ -291,6 +292,7 @@ ServerDataGenerator::~ServerDataGenerator(){
 
     for(std::vector<Ptr<Socket> >::iterator it = clientSockets.begin(); it != clientSockets.end(); it++){
         (*it)->Close();
+        SERVER_INFO("Closed server socket for stream number: " << this->getStreamNumber() << std::endl);
     }
 
 }
@@ -322,8 +324,6 @@ void ServerDataGenerator::StopApplication(){
 
     for(std::vector<Ptr<Socket> >::iterator it = clientSockets.begin(); it != clientSockets.end(); it++){
         (*it)->ShutdownRecv();
-        (*it)->Close();
-        SERVER_INFO("Closed server socket for stream number: " << this->getStreamNumber() << std::endl);
     }
 
 }
