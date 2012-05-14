@@ -44,6 +44,8 @@ public:
     ~Client();
 
     std::string getDelayInMilliseconds() const;
+    std::string getUplinkBandwidthInMegabits() const;
+    std::string getDownlinkBandwidthInMegabits() const;
 
 private:
     XMLParser &parser;
@@ -106,7 +108,24 @@ std::string Client::getDelayInMilliseconds() const{
     stream << networkDelay << "ms";
 
     return stream.str();
+}
 
+std::string Client::getDownlinkBandwidthInMegabits() const{
+
+    std::stringstream stream;
+
+    stream << downlinkBandwidth << "Mbps";
+
+    return stream.str();
+}
+
+std::string Client::getUplinkBandwidthInMegabits() const{
+
+    std::stringstream stream;
+
+    stream << uplinkBandwidth << "Mbps";
+
+    return stream.str();
 }
 
 

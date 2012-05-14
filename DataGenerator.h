@@ -141,11 +141,15 @@ bool DataGenerator::setupStream(Ptr<Node> node, Address addr){
         case TCP_NAGLE_DISABLED:
             socket = Socket::CreateSocket(node, TcpSocketFactory::GetTypeId());
             socket->SetAttribute("TcpNoDelay", BooleanValue(true));
+            socket->SetAttribute("SegmentSize", UintegerValue(1400));
+            std::cout << "nonagle"<<  std::endl;
             break;
 
         case TCP_NAGLE_ENABLED:
             socket = Socket::CreateSocket(node, TcpSocketFactory::GetTypeId());
             socket->SetAttribute("TcpNoDelay", BooleanValue(false));
+            socket->SetAttribute("SegmentSize", UintegerValue(1400));
+            std::cout << "yesnagle" << std::endl;
             break;
 
         case UDP:
@@ -240,11 +244,13 @@ bool ClientDataGenerator::sendData(Message *msg, uint8_t* buffer){
     uint16_t bytesSent;
 
     if(running){
-        if(socket->GetTxAvailable() < msg->getMessageSize())           //TODO: how to remember messages when buffer overflows
+        if(socket->GetTxAvailable() < msg->getMessageSize())   {        //TODO: how to remember messages when buffer overflows
+            std::cout << "1" << Simulator::Now() << " " << totalBytesSent << std::endl;
             return false;
+        }
 
         if((bytesSent = socket->Send(buffer, msg->getMessageSize(), 0)) == -1){
-            return false;
+            std::cout << "2" << std::endl;return false;
         }
 
         totalBytesSent += bytesSent;

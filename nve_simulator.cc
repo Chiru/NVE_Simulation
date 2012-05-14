@@ -25,7 +25,7 @@
 #include "ns3/ipv4-global-routing-helper.h"
 #include "ns3/inet-socket-address.h"
 #include "ns3/drop-tail-queue.h"
-#include "ns3/csma-helper.h"
+#include "ns3/channel.h"
 #include "XML_parser.h"
 #include "Server.h"
 #include "StatisticsCollector.h"
@@ -129,9 +129,7 @@ int main(int argc, char** argv){
         clientRouterDevices[i] = pointToPoint[i].Install(clientRouterNodes[i]);
     }
 
-    CsmaHelper csma;
-
-    NetDeviceContainer routerServerDevices = csma.Install(routerServerNodes);
+    NetDeviceContainer routerServerDevices = pointToPoint[numberOfClients].Install(routerServerNodes);
 
     InternetStackHelper stack;
     stack.Install(allNodes);
@@ -162,13 +160,17 @@ int main(int argc, char** argv){
     }
 
     for(i = 0; i < numberOfClients; i++){
-        //TODO: implement data rate configuration
-        pointToPoint[i].SetChannelAttribute("Delay", StringValue(clients[i]->getDelayInMilliseconds()));
+        clientRouterDevices[i].Get(0)->SetMtu(1514);
+        clientRouterDevices[i].Get(1)->SetMtu(1514);
+        clientRouterDevices[i].Get(0)->SetAttribute("DataRate", DataRateValue(DataRate(clients[i]->getUplinkBandwidthInMegabits())));
+        clientRouterDevices[i].Get(1)->SetAttribute("DataRate", DataRateValue(DataRate(clients[i]->getDownlinkBandwidthInMegabits())));
+        clientRouterDevices[i].Get(0)->GetChannel()->SetAttribute("Delay", TimeValue(Time(clients[i]->getDelayInMilliseconds())));
     }
 
-    pointToPoint[numberOfClients].SetDeviceAttribute("DataRate", StringValue("1Gbps"));
-
-    //TODO: add network configurations maybe here
+    //router server link must not crash
+    routerServerDevices.Get(0)->SetAttribute("DataRate", DataRateValue(DataRate("1Gbps")));
+    routerServerDevices.Get(1)->SetAttribute("DataRate", DataRateValue(DataRate("1Gbps")));
+    routerServerDevices.Get(0)->GetChannel()->SetAttribute("Delay", TimeValue(Time("0ms")));
 
     if(verbose){
         printAddresses(clientRouterDevices, clientRouterIpInterfaces, numberOfClients);
@@ -177,11 +179,10 @@ int main(int argc, char** argv){
 
     Ipv4GlobalRoutingHelper::PopulateRoutingTables();
 
-    for(i = 0; i < numberOfClients; i++){
+    for(i = 0; i <= numberOfClients; i++){
         pointToPoint[i].EnablePcapAll("results/results.txt");
     }
 
-    csma.EnablePcapAll("results/results.txt");
 
     AsciiTraceHelper ascii;
     pointToPoint[numberOfClients].EnableAsciiAll(ascii.CreateFileStream ("results/nve.tr"));
