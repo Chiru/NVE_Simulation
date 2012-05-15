@@ -227,8 +227,8 @@ void ClientDataGenerator::StopApplication(){
     }
 
     if(socket){
-        std::cout << "shutdown" << std::endl;
        socket->ShutdownSend();
+       socket->Close();
     }
 }
 
@@ -265,7 +265,6 @@ bool ClientDataGenerator::sendData(Message *msg, uint8_t* buffer){
 
 ServerDataGenerator::ServerDataGenerator(uint16_t streamNumber, Protocol proto, ApplicationProtocol* appProto, std::vector<Message*> messages)
     : DataGenerator(streamNumber, proto, appProto, messages){
-
 
 }
 
@@ -324,6 +323,7 @@ void ServerDataGenerator::StopApplication(){
 
     for(std::vector<Ptr<Socket> >::iterator it = clientSockets.begin(); it != clientSockets.end(); it++){
         (*it)->ShutdownRecv();
+        (*it)->Close();
     }
 
 }
@@ -350,7 +350,7 @@ bool ServerDataGenerator::connectionRequest(Ptr<Socket> sock, const Address &add
 
 void ServerDataGenerator::newConnectionCreated(Ptr<Socket> sock, const Address &addr){
 
-    SERVER_INFO("Connection accepted from: " << addr << std::endl);
+    SERVER_INFO("Connection accepted from: " << addr << " in stream number: " << streamNumber << std::endl);
     clientSockets.push_back(sock);
     sock->SetRecvCallback(MakeCallback(&ServerDataGenerator::dataReceived, this));
 

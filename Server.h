@@ -26,7 +26,7 @@ class XMLParser;
 class Server{
 
 public:
-    Server(XMLParser&, int, Ptr<Node>, Address);
+    Server(XMLParser&, int, Ptr<Node>, Address*);
     ~Server();
 
 private:
@@ -35,14 +35,14 @@ private:
     DataGenerator** streams;
     int runningTime;
     Ptr<Node> node;
-    Address address;
+    Address* address;
 
 };
 
 
 //Class Server function definitions
 
-Server::Server(XMLParser& parser, int runningTime, Ptr<Node> node, Address addr): parser(parser), runningTime(runningTime), node(node), address(addr){
+Server::Server(XMLParser& parser, int runningTime, Ptr<Node> node, Address* addr): parser(parser), runningTime(runningTime), node(node), address(addr){
 
     parser.getStreams(streams, false);
     numberOfStreams = parser.getNumberOfStreams();
@@ -50,7 +50,7 @@ Server::Server(XMLParser& parser, int runningTime, Ptr<Node> node, Address addr)
     for(int i = 0; i < numberOfStreams; i++){
         streams[i]->SetStartTime(Seconds(0));
         streams[i]->SetStopTime(Seconds(runningTime));
-        streams[i]->setupStream(node, address);
+        streams[i]->setupStream(node, address[i]);
         node->AddApplication(streams[i]);
     }
 

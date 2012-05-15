@@ -40,7 +40,7 @@ class Client{
     }
 
 public:
-    Client(XMLParser&, uint16_t no, int runningTime, Ptr<Node>, Address peerAddr);
+    Client(XMLParser&, uint16_t no, int runningTime, Ptr<Node>, Address* peerAddr);
     ~Client();
 
     std::string getDelayInMilliseconds() const;
@@ -59,7 +59,7 @@ private:
     uint16_t numberOfStreams;
     int runningTime;
     Ptr<Node> node;
-    Address peerAddr;
+    Address* peerAddr;
 
 };
 
@@ -67,7 +67,7 @@ private:
 
 //Class Client function definitions
 
-Client::Client(XMLParser& parser, uint16_t no, int runningTime, Ptr<Node> node, Address peerAddr)
+Client::Client(XMLParser& parser, uint16_t no, int runningTime, Ptr<Node> node, Address* peerAddr)
     : parser(parser), streams(0), runningTime(runningTime), node(node), peerAddr(peerAddr){
 
    parser.getStreams(streams, true, no);
@@ -79,7 +79,7 @@ Client::Client(XMLParser& parser, uint16_t no, int runningTime, Ptr<Node> node, 
    for(int i = 0; i < numberOfStreams; i++){
        streams[i]->SetStartTime(Seconds(0));
        streams[i]->SetStopTime(Seconds(runningTime));
-       streams[i]->setupStream(node, peerAddr);
+       streams[i]->setupStream(node, peerAddr[i]);
        node->AddApplication(streams[i]);
    }
 

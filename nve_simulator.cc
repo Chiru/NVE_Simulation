@@ -153,13 +153,17 @@ int main(int argc, char** argv){
     address.SetBase(str.str().c_str(), "255.255.255.0", "0.0.0.1");
     routerServerIpInterfaces = address.Assign(routerServerDevices);
 
-    Address serverAddress(InetSocketAddress(routerServerIpInterfaces.GetAddress(1), 10000));
+    Address serverAddresses[parser.getNumberOfStreams()];
+
+    for(i = 0; i < parser.getNumberOfStreams(); i++){
+        serverAddresses[i] = InetSocketAddress(routerServerIpInterfaces.GetAddress(1), 10000 + i);
+    }
 
     Client* clients[numberOfClients];
-    Server server = Server(parser, runningTime, routerServerNodes.Get(1), serverAddress);
+    Server server = Server(parser, runningTime, routerServerNodes.Get(1), serverAddresses);
 
     for(uint16_t i = 0; i < numberOfClients; i++){
-        clients[i] = new Client(parser, i+1, runningTime, clientRouterNodes[i].Get(0), serverAddress);
+        clients[i] = new Client(parser, i+1, runningTime, clientRouterNodes[i].Get(0), serverAddresses);
         PRINT_INFO(*(clients[i]) << std::endl);
     }
 
