@@ -161,7 +161,7 @@ UserActionMessage::~UserActionMessage(){
 
 void UserActionMessage::scheduleSendEvent(Callback<bool, Message*, uint8_t*> sendFunction){
 
-   this->sendFunction = sendFunction;
+    this->sendFunction = sendFunction;
     running = true;
     sendEvent = Simulator::Schedule(Time(MilliSeconds(timeInterval)), &UserActionMessage::sendData, this);
 
@@ -240,8 +240,6 @@ void OtherDataMessage::printStats(std::ostream &out, const Message &msg) const{
 
 void OtherDataMessage::scheduleSendEvent(Callback<bool, Message*, uint8_t*> function){
 
-    this->sendFunction = function;
-
 }
 
 
@@ -263,11 +261,21 @@ MaintenanceMessage::~MaintenanceMessage(){
 void MaintenanceMessage::scheduleSendEvent(Callback<bool, Message*, uint8_t*> function){
 
     this->sendFunction = function;
+    running = true;
+    sendEvent = Simulator::Schedule(Time(MilliSeconds(timeInterval)), &MaintenanceMessage::sendData, this);
 
 }
 
 void MaintenanceMessage::sendData(){
 
+    char buffer[30];
+    strcpy(buffer, name.c_str());
+
+    if(!sendFunction(this, (uint8_t*)buffer))
+        PRINT_ERROR("Problems with socket buffer" << std::endl);   //TODO: socket buffer
+
+    if(running)
+        sendEvent = Simulator::Schedule(Time(MilliSeconds(timeInterval)), &MaintenanceMessage::sendData, this);
 
 }
 

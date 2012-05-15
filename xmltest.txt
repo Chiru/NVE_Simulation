@@ -71,6 +71,13 @@
                     <clientsofinterest="50">
                     <timerequirement="100">
                  </message>
+                 <message>
+                    <type="mm">
+                    <name="ping">
+                    <reliable="yes">
+                    <size="100">
+                    <timeinterval="3000">
+                 </message>
              </messages>
         </stream>
 
