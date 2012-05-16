@@ -51,7 +51,7 @@ public:
     virtual ~DataGenerator();
     virtual void StartApplication() = 0;
     virtual void StopApplication() = 0;
-    virtual void dataReceived(Ptr<Socket>) = 0;
+    virtual void dataReceivedTcp(Ptr<Socket>) = 0;
     virtual void moreBufferSpaceAvailable(Ptr<Socket>, uint32_t) = 0;
     bool setupStream(Ptr<Node> node, Address addr);
     uint64_t getBytesSent() const{return totalBytesSent;}
@@ -87,7 +87,7 @@ public:
 private:
     uint16_t ownerClient;
 
-    void dataReceived(Ptr<Socket>);
+    void dataReceivedTcp(Ptr<Socket>);
     void moreBufferSpaceAvailable(Ptr<Socket>, uint32_t);
     bool sendData(Message*, uint8_t* buffer);
 };
@@ -116,7 +116,8 @@ public:
     virtual void StopApplication();
 
 private:
-    void dataReceived(Ptr<Socket>);
+    void dataReceivedTcp(Ptr<Socket>);
+    void dataReceivedUdp(Ptr<Socket>);
     void moreBufferSpaceAvailable(Ptr<Socket>, uint32_t);
     bool connectionRequest(Ptr<Socket>, const Address&);
     void newConnectionCreated(Ptr<Socket>, const Address&);
@@ -236,7 +237,7 @@ void ClientDataGenerator::StartApplication(){
 
     CLIENT_INFO("Client number: " << ownerClient <<  " is starting stream no: " << this->streamNumber << std::endl);
 
-    socket->SetRecvCallback(MakeCallback(&ClientDataGenerator::dataReceived, this));
+    socket->SetRecvCallback(MakeCallback(&ClientDataGenerator::dataReceivedTcp, this));
     socket->SetSendCallback(MakeCallback(&ClientDataGenerator::moreBufferSpaceAvailable, this));
 
     for(std::vector<Message*>::iterator it = messages.begin(); it != messages.end(); it++){
@@ -260,7 +261,7 @@ void ClientDataGenerator::StopApplication(){
     }
 }
 
-void ClientDataGenerator::dataReceived(Ptr<Socket> sock){
+void ClientDataGenerator::dataReceivedTcp(Ptr<Socket> sock){
 
 }
 
@@ -330,10 +331,17 @@ void ServerDataGenerator::StartApplication(){
 
     SERVER_INFO("Starting server stream no: " << this->streamNumber << std::endl);
 
-    socket->Listen();
-    socket->SetAcceptCallback(MakeCallback(&ServerDataGenerator::connectionRequest,this), MakeCallback(&ServerDataGenerator::newConnectionCreated, this));
-    //socket->SetRecvCallback(MakeCallback(&ServerDataGenerator::dataReceived, this));
+    switch(proto){
+        case TCP_NAGLE_DISABLED:
+        case TCP_NAGLE_ENABLED:
+            socket->Listen();
+            socket->SetAcceptCallback(MakeCallback(&ServerDataGenerator::connectionRequest,this), MakeCallback(&ServerDataGenerator::newConnectionCreated, this));
+            break;
 
+        case UDP:
+            socket->SetRecvCallback(MakeCallback(&ServerDataGenerator::dataReceivedUdp, this));
+            break;
+    }
 }
 
 void ServerDataGenerator::StopApplication(){
@@ -355,7 +363,7 @@ void ServerDataGenerator::StopApplication(){
 
 }
 
-void ServerDataGenerator::dataReceived(Ptr<Socket> sock){
+void ServerDataGenerator::dataReceivedTcp(Ptr<Socket> sock){
 
     ClientConnection* client = 0;
     std::string messageName;
@@ -405,6 +413,8 @@ void ServerDataGenerator::dataReceived(Ptr<Socket> sock){
                             client->dataLeft = false;
                         }
                     }
+                    else
+                        PRINT_ERROR("This should never happen, check message names!" << std::endl);
                 }
             }
         }else{
@@ -428,17 +438,49 @@ void ServerDataGenerator::dataReceived(Ptr<Socket> sock){
                         client->dataLeft = false;
                     }
                 }
+                else
+                    PRINT_ERROR("This should never happen, check message names!" << std::endl);
             }
         }
     }
 
         if(buffer != 0)
             free(buffer);
+}
 
 
-   // uint8_t buffer[1000];
-    //sock->Recv(buffer, 1000, 0);
+void ServerDataGenerator::dataReceivedUdp(Ptr<Socket> sock){
 
+    uint16_t bufferSize = 0;
+    std::string messageName;
+    Message* message = 0;
+    uint8_t* buffer = 0;
+    uint16_t bytesRead = 0;
+    Address clientAddr;
+
+    bufferSize = sock->GetRxAvailable();
+    buffer = (uint8_t*)calloc(sizeof(uint8_t), bufferSize);
+
+    sock->RecvFrom(buffer, bufferSize, 0, clientAddr);
+
+    while(bytesRead < bufferSize){
+
+        if(readMessageName(messageName, buffer)){
+            for(std::vector<Message*>::iterator it = messages.begin(); it != messages.end(); it++){
+                if(messageName.compare((*it)->getName()) == 0){
+                    message = (*it);
+                    break;
+                }
+            }
+            bytesRead += message->getMessageSize();
+            std::cout << "UDP: " << messageName << std::endl;
+        }
+        else
+            PRINT_ERROR("This should never happen, check message names! " << std::endl);
+    }
+
+    if(buffer != 0)
+        free(buffer);
 }
 
 void ServerDataGenerator::moreBufferSpaceAvailable(Ptr<Socket> sock, uint32_t size){
@@ -456,7 +498,7 @@ void ServerDataGenerator::newConnectionCreated(Ptr<Socket> sock, const Address &
 
     SERVER_INFO("Connection accepted from: " << addr << " in stream number: " << streamNumber << "   " << Simulator::Now() << std::endl);
     clientConnections.push_back(new ServerDataGenerator::ClientConnection(sock));
-    sock->SetRecvCallback(MakeCallback(&ServerDataGenerator::dataReceived, this));
+    sock->SetRecvCallback(MakeCallback(&ServerDataGenerator::dataReceivedTcp, this));
 }
 
 
