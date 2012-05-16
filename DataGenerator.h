@@ -69,6 +69,7 @@ protected:
     bool running;
     Address peerAddr;
     uint64_t totalBytesSent;
+    bool readMessageName(std::string& name, uint8_t* buffer);
 };
 
 class ClientDataGenerator : public DataGenerator{
@@ -94,6 +95,18 @@ private:
 
 class ServerDataGenerator : public DataGenerator{
 
+    class ClientConnection{
+
+    public:
+        ClientConnection(Ptr<Socket>);
+        ~ClientConnection();
+
+        Ptr<Socket> clientSocket;
+        std::vector<Message*> messageBuffer;
+        uint16_t bytesLeftToRead;
+        bool dataLeft;
+    };
+
 public:
     ServerDataGenerator(uint16_t streamNumber, Protocol proto, ApplicationProtocol* appProto, std::vector<Message*> messages);
     ServerDataGenerator(const DataGenerator&);
@@ -107,7 +120,8 @@ private:
     void moreBufferSpaceAvailable(Ptr<Socket>, uint32_t);
     bool connectionRequest(Ptr<Socket>, const Address&);
     void newConnectionCreated(Ptr<Socket>, const Address&);
-    std::vector<Ptr<Socket> > clientSockets;
+    std::vector<ServerDataGenerator::ClientConnection*> clientConnections;
+
 };
 
 
@@ -161,6 +175,20 @@ bool DataGenerator::setupStream(Ptr<Node> node, Address addr){
 
 }
 
+bool DataGenerator::readMessageName(std::string &name, uint8_t *buffer){
+
+    if((char)buffer[0] != '\"'){
+        std::cout << (char)buffer[1]<<(char)buffer[2]<<(char)buffer[3]<<(char)buffer[4]<<(char)buffer[5]<< std::endl;
+        return false;
+    }
+
+    for(int i = 1; (char)buffer[i] != '\"'; i++)
+        name += (char)buffer[i];
+
+    std::cout << name << std::endl;
+
+    return true;
+}
 
 //Class ClientDataGenerator function definitions
 
@@ -232,7 +260,7 @@ void ClientDataGenerator::StopApplication(){
     }
 }
 
-void ClientDataGenerator::dataReceived(Ptr<Socket>){
+void ClientDataGenerator::dataReceived(Ptr<Socket> sock){
 
 }
 
@@ -246,12 +274,11 @@ bool ClientDataGenerator::sendData(Message *msg, uint8_t* buffer){
 
     if(running){
         if(socket->GetTxAvailable() < msg->getMessageSize())   {        //TODO: how to remember messages when buffer overflows
-            std::cout << "1" << Simulator::Now() << " " << totalBytesSent << std::endl;
             return false;
         }
 
         if((bytesSent = socket->Send(buffer, msg->getMessageSize(), 0)) == -1){
-            std::cout << "2" << std::endl;return false;
+            return false;
         }
 
         totalBytesSent += bytesSent;
@@ -289,8 +316,8 @@ ServerDataGenerator::ServerDataGenerator(const DataGenerator& stream){
 
 ServerDataGenerator::~ServerDataGenerator(){
 
-    for(std::vector<Ptr<Socket> >::iterator it = clientSockets.begin(); it != clientSockets.end(); it++){
-        (*it)->Close();
+    for(std::vector<ServerDataGenerator::ClientConnection*>::iterator it = clientConnections.begin(); it != clientConnections.end(); it++){
+        delete (*it);
         SERVER_INFO("Closed server socket for stream number: " << this->getStreamNumber() << std::endl);
     }
 
@@ -305,7 +332,7 @@ void ServerDataGenerator::StartApplication(){
 
     socket->Listen();
     socket->SetAcceptCallback(MakeCallback(&ServerDataGenerator::connectionRequest,this), MakeCallback(&ServerDataGenerator::newConnectionCreated, this));
-    socket->SetRecvCallback(MakeCallback(&ServerDataGenerator::dataReceived, this));
+    //socket->SetRecvCallback(MakeCallback(&ServerDataGenerator::dataReceived, this));
 
 }
 
@@ -321,19 +348,96 @@ void ServerDataGenerator::StopApplication(){
         socket->Close();
     }
 
-    for(std::vector<Ptr<Socket> >::iterator it = clientSockets.begin(); it != clientSockets.end(); it++){
-        (*it)->ShutdownRecv();
-        (*it)->Close();
+    for(std::vector<ServerDataGenerator::ClientConnection*>::iterator it = clientConnections.begin(); it != clientConnections.end(); it++){
+        (*it)->clientSocket->ShutdownRecv();
+        (*it)->clientSocket->Close();
     }
 
 }
 
 void ServerDataGenerator::dataReceived(Ptr<Socket> sock){
 
+    ClientConnection* client = 0;
+    std::string messageName;
+    uint8_t* buffer = 0;
+    uint16_t bytesRead = 0;
+    Message* message = 0;
+    uint16_t messageSize = 0;
+    uint16_t bufferSize = 0;
+
     if(running){
-        uint8_t buffer[1000];   //TODO: hard-coding
-        sock->Recv(buffer, 1000, 0);
+
+        for(std::vector<ServerDataGenerator::ClientConnection*>::iterator it = clientConnections.begin(); it != clientConnections.end(); it++){
+            if(sock == (*it)->clientSocket){
+                client = (*it);
+                break;
+            }
+        }
+
+        bufferSize = sock->GetRxAvailable();
+        buffer = (uint8_t*)calloc(sizeof(uint8_t), bufferSize);
+
+        sock->Recv(buffer, bufferSize, 0);
+
+        if(client->dataLeft){
+            if(client->bytesLeftToRead > bufferSize){
+                client->dataLeft = true;
+                client->bytesLeftToRead -= bufferSize;
+            }else{
+                bytesRead += client->bytesLeftToRead;
+                while(bytesRead < bufferSize){
+                    if(readMessageName(messageName, buffer + bytesRead)){
+                        for(std::vector<Message*>::iterator it = messages.begin(); it != messages.end(); it++){
+                            if(messageName.compare((*it)->getName()) == 0){
+                                message = *it;
+                                break;
+                            }
+                        }
+                        messageSize = message->getMessageSize();
+                        if((bufferSize - bytesRead) < messageSize){
+                            client->dataLeft = true;
+                            client->bytesLeftToRead = messageSize-(bufferSize - bytesRead);
+                            client->messageBuffer.push_back(message);
+                            bytesRead = bufferSize;
+                        }else{
+                            bytesRead += messageSize;
+                            client->messageBuffer.push_back(message);
+                            client->dataLeft = false;
+                        }
+                    }
+                }
+            }
+        }else{
+            while(bytesRead < bufferSize){
+                if(readMessageName(messageName, buffer + bytesRead)){
+                    for(std::vector<Message*>::iterator it = messages.begin(); it != messages.end(); it++){
+                        if(messageName.compare((*it)->getName()) == 0){
+                            message = *it;
+                            break;
+                        }
+                    }
+                    messageSize = message->getMessageSize();
+                    if((bufferSize - bytesRead) < messageSize){
+                        client->dataLeft = true;
+                        client->bytesLeftToRead = messageSize-(bufferSize - bytesRead);
+                        client->messageBuffer.push_back(message);
+                        bytesRead = bufferSize;
+                    }else{
+                        bytesRead += messageSize;
+                        client->messageBuffer.push_back(message);
+                        client->dataLeft = false;
+                    }
+                }
+            }
+        }
     }
+
+        if(buffer != 0)
+            free(buffer);
+
+
+   // uint8_t buffer[1000];
+    //sock->Recv(buffer, 1000, 0);
 
 }
 
@@ -350,10 +454,21 @@ bool ServerDataGenerator::connectionRequest(Ptr<Socket> sock, const Address &add
 
 void ServerDataGenerator::newConnectionCreated(Ptr<Socket> sock, const Address &addr){
 
-    SERVER_INFO("Connection accepted from: " << addr << " in stream number: " << streamNumber << std::endl);
-    clientSockets.push_back(sock);
+    SERVER_INFO("Connection accepted from: " << addr << " in stream number: " << streamNumber << "   " << Simulator::Now() << std::endl);
+    clientConnections.push_back(new ServerDataGenerator::ClientConnection(sock));
     sock->SetRecvCallback(MakeCallback(&ServerDataGenerator::dataReceived, this));
+}
 
+
+//nested class ClientConnection function definitions
+
+ServerDataGenerator::ClientConnection::ClientConnection(Ptr<Socket> sock): clientSocket(sock){
+
+}
+
+ServerDataGenerator::ClientConnection::~ClientConnection(){
+
+    clientSocket->Close();
 }
 
 #endif // DATAGENERATOR_H

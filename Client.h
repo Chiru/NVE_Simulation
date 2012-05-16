@@ -87,7 +87,7 @@ Client::Client(XMLParser& parser, uint16_t no, int runningTime, Ptr<Node> node, 
 
 Client::~Client(){
 
-    uint64_t bytesSent = 0;
+    uint64_t bytesSent = 0L;
 
     for(int i = 0; i < parser.getNumberOfStreams(); i++){
         if(streams != 0 && streams[i] != 0){
@@ -99,7 +99,7 @@ Client::~Client(){
     if(streams != 0)
          delete[] streams;
 
-    CLIENT_INFO("Client number: " << clientNumber << " finishing, sent " << bytesSent << " bytes int total." << std::endl);
+    CLIENT_INFO("Client number: " << clientNumber << " finishing, sent " << bytesSent << " bytes in total." << std::endl);
 }
 
 std::string Client::getDelayInMilliseconds() const{

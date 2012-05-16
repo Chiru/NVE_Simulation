@@ -169,8 +169,10 @@ void UserActionMessage::scheduleSendEvent(Callback<bool, Message*, uint8_t*> sen
 
 void UserActionMessage::sendData(){
 
-    char buffer[30];
-    strcpy(buffer, name.c_str());
+    char buffer[30] = "";
+    buffer[0] = '\"';
+    strcat(buffer, name.c_str());
+    strcat(buffer, "\"");
 
     std::stringstream str;
     str << messageID;
