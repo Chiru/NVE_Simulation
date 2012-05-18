@@ -61,6 +61,9 @@ public:
     virtual std::vector<Message*> getMessages()const {return messages;}
 
 protected:
+    enum ReadMsgNameReturnValue{READ_FAILED = 0, READ_SUCCESS, NAME_CONTINUES};
+    ReadMsgNameReturnValue readMessageName(std::string& name, uint8_t* buffer, uint16_t charLeft, bool nameContinues = false);
+
     uint16_t streamNumber;
     Protocol proto;
     ApplicationProtocol* appProto;
@@ -69,7 +72,6 @@ protected:
     bool running;
     Address peerAddr;
     uint64_t totalBytesSent;
-    bool readMessageName(std::string& name, uint8_t* buffer);
 };
 
 class ClientDataGenerator : public DataGenerator{
@@ -105,6 +107,8 @@ class ServerDataGenerator : public DataGenerator{
         std::vector<Message*> messageBuffer;
         uint16_t bytesLeftToRead;
         bool dataLeft;
+        bool nameLeft;
+        std::string  messageNamePart;
     };
 
 public:
@@ -176,19 +180,32 @@ bool DataGenerator::setupStream(Ptr<Node> node, Address addr){
 
 }
 
-bool DataGenerator::readMessageName(std::string &name, uint8_t *buffer){
+DataGenerator::ReadMsgNameReturnValue DataGenerator::readMessageName(std::string &name, uint8_t *buffer, uint16_t charLeft, bool nameContinues){
 
-    if((char)buffer[0] != '\"'){
-        std::cout << (char)buffer[1]<<(char)buffer[2]<<(char)buffer[3]<<(char)buffer[4]<<(char)buffer[5]<< std::endl;
-        return false;
+   if(charLeft <= 1){
+        name.assign("");
+        return NAME_CONTINUES;      //read only "-character
     }
 
-    for(int i = 1; (char)buffer[i] != '\"'; i++)
-        name += (char)buffer[i];
 
-    std::cout << name << std::endl;
+    if(nameContinues){
+        for(int i = 0; (char)buffer[i] != '\"'; i++){
+            name += (char)buffer[i];
+        }
+    }
+    else{
+        if((char)buffer[0] != '\"'){
+            return READ_FAILED;
+        }
 
-    return true;
+        for(int i = 1; (char)buffer[i] != '\"'; i++){
+            name += (char)buffer[i];
+            if((i+1) == charLeft)
+                return NAME_CONTINUES;
+        }
+    }
+
+    return READ_SUCCESS;
 }
 
 //Class ClientDataGenerator function definitions
@@ -318,6 +335,7 @@ ServerDataGenerator::ServerDataGenerator(const DataGenerator& stream){
 ServerDataGenerator::~ServerDataGenerator(){
 
     for(std::vector<ServerDataGenerator::ClientConnection*>::iterator it = clientConnections.begin(); it != clientConnections.end(); it++){
+        (*it)->clientSocket->Close();
         delete (*it);
         SERVER_INFO("Closed server socket for stream number: " << this->getStreamNumber() << std::endl);
     }
@@ -358,7 +376,7 @@ void ServerDataGenerator::StopApplication(){
 
     for(std::vector<ServerDataGenerator::ClientConnection*>::iterator it = clientConnections.begin(); it != clientConnections.end(); it++){
         (*it)->clientSocket->ShutdownRecv();
-        (*it)->clientSocket->Close();
+        //(*it)->clientSocket->Close();
     }
 
 }
@@ -372,6 +390,7 @@ void ServerDataGenerator::dataReceivedTcp(Ptr<Socket> sock){
     Message* message = 0;
     uint16_t messageSize = 0;
     uint16_t bufferSize = 0;
+    ReadMsgNameReturnValue retVal;
 
     if(running){
 
@@ -384,17 +403,32 @@ void ServerDataGenerator::dataReceivedTcp(Ptr<Socket> sock){
 
         bufferSize = sock->GetRxAvailable();
         buffer = (uint8_t*)calloc(sizeof(uint8_t), bufferSize);
-
         sock->Recv(buffer, bufferSize, 0);
 
         if(client->dataLeft){
+
+            if(client->nameLeft){
+                messageName.assign(client->messageNamePart);
+            }
+
             if(client->bytesLeftToRead > bufferSize){
                 client->dataLeft = true;
                 client->bytesLeftToRead -= bufferSize;
             }else{
-                bytesRead += client->bytesLeftToRead;
+                if(!client->nameLeft){
+                    bytesRead += client->bytesLeftToRead;
+                    client->messageNamePart.clear();
+                }
+
+                if(bytesRead >= bufferSize){
+                    client->dataLeft = false;
+                }
+
                 while(bytesRead < bufferSize){
-                    if(readMessageName(messageName, buffer + bytesRead)){
+                    if((retVal = readMessageName(messageName, buffer + bytesRead, bufferSize-bytesRead, client->nameLeft)) == READ_SUCCESS){
+
+                       // client->nameLeft = false;
+
                         for(std::vector<Message*>::iterator it = messages.begin(); it != messages.end(); it++){
                             if(messageName.compare((*it)->getName()) == 0){
                                 message = *it;
@@ -402,24 +436,45 @@ void ServerDataGenerator::dataReceivedTcp(Ptr<Socket> sock){
                             }
                         }
                         messageSize = message->getMessageSize();
-                        if((bufferSize - bytesRead) < messageSize){
+                         if((bufferSize - bytesRead) <=  messageSize -client->messageNamePart.length() - 1){   // -1 because of the "-character in the beginning of the name
+                            client->nameLeft = false;
                             client->dataLeft = true;
                             client->bytesLeftToRead = messageSize-(bufferSize - bytesRead);
-                            client->messageBuffer.push_back(message);
+                            //client->messageBuffer.push_back(message);
                             bytesRead = bufferSize;
+                            client->messageNamePart.assign((""));
                         }else{
-                            bytesRead += messageSize;
-                            client->messageBuffer.push_back(message);
+                             if(client->nameLeft){
+                                 bytesRead += messageSize - (client->messageNamePart.length() +1); //TÄSSÄ VIKA??? VÄHENNÄ EDELLISESSÄ VIESTISSÄ OLLEET TAVUT
+                             }else{
+                                 bytesRead += messageSize;
+                             }
+
+                            client->nameLeft = false;
+                            //client->messageBuffer.push_back(message);
                             client->dataLeft = false;
+                            client->bytesLeftToRead = 0;
+                            client->messageNamePart.assign("");
                         }
+
+                        messageName.assign("");
+
                     }
-                    else
-                        PRINT_ERROR("This should never happen, check message names!" << std::endl);
+                    else if(retVal == NAME_CONTINUES){
+                        client->nameLeft = true;
+                        client->dataLeft = true;
+                        client->messageNamePart.assign(messageName.substr(messageName.length() -(bufferSize - bytesRead) +1, bufferSize-bytesRead));
+                        client->bytesLeftToRead = 0;
+                        bytesRead = bufferSize;
+                    }
+                    else if(retVal == READ_FAILED)
+                        PRINT_ERROR("This should never happen, check message names!1" << std::endl);
+
                 }
             }
         }else{
             while(bytesRead < bufferSize){
-                if(readMessageName(messageName, buffer + bytesRead)){
+                if((retVal = readMessageName(messageName, buffer + bytesRead, bufferSize-bytesRead)) == READ_SUCCESS){
                     for(std::vector<Message*>::iterator it = messages.begin(); it != messages.end(); it++){
                         if(messageName.compare((*it)->getName()) == 0){
                             message = *it;
@@ -427,18 +482,30 @@ void ServerDataGenerator::dataReceivedTcp(Ptr<Socket> sock){
                         }
                     }
                     messageSize = message->getMessageSize();
-                    if((bufferSize - bytesRead) < messageSize){
+                    if((bufferSize - bytesRead) <= messageSize){
                         client->dataLeft = true;
                         client->bytesLeftToRead = messageSize-(bufferSize - bytesRead);
-                        client->messageBuffer.push_back(message);
+                       // client->messageBuffer.push_back(message);
                         bytesRead = bufferSize;
+                        client->messageNamePart.assign((""));
                     }else{
                         bytesRead += messageSize;
-                        client->messageBuffer.push_back(message);
+                       // client->messageBuffer.push_back(message);
                         client->dataLeft = false;
+                        client->bytesLeftToRead = 0;
                     }
+
+                    messageName.assign("");
                 }
-                else
+                else if(retVal == NAME_CONTINUES){
+                    client->nameLeft = true;
+                    client->dataLeft = true;
+                    client->messageNamePart.assign(messageName.substr(messageName.length() -(bufferSize - bytesRead) +1, bufferSize-bytesRead));
+
+                    client->bytesLeftToRead = 0;
+                    bytesRead = bufferSize;
+                }
+                else if(retVal == READ_FAILED)
                     PRINT_ERROR("This should never happen, check message names!" << std::endl);
             }
         }
@@ -446,6 +513,9 @@ void ServerDataGenerator::dataReceivedTcp(Ptr<Socket> sock){
 
         if(buffer != 0)
             free(buffer);
+
+   // uint8_t buffer[1500];
+   // sock->Recv(buffer, 1500, 0);
 }
 
 
@@ -457,6 +527,7 @@ void ServerDataGenerator::dataReceivedUdp(Ptr<Socket> sock){
     uint8_t* buffer = 0;
     uint16_t bytesRead = 0;
     Address clientAddr;
+    ReadMsgNameReturnValue retVal;
 
     bufferSize = sock->GetRxAvailable();
     buffer = (uint8_t*)calloc(sizeof(uint8_t), bufferSize);
@@ -465,7 +536,7 @@ void ServerDataGenerator::dataReceivedUdp(Ptr<Socket> sock){
 
     while(bytesRead < bufferSize){
 
-        if(readMessageName(messageName, buffer)){
+        if((retVal = readMessageName(messageName, buffer, bufferSize-bytesRead)) == READ_SUCCESS){
             for(std::vector<Message*>::iterator it = messages.begin(); it != messages.end(); it++){
                 if(messageName.compare((*it)->getName()) == 0){
                     message = (*it);
@@ -473,9 +544,11 @@ void ServerDataGenerator::dataReceivedUdp(Ptr<Socket> sock){
                 }
             }
             bytesRead += message->getMessageSize();
-            std::cout << "UDP: " << messageName << std::endl;
         }
-        else
+        else if(retVal == NAME_CONTINUES){
+            PRINT_ERROR("This should never happen!" << std::endl);
+        }
+        else if(retVal == READ_FAILED)
             PRINT_ERROR("This should never happen, check message names! " << std::endl);
     }
 
@@ -504,7 +577,7 @@ void ServerDataGenerator::newConnectionCreated(Ptr<Socket> sock, const Address &
 
 //nested class ClientConnection function definitions
 
-ServerDataGenerator::ClientConnection::ClientConnection(Ptr<Socket> sock): clientSocket(sock){
+ServerDataGenerator::ClientConnection::ClientConnection(Ptr<Socket> sock): clientSocket(sock), dataLeft(false), nameLeft(false){
 
 }
 
