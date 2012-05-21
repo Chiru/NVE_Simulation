@@ -23,6 +23,8 @@
 
 class DataGenerator;
 
+enum MessageType{USER_ACTION, OTHER_DATA, MAINTENANCE};
+
 class Message{
 
     friend std::ostream& operator<<( std::ostream& out, const Message& msg){
@@ -41,7 +43,9 @@ public:
     uint16_t getMessageSize() const{return messageSize;}
     uint16_t getmessagesCreated() const {return messagesCreated;}
     uint16_t getMessageId() const {return messageID;}
+    MessageType getType() const{return type;}
     void cancelEvent();
+    void fillMessageContents(char* buffer);
 
 
   protected:
@@ -51,7 +55,7 @@ public:
     int timeInterval;
     uint16_t messageSize;
     uint16_t messageID;
-    enum MessageType{USER_ACTION, OTHER_DATA, MAINTENANCE} type;
+    MessageType type;
     virtual void printStats(std::ostream& out, const Message& msg)const = 0;
     Callback<bool, Message*,  uint8_t*> sendFunction;
     EventId sendEvent;
@@ -68,6 +72,7 @@ public:
     ~UserActionMessage();
     Message* copyMessage();
     void scheduleSendEvent(Callback<bool, Message*, uint8_t*>);
+    double getClientsOfInterest() const{return clientsOfInterest;}
 
 private:
     UserActionMessage(std::string name, bool reliable, int timeInterval, uint16_t messageSize, double clientsOfInterest, int requirement);
@@ -145,6 +150,18 @@ void Message::cancelEvent(){
 
 }
 
+void Message::fillMessageContents(char *buffer){
+
+    buffer[0] = '\"';
+    strcat(buffer, name.c_str());
+    strcat(buffer, "\":");
+
+    std::stringstream str;
+    str << messageID;
+
+    strcat(buffer, str.str().c_str());
+
+}
 
 //Class UserActionMessage function definitions
 
@@ -170,14 +187,8 @@ void UserActionMessage::scheduleSendEvent(Callback<bool, Message*, uint8_t*> sen
 void UserActionMessage::sendData(){
 
     char buffer[30] = "";
-    buffer[0] = '\"';
-    strcat(buffer, name.c_str());
-    strcat(buffer, "\"");
 
-    std::stringstream str;
-    str << messageID;
-
-    strcat(buffer, str.str().c_str());
+    fillMessageContents(buffer);
 
     if(!sendFunction(this, (uint8_t*)buffer))
         PRINT_ERROR("Problems with socket buffer" << std::endl);   //TODO: socket buffer

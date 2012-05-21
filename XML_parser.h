@@ -483,8 +483,8 @@ bool XMLParser::parseMessages(std::string &messagesElement, std::vector<Message*
                 return false;
             }
 
-            if(clientsOfInterest < 0 || clientsOfInterest > 100){
-                PRINT_ERROR( "ClientsOfInterest must be between 0 and 100." << std::endl);
+            if(clientsOfInterest < 0 || clientsOfInterest > 1){
+                PRINT_ERROR( "ClientsOfInterest must be between 0 and 1." << std::endl);
                 return false;
             }
 

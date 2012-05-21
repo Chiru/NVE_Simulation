@@ -47,7 +47,7 @@ class DataGenerator : public ns3::Application{
 public:
     enum Protocol{TCP_NAGLE_DISABLED, TCP_NAGLE_ENABLED, UDP};
     DataGenerator(){}
-    DataGenerator(uint16_t streamNumber, Protocol proto, ApplicationProtocol* appProto, std::vector<Message*> messages);
+    DataGenerator(uint16_t streamNumber, Protocol proto, ApplicationProtocol* appProto, std::vector<Message*> messages, int gametick = 200);   //TODO: configure gametick
     virtual ~DataGenerator();
     virtual void StartApplication() = 0;
     virtual void StopApplication() = 0;
@@ -59,6 +59,7 @@ public:
     Protocol getProtocol() const{return proto;}
     ApplicationProtocol* getApplicationProtocol() const{return appProto;}
     virtual std::vector<Message*> getMessages()const {return messages;}
+    int getGameTick() const{return gameTick;}
 
 protected:
     enum ReadMsgNameReturnValue{READ_FAILED = 0, READ_SUCCESS, NAME_CONTINUES};
@@ -72,12 +73,13 @@ protected:
     bool running;
     Address peerAddr;
     uint64_t totalBytesSent;
+    int gameTick;
 };
 
 class ClientDataGenerator : public DataGenerator{
 
 public:
-    ClientDataGenerator(uint16_t streamNumber, Protocol proto, ApplicationProtocol* appProto, std::vector<Message*> messages);
+    ClientDataGenerator(uint16_t streamNumber, Protocol proto, ApplicationProtocol* appProto, std::vector<Message*> messages, int gametick = 200); //TODO: configure gametick
     ClientDataGenerator(const DataGenerator&);
     ~ClientDataGenerator();
 
@@ -103,16 +105,19 @@ class ServerDataGenerator : public DataGenerator{
         ClientConnection(Ptr<Socket>);
         ~ClientConnection();
 
+        void forwardUserActionMessage(UserActionMessage*);
+
         Ptr<Socket> clientSocket;
-        std::vector<Message*> messageBuffer;
+        std::vector<std::pair<Ptr<Socket>, Message* > > messageBuffer;
         uint16_t bytesLeftToRead;
         bool dataLeft;
         bool nameLeft;
         std::string  messageNamePart;
+
     };
 
 public:
-    ServerDataGenerator(uint16_t streamNumber, Protocol proto, ApplicationProtocol* appProto, std::vector<Message*> messages);
+    ServerDataGenerator(uint16_t streamNumber, Protocol proto, ApplicationProtocol* appProto, std::vector<Message*> messages, int gametick = 200);     //TODO: configure gametick
     ServerDataGenerator(const DataGenerator&);
     ~ServerDataGenerator();
 
@@ -125,15 +130,19 @@ private:
     void moreBufferSpaceAvailable(Ptr<Socket>, uint32_t);
     bool connectionRequest(Ptr<Socket>, const Address&);
     void newConnectionCreated(Ptr<Socket>, const Address&);
+    void forwardData();
+    void sendToRandomClients(std::pair<Ptr<Socket>, Message*>&);
+
     std::vector<ServerDataGenerator::ClientConnection*> clientConnections;
+    UniformVariable probability;
 
 };
 
 
 //Class DataGenerator function definitions
 
-DataGenerator::DataGenerator(uint16_t streamNumber, Protocol proto, ApplicationProtocol* appProto, std::vector<Message*> messages)
-    : streamNumber(streamNumber), proto(proto), appProto(appProto), messages(messages), running(false), totalBytesSent(0){
+DataGenerator::DataGenerator(uint16_t streamNumber, Protocol proto, ApplicationProtocol* appProto, std::vector<Message*> messages, int tick)
+    : streamNumber(streamNumber), proto(proto), appProto(appProto), messages(messages), running(false), totalBytesSent(0), gameTick(tick){
 
 
 }
@@ -210,8 +219,8 @@ DataGenerator::ReadMsgNameReturnValue DataGenerator::readMessageName(std::string
 
 //Class ClientDataGenerator function definitions
 
-ClientDataGenerator::ClientDataGenerator(uint16_t streamNumber, Protocol proto, ApplicationProtocol* appProto, std::vector<Message*> messages)
-    : DataGenerator(streamNumber, proto, appProto, messages), ownerClient(0){
+ClientDataGenerator::ClientDataGenerator(uint16_t streamNumber, Protocol proto, ApplicationProtocol* appProto, std::vector<Message*> messages, int tick)
+    : DataGenerator(streamNumber, proto, appProto, messages, tick), ownerClient(0){
 
 
 }
@@ -220,6 +229,7 @@ ClientDataGenerator::ClientDataGenerator(const DataGenerator& stream){
 
     this->streamNumber = stream.getStreamNumber();
     this->ownerClient = (dynamic_cast<const ClientDataGenerator&>(stream)).getClientNumber();
+    this->gameTick = stream.getGameTick();
 
     if(stream.getApplicationProtocol() != 0)
         this->appProto = new ApplicationProtocol((*(stream.getApplicationProtocol())));
@@ -308,13 +318,17 @@ bool ClientDataGenerator::sendData(Message *msg, uint8_t* buffer){
 
 //Class ServerDataGenerator function definitions
 
-ServerDataGenerator::ServerDataGenerator(uint16_t streamNumber, Protocol proto, ApplicationProtocol* appProto, std::vector<Message*> messages)
-    : DataGenerator(streamNumber, proto, appProto, messages){
+ServerDataGenerator::ServerDataGenerator(uint16_t streamNumber, Protocol proto, ApplicationProtocol* appProto, std::vector<Message*> messages, int tick)
+    : DataGenerator(streamNumber, proto, appProto, messages, tick){
+
+    probability = UniformVariable(0,1);
 
 }
 
 ServerDataGenerator::ServerDataGenerator(const DataGenerator& stream){
 
+    this->probability = UniformVariable(0,1);
+    this->gameTick = stream.getGameTick();
     this->streamNumber = stream.getStreamNumber();
 
     if(stream.getApplicationProtocol() != 0)
@@ -360,6 +374,9 @@ void ServerDataGenerator::StartApplication(){
             socket->SetRecvCallback(MakeCallback(&ServerDataGenerator::dataReceivedUdp, this));
             break;
     }
+
+    Simulator::Schedule(Time(MilliSeconds(gameTick)), &ServerDataGenerator::forwardData, this);
+
 }
 
 void ServerDataGenerator::StopApplication(){
@@ -376,7 +393,6 @@ void ServerDataGenerator::StopApplication(){
 
     for(std::vector<ServerDataGenerator::ClientConnection*>::iterator it = clientConnections.begin(); it != clientConnections.end(); it++){
         (*it)->clientSocket->ShutdownRecv();
-        //(*it)->clientSocket->Close();
     }
 
 }
@@ -427,8 +443,6 @@ void ServerDataGenerator::dataReceivedTcp(Ptr<Socket> sock){
                 while(bytesRead < bufferSize){
                     if((retVal = readMessageName(messageName, buffer + bytesRead, bufferSize-bytesRead, client->nameLeft)) == READ_SUCCESS){
 
-                       // client->nameLeft = false;
-
                         for(std::vector<Message*>::iterator it = messages.begin(); it != messages.end(); it++){
                             if(messageName.compare((*it)->getName()) == 0){
                                 message = *it;
@@ -436,22 +450,21 @@ void ServerDataGenerator::dataReceivedTcp(Ptr<Socket> sock){
                             }
                         }
                         messageSize = message->getMessageSize();
-                         if((bufferSize - bytesRead) <=  messageSize -client->messageNamePart.length() - 1){   // -1 because of the "-character in the beginning of the name
+                         if((bufferSize - bytesRead) <  messageSize -client->messageNamePart.length() - 1){   // -1 because of the "-character in the beginning of the name
                             client->nameLeft = false;
                             client->dataLeft = true;
                             client->bytesLeftToRead = messageSize-(bufferSize - bytesRead);
-                            //client->messageBuffer.push_back(message);
                             bytesRead = bufferSize;
                             client->messageNamePart.assign((""));
-                        }else{
+                        }else{  //if we get here, the whole message has been read
                              if(client->nameLeft){
-                                 bytesRead += messageSize - (client->messageNamePart.length() +1); //TÄSSÄ VIKA??? VÄHENNÄ EDELLISESSÄ VIESTISSÄ OLLEET TAVUT
+                                 bytesRead += messageSize - (client->messageNamePart.length() +1);
                              }else{
                                  bytesRead += messageSize;
                              }
 
                             client->nameLeft = false;
-                            //client->messageBuffer.push_back(message);
+                            client->messageBuffer.push_back(std::make_pair<Ptr<Socket>, Message*>(sock, message));
                             client->dataLeft = false;
                             client->bytesLeftToRead = 0;
                             client->messageNamePart.assign("");
@@ -482,15 +495,14 @@ void ServerDataGenerator::dataReceivedTcp(Ptr<Socket> sock){
                         }
                     }
                     messageSize = message->getMessageSize();
-                    if((bufferSize - bytesRead) <= messageSize){
+                    if((bufferSize - bytesRead) < messageSize){   //if this is true, the message continues in the next TCP segment
                         client->dataLeft = true;
                         client->bytesLeftToRead = messageSize-(bufferSize - bytesRead);
-                       // client->messageBuffer.push_back(message);
                         bytesRead = bufferSize;
                         client->messageNamePart.assign((""));
-                    }else{
+                    }else{  //if we get here, the whole message has been read
                         bytesRead += messageSize;
-                       // client->messageBuffer.push_back(message);
+                        client->messageBuffer.push_back(std::make_pair<Ptr<Socket>, Message*>(sock, message));
                         client->dataLeft = false;
                         client->bytesLeftToRead = 0;
                     }
@@ -501,7 +513,6 @@ void ServerDataGenerator::dataReceivedTcp(Ptr<Socket> sock){
                     client->nameLeft = true;
                     client->dataLeft = true;
                     client->messageNamePart.assign(messageName.substr(messageName.length() -(bufferSize - bytesRead) +1, bufferSize-bytesRead));
-
                     client->bytesLeftToRead = 0;
                     bytesRead = bufferSize;
                 }
@@ -514,7 +525,7 @@ void ServerDataGenerator::dataReceivedTcp(Ptr<Socket> sock){
         if(buffer != 0)
             free(buffer);
 
-   // uint8_t buffer[1500];
+    //uint8_t buffer[1500];
    // sock->Recv(buffer, 1500, 0);
 }
 
@@ -574,6 +585,35 @@ void ServerDataGenerator::newConnectionCreated(Ptr<Socket> sock, const Address &
     sock->SetRecvCallback(MakeCallback(&ServerDataGenerator::dataReceivedTcp, this));
 }
 
+void ServerDataGenerator::forwardData(){
+
+    for(std::vector<ClientConnection*>::iterator it = clientConnections.begin(); it != clientConnections.end(); it++){
+        for(std::vector<std::pair<Ptr<Socket>, Message*> >::iterator messages = (*it)->messageBuffer.begin(); messages != (*it)->messageBuffer.end(); messages++){
+            if((*messages).second->getType() == USER_ACTION){
+                sendToRandomClients(*messages);
+            }
+        }
+        (*it)->messageBuffer.clear();
+    }
+
+    if(running)
+        Simulator::Schedule(Time(MilliSeconds(gameTick)), &ServerDataGenerator::forwardData, this);
+
+}
+
+void ServerDataGenerator::sendToRandomClients(std::pair<Ptr<Socket>, Message*> &msg){
+
+    double clientsToSend = ((UserActionMessage*)msg.second)->getClientsOfInterest();
+
+    for(std::vector<ClientConnection*>::iterator it = clientConnections.begin(); it != clientConnections.end(); it++){
+        if(msg.first == (*it)->clientSocket)
+            continue;
+
+        if(clientsToSend >= probability.GetValue()){
+            (*it)->forwardUserActionMessage((UserActionMessage*)(msg.second));
+        }
+    }
+}
 
 //nested class ClientConnection function definitions
 
@@ -584,6 +624,16 @@ ServerDataGenerator::ClientConnection::ClientConnection(Ptr<Socket> sock): clien
 ServerDataGenerator::ClientConnection::~ClientConnection(){
 
     clientSocket->Close();
+}
+
+void ServerDataGenerator::ClientConnection::forwardUserActionMessage(UserActionMessage* msg){
+
+    char buffer[30] = "";
+    msg->fillMessageContents(buffer);
+
+    if(clientSocket->Send((uint8_t*)buffer, msg->getMessageSize(), 0) == -1)
+        PRINT_ERROR("Problems with server socket buffer." << std::endl);
+
 }
 
 #endif // DATAGENERATOR_H

@@ -1,8 +1,8 @@
 <xml>
     <clients>
         <client>
-        <no="1"/> <delay="10"><uplink="100"/>
-        <downlink="50"/> <loss="0.1"/>
+        <no="1:2"/> <delay="10"><uplink="2"/>
+        <downlink="4"/> <loss="0.01"/>
         </client>
 
     </clients>
@@ -20,22 +20,32 @@
             <messages>
                 <message>
                      <type="uam">
-                     <name="yesnagle">
+                     <name="viesti1">
                      <reliable="yes">
-                     <size="1395">
-                     <timeinterval="50">
-                     <clientsofinterest="90">
+                     <size="24">
+                     <timeinterval="40">
+                     <clientsofinterest="0.9">
                      <timerequirement="100">
                 </message>
                 <message>
                      <type="uam">
-                     <name="esa">
+                     <name="viesti2">
                      <reliable="yes">
-                     <size="21">
-                     <timeinterval="50">
-                     <clientsofinterest="90">
+                     <size="79">
+                     <timeinterval="40">
+                     <clientsofinterest="0.1">
                      <timerequirement="100">
                 </message>
+                <message>
+                     <type="uam">
+                     <name="viesti3">
+                     <reliable="yes">
+                     <size="34">
+                     <timeinterval="40">
+                     <clientsofinterest="0">
+                     <timerequirement="100">
+                </message>
+
 
             </messages>
         </stream>
