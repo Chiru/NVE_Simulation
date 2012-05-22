@@ -52,6 +52,7 @@ public:
     virtual void StartApplication() = 0;
     virtual void StopApplication() = 0;
     virtual void dataReceivedTcp(Ptr<Socket>) = 0;
+    virtual void dataReceivedUdp(Ptr<Socket>) = 0;
     virtual void moreBufferSpaceAvailable(Ptr<Socket>, uint32_t) = 0;
     bool setupStream(Ptr<Node> node, Address addr);
     uint64_t getBytesSent() const{return totalBytesSent;}
@@ -92,6 +93,7 @@ private:
     uint16_t ownerClient;
 
     void dataReceivedTcp(Ptr<Socket>);
+    void dataReceivedUdp(Ptr<Socket>);
     void moreBufferSpaceAvailable(Ptr<Socket>, uint32_t);
     bool sendData(Message*, uint8_t* buffer);
 };
@@ -264,17 +266,28 @@ void ClientDataGenerator::setClientNumber(uint16_t clientNumber){
 void ClientDataGenerator::StartApplication(){
 
     running = true;
-    socket->Connect(peerAddr);
+
+    switch(proto){
+
+        case TCP_NAGLE_DISABLED:
+        case TCP_NAGLE_ENABLED:
+            socket->Connect(peerAddr);
+            socket->SetRecvCallback(MakeCallback(&ClientDataGenerator::dataReceivedTcp, this));
+            break;
+
+    case UDP:
+            socket->Connect(peerAddr);
+            socket->SetRecvCallback(MakeCallback(&ClientDataGenerator::dataReceivedUdp, this));
+            break;
+    }
 
     CLIENT_INFO("Client number: " << ownerClient <<  " is starting stream no: " << this->streamNumber << std::endl);
 
-    socket->SetRecvCallback(MakeCallback(&ClientDataGenerator::dataReceivedTcp, this));
     socket->SetSendCallback(MakeCallback(&ClientDataGenerator::moreBufferSpaceAvailable, this));
 
     for(std::vector<Message*>::iterator it = messages.begin(); it != messages.end(); it++){
         (*it)->scheduleSendEvent(MakeCallback(&ClientDataGenerator::sendData, this));
     }
-
 
 }
 
@@ -294,7 +307,24 @@ void ClientDataGenerator::StopApplication(){
 
 void ClientDataGenerator::dataReceivedTcp(Ptr<Socket> sock){
 
+    uint8_t* buffer;
+    uint16_t bufferSize;
+
+    bufferSize = sock->GetRxAvailable();
+    buffer = (uint8_t*) calloc(sizeof(uint8_t), bufferSize);
+
+    sock->Recv(buffer, bufferSize, 0);
+
+    if(buffer != 0)
+        free(buffer);
 }
+
+void ClientDataGenerator::dataReceivedUdp(Ptr<Socket> sock){
+
+    Address addr;
+    sock->RecvFrom(addr);
+}
+
 
 void ClientDataGenerator::moreBufferSpaceAvailable(Ptr<Socket> sock, uint32_t size){
 
@@ -531,9 +561,6 @@ void ServerDataGenerator::dataReceivedTcp(Ptr<Socket> sock){
 
         if(buffer != 0)
             free(buffer);
-
-    //uint8_t buffer[1500];
-   // sock->Recv(buffer, 1500, 0);
 }
 
 

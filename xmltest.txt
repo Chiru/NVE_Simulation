@@ -58,8 +58,40 @@
                     <reliable="yes">
                     <size="37">
                     <timeinterval="1000">
-                    <clientsofinterest="1">
+                    <clientsofinterest="0.1">
                     <timerequirement="100">
+                </message>
+            </messages>
+        </stream>
+        <stream>
+            type="udp"
+            useappproto="no"
+            no="3"
+            <messages>
+                <message>
+                    <type="uam">
+                    <name="udp-viesti2">
+                    <reliable="yes">
+                    <size="38">
+                    <timeinterval="1000">
+                    <clientsofinterest="0.1">
+                    <timerequirement="100">
+                </message>
+                <message>
+                    <type="uam">
+                    <name="udp-viesti3">
+                    <reliable="yes">
+                    <size="123">
+                    <timeinterval="500">
+                    <clientsofinterest="0.1">
+                    <timerequirement="100">
+                </message>
+                <message>
+                    <type="mm">
+                    <name="ping">
+                    <reliable="yes">
+                    <size="40">
+                    <timeinterval="2000">
                 </message>
             </messages>
         </stream>
