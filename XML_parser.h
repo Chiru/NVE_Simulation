@@ -494,7 +494,7 @@ bool XMLParser::parseMessages(std::string &messagesElement, std::vector<Message*
 
         if(type.compare("odt") == 0){
 
-            //nothing special here yet
+            messages.push_back(new OtherDataMessage(name, reliable.compare("no") == 0 ? false : true, timeInterval, size));
         }
 
         if(type.compare("mm") == 0){

@@ -58,11 +58,16 @@ Server::Server(XMLParser& parser, int runningTime, Ptr<Node> node, Address* addr
 
 Server::~Server(){
 
+    uint64_t bytesSent = 0L;
+
     for(int i = 0; i < numberOfStreams; i++){
+        bytesSent += streams[i]->getBytesSent();
         delete streams[i];
     }
 
     delete[] streams;
+
+    SERVER_INFO("Server finishing, sent " << bytesSent << " bytes in total." << std::endl);
 
 }
 

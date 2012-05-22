@@ -131,7 +131,7 @@ Message::Message(std::string name, bool reliable, int timeInterval, uint16_t siz
 
 }
 
-Message::Message(const Message &msg): name(msg.getName()), reliable(msg.getReliable()), timeInterval(msg.getTimeInterval()), messageSize(msg.getMessageSize()){
+Message::Message(const Message &msg): name(msg.getName()), reliable(msg.getReliable()), timeInterval(msg.getTimeInterval()), messageSize(msg.getMessageSize()), type(msg.getType()){
 
     this->messageID = ++messagesCreated;
 
@@ -233,15 +233,22 @@ OtherDataMessage::~OtherDataMessage(){
 
 void OtherDataMessage::sendData(){
 
+    char buffer[30];
+    fillMessageContents(buffer);
+
+    if(!sendFunction(this, (uint8_t*)buffer))
+        PRINT_ERROR("Problems with server socket sending buffer." << std::endl);
+
+    if(running){
+        sendEvent = Simulator::Schedule(Time(MilliSeconds(timeInterval)), &OtherDataMessage::sendData, this);
+    }
 }
 
 Message* OtherDataMessage::copyMessage(){
 
     Message *msg;
     msg = new OtherDataMessage(*this);
-
     return msg;
-
 }
 
 void OtherDataMessage::printStats(std::ostream &out, const Message &msg) const{
@@ -251,8 +258,11 @@ void OtherDataMessage::printStats(std::ostream &out, const Message &msg) const{
 
 }
 
-void OtherDataMessage::scheduleSendEvent(Callback<bool, Message*, uint8_t*> function){
+void OtherDataMessage::scheduleSendEvent(Callback<bool, Message*, uint8_t*> sendFunction){
 
+    this->sendFunction = sendFunction;
+    running = true;
+    sendEvent = Simulator::Schedule(Time(MilliSeconds(timeInterval)), &OtherDataMessage::sendData, this);
 }
 
 

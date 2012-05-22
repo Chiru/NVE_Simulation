@@ -136,6 +136,7 @@ private:
     void sendToRandomClients(std::pair<Ptr<Socket>, Message*>&);   //for TCP streams
     void sendToRandomClients(std::pair<Address, Message*>&);       //for UDP streams
     void forwardUserActionMessageOverUdp(UserActionMessage*, Address&);
+    bool sendData(Message*, uint8_t*);
 
     std::vector<ServerDataGenerator::ClientConnection*> clientConnections;
     std::vector<Address*> udpClients;
@@ -286,7 +287,9 @@ void ClientDataGenerator::StartApplication(){
     socket->SetSendCallback(MakeCallback(&ClientDataGenerator::moreBufferSpaceAvailable, this));
 
     for(std::vector<Message*>::iterator it = messages.begin(); it != messages.end(); it++){
-        (*it)->scheduleSendEvent(MakeCallback(&ClientDataGenerator::sendData, this));
+        if((*it)->getType() == USER_ACTION || (*it)->getType() == MAINTENANCE){
+            (*it)->scheduleSendEvent(MakeCallback(&ClientDataGenerator::sendData, this));
+        }
     }
 
 }
@@ -413,6 +416,11 @@ void ServerDataGenerator::StartApplication(){
     }
 
     Simulator::Schedule(Time(MilliSeconds(gameTick)), &ServerDataGenerator::forwardData, this);
+
+    for(std::vector<Message*>::iterator it = messages.begin(); it != messages.end(); it++){
+        if((*it)->getType() == OTHER_DATA)
+            (*it)->scheduleSendEvent(MakeCallback(&ServerDataGenerator::sendData, this));
+    }
 
 }
 
@@ -709,6 +717,34 @@ void ServerDataGenerator::forwardUserActionMessageOverUdp(UserActionMessage* msg
 
     if(socket->SendTo((uint8_t*)buffer, msg->getMessageSize(), 0, addr) == -1)
         PRINT_ERROR("Problems with server socket buffer." << std::endl);
+}
+
+bool ServerDataGenerator::sendData(Message *msg, uint8_t *buffer){
+
+    uint16_t bytesSent;
+
+    if(running){
+
+        if(this->proto == TCP_NAGLE_DISABLED || this->proto == TCP_NAGLE_ENABLED){
+            for(std::vector<ServerDataGenerator::ClientConnection*>::iterator it = clientConnections.begin(); it != clientConnections.end(); it++){
+                if((*it)->clientSocket->GetTxAvailable() < msg->getMessageSize())
+                    return false;
+                if((bytesSent = (*it)->clientSocket->Send(buffer, msg->getMessageSize(), 0)) == -1)
+                    return false;
+
+                totalBytesSent += bytesSent;
+            }
+        }else if(this->proto == UDP){
+            for(std::vector<Address*>::iterator it = udpClients.begin(); it != udpClients.end(); it++){
+                if((bytesSent = socket->SendTo(buffer, msg->getMessageSize(), 0, **it)) == -1)
+                    return false;
+
+                totalBytesSent += bytesSent;
+            }
+        }
+    }
+
+    return true;
 }
 
 
