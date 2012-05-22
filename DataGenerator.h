@@ -131,9 +131,13 @@ private:
     bool connectionRequest(Ptr<Socket>, const Address&);
     void newConnectionCreated(Ptr<Socket>, const Address&);
     void forwardData();
-    void sendToRandomClients(std::pair<Ptr<Socket>, Message*>&);
+    void sendToRandomClients(std::pair<Ptr<Socket>, Message*>&);   //for TCP streams
+    void sendToRandomClients(std::pair<Address, Message*>&);       //for UDP streams
+    void forwardUserActionMessageOverUdp(UserActionMessage*, Address&);
 
     std::vector<ServerDataGenerator::ClientConnection*> clientConnections;
+    std::vector<Address*> udpClients;
+    std::vector<std::pair<Address, Message*> > udpMessages;
     UniformVariable probability;
 
 };
@@ -354,6 +358,9 @@ ServerDataGenerator::~ServerDataGenerator(){
         SERVER_INFO("Closed server socket for stream number: " << this->getStreamNumber() << std::endl);
     }
 
+    for(std::vector<Address*>::iterator it = udpClients.begin(); it != udpClients.end(); it++)
+        delete (*it);
+
 }
 
 void ServerDataGenerator::StartApplication(){
@@ -539,32 +546,53 @@ void ServerDataGenerator::dataReceivedUdp(Ptr<Socket> sock){
     uint16_t bytesRead = 0;
     Address clientAddr;
     ReadMsgNameReturnValue retVal;
+    bool addressExists = false;
 
-    bufferSize = sock->GetRxAvailable();
-    buffer = (uint8_t*)calloc(sizeof(uint8_t), bufferSize);
+    if(running){
 
-    sock->RecvFrom(buffer, bufferSize, 0, clientAddr);
+        bufferSize = sock->GetRxAvailable();
+        buffer = (uint8_t*)calloc(sizeof(uint8_t), bufferSize);
 
-    while(bytesRead < bufferSize){
+        sock->RecvFrom(buffer, bufferSize, 0, clientAddr);
 
-        if((retVal = readMessageName(messageName, buffer, bufferSize-bytesRead)) == READ_SUCCESS){
-            for(std::vector<Message*>::iterator it = messages.begin(); it != messages.end(); it++){
-                if(messageName.compare((*it)->getName()) == 0){
-                    message = (*it);
-                    break;
-                }
+        if(udpClients.empty()){
+            udpClients.push_back(new Address(clientAddr));
+        }
+
+        for(std::vector<Address*>::iterator it = udpClients.begin(); it != udpClients.end(); it++){
+            if((**it) == clientAddr){
+                addressExists = true;
+                break;
             }
-            bytesRead += message->getMessageSize();
         }
-        else if(retVal == NAME_CONTINUES){
-            PRINT_ERROR("This should never happen!" << std::endl);
+
+        if(!addressExists){
+            udpClients.push_back(new Address(clientAddr));
         }
-        else if(retVal == READ_FAILED)
-            PRINT_ERROR("This should never happen, check message names! " << std::endl);
+
+        while(bytesRead < bufferSize){
+
+            if((retVal = readMessageName(messageName, buffer, bufferSize-bytesRead)) == READ_SUCCESS){
+                for(std::vector<Message*>::iterator it = messages.begin(); it != messages.end(); it++){
+                    if(messageName.compare((*it)->getName()) == 0){
+                        message = (*it);
+                        break;
+                    }
+                }
+                bytesRead += message->getMessageSize();
+                udpMessages.push_back(std::make_pair<Address, Message*>(Address(clientAddr), message));
+            }
+            else if(retVal == NAME_CONTINUES){
+                PRINT_ERROR("This should never happen!" << std::endl);
+            }
+            else if(retVal == READ_FAILED)
+                PRINT_ERROR("This should never happen, check message names! " << std::endl);
+        }
+
+        if(buffer != 0)
+            free(buffer);
     }
 
-    if(buffer != 0)
-        free(buffer);
 }
 
 void ServerDataGenerator::moreBufferSpaceAvailable(Ptr<Socket> sock, uint32_t size){
@@ -587,13 +615,31 @@ void ServerDataGenerator::newConnectionCreated(Ptr<Socket> sock, const Address &
 
 void ServerDataGenerator::forwardData(){
 
-    for(std::vector<ClientConnection*>::iterator it = clientConnections.begin(); it != clientConnections.end(); it++){
-        for(std::vector<std::pair<Ptr<Socket>, Message*> >::iterator messages = (*it)->messageBuffer.begin(); messages != (*it)->messageBuffer.end(); messages++){
-            if((*messages).second->getType() == USER_ACTION){
-                sendToRandomClients(*messages);
+    switch(proto){
+
+        case TCP_NAGLE_DISABLED:
+        case TCP_NAGLE_ENABLED:
+
+            for(std::vector<ClientConnection*>::iterator it = clientConnections.begin(); it != clientConnections.end(); it++){
+                for(std::vector<std::pair<Ptr<Socket>, Message*> >::iterator messages = (*it)->messageBuffer.begin(); messages != (*it)->messageBuffer.end(); messages++){
+                    if((*messages).second->getType() == USER_ACTION){
+                        sendToRandomClients(*messages);
+                    }
+                }
+                (*it)->messageBuffer.clear();
             }
-        }
-        (*it)->messageBuffer.clear();
+            break;
+
+        case UDP:
+
+            for(std::vector<std::pair<Address, Message*> >::iterator it = udpMessages.begin(); it != udpMessages.end(); it++){
+                if((*it).second->getType() == USER_ACTION){
+                    sendToRandomClients(*it);
+                }
+            }
+            udpMessages.clear();
+
+            break;
     }
 
     if(running)
@@ -614,6 +660,30 @@ void ServerDataGenerator::sendToRandomClients(std::pair<Ptr<Socket>, Message*> &
         }
     }
 }
+
+void ServerDataGenerator::sendToRandomClients(std::pair<Address, Message *> &msg){
+
+    double clientsToSend = ((UserActionMessage*)msg.second)->getClientsOfInterest();
+
+    for(std::vector<Address*>::iterator it = udpClients.begin(); it != udpClients.end(); it++){
+        if((**it) == msg.first)
+            continue;
+
+        if(clientsToSend >= probability.GetValue()){
+            forwardUserActionMessageOverUdp((UserActionMessage*)msg.second, (**it));
+        }
+    }
+}
+
+void ServerDataGenerator::forwardUserActionMessageOverUdp(UserActionMessage* msg, Address& addr){
+
+    char buffer[30] = "";
+    msg->fillMessageContents(buffer);
+
+    if(socket->SendTo((uint8_t*)buffer, msg->getMessageSize(), 0, addr) == -1)
+        PRINT_ERROR("Problems with server socket buffer." << std::endl);
+}
+
 
 //nested class ClientConnection function definitions
 
