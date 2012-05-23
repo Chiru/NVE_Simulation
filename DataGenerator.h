@@ -489,7 +489,7 @@ void ServerDataGenerator::dataReceivedTcp(Ptr<Socket> sock){
                     if((retVal = readMessageName(messageName, buffer + bytesRead, bufferSize-bytesRead, client->nameLeft)) == READ_SUCCESS){
 
                         for(std::vector<Message*>::iterator it = messages.begin(); it != messages.end(); it++){
-                            if(messageName.compare((*it)->getName()) == 0){
+                            if(messageName.compare(0, (*it)->getName().length(), (*it)->getName()) == 0){
                                 message = *it;
                                 break;
                             }
@@ -534,7 +534,7 @@ void ServerDataGenerator::dataReceivedTcp(Ptr<Socket> sock){
             while(bytesRead < bufferSize){
                 if((retVal = readMessageName(messageName, buffer + bytesRead, bufferSize-bytesRead)) == READ_SUCCESS){
                     for(std::vector<Message*>::iterator it = messages.begin(); it != messages.end(); it++){
-                        if(messageName.compare((*it)->getName()) == 0){
+                        if(messageName.compare(0, (*it)->getName().length(), (*it)->getName()) == 0){
                             message = *it;
                             break;
                         }
@@ -609,7 +609,7 @@ void ServerDataGenerator::dataReceivedUdp(Ptr<Socket> sock){
 
             if((retVal = readMessageName(messageName, buffer, bufferSize-bytesRead)) == READ_SUCCESS){
                 for(std::vector<Message*>::iterator it = messages.begin(); it != messages.end(); it++){
-                    if(messageName.compare((*it)->getName()) == 0){
+                    if(messageName.compare(0, (*it)->getName().length(), (*it)->getName()) == 0){
                         message = (*it);
                         break;
                     }

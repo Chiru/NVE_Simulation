@@ -158,14 +158,14 @@ void Message::fillMessageContents(char *buffer, int number){
     buffer[0] = '\"';
     std::stringstream str("");
     strcat(buffer, name.c_str());
-    strcat(buffer, "\":");
+    strcat(buffer, ":");
 
     if(this->type == USER_ACTION){
-        str << "\"";
         str << number;
-        str << "\"";
         strcat(buffer, str.str().c_str());
     }
+
+    strcat(buffer, "\"");
 }
 
 //Class UserActionMessage function definitions
