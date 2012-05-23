@@ -19,12 +19,16 @@
 
 #include <iostream>
 #include <vector>
+#include "ns3/system-mutex.h"
 #include "utilities.h"
 
 
 class StatisticsCollector{
 
-    struct MessageStats{
+    class MessageStats{
+    public:
+        MessageStats(int no, Time time): messageNumber(no), sendTime(time){}
+    //private:
         int messageNumber;
         Time sendTime;
     };
@@ -36,9 +40,9 @@ public:
     static bool getClientLog() {return clientLog;}
     static bool getServerLog() {return serverLog;}
     static StatisticsCollector* createStatisticsCollector(bool, bool, bool);
-    void logMessageSend(int messageNumber);             //log times when user action messages are sent
-    void logMessageReceiveServer(int messageNumber);    //log times when user action messages are received by the server
-    void logMessageReceiveClient(int messageNumber);    //log times when user action messages are finally forwarded to other clients
+    static void logMessageSendClient(int messageNumber, Time);             //log times when user action messages are sent
+    static void logMessageReceiveServer(int messageNumber, Time);    //log times when user action messages are received by the server
+    static void logMessageReceiveClient(int messageNumber, Time);    //log times when user action messages are finally forwarded to other clients
 
 private:
     StatisticsCollector(bool, bool, bool);
@@ -46,7 +50,8 @@ private:
     static bool clientLog;
     static bool serverLog;
     static bool collectorCreated;
-    std::vector<MessageStats> messageLog;
+    static std::vector<MessageStats*> messageLog;
+    static SystemMutex mutex;
 
 };
 
@@ -58,6 +63,8 @@ bool StatisticsCollector::collectorCreated = false;
 bool StatisticsCollector::verbose = false;
 bool StatisticsCollector::clientLog = false;
 bool StatisticsCollector::serverLog = false;
+SystemMutex StatisticsCollector::mutex;
+std::vector<StatisticsCollector::MessageStats*> StatisticsCollector::messageLog;
 
 StatisticsCollector* StatisticsCollector::createStatisticsCollector(bool verbose, bool clientLog, bool serverLog){
 
@@ -68,8 +75,6 @@ StatisticsCollector* StatisticsCollector::createStatisticsCollector(bool verbose
         PRINT_ERROR( "Already one StatisticsCollector exists." << std::endl);
         return NULL;
     }
-
-
 }
 
 StatisticsCollector::StatisticsCollector(bool verbose, bool clientLog, bool serverLog){
@@ -82,8 +87,28 @@ StatisticsCollector::StatisticsCollector(bool verbose, bool clientLog, bool serv
 
 StatisticsCollector::~StatisticsCollector(){
 
+    for(std::vector<MessageStats*>::iterator it = messageLog.begin(); it != messageLog.end(); it++){
+        std::cout << (*it)->messageNumber << " " << (*it)->sendTime << std::endl;
+        delete *it;
+    }
 }
 
+void StatisticsCollector::logMessageReceiveClient(int messageNumber, Time recvTime){
+
+
+}
+
+void StatisticsCollector::logMessageReceiveServer(int messageNumber, Time recvTime){
+
+
+}
+
+void StatisticsCollector::logMessageSendClient(int messageNumber, Time sendTime){
+
+    mutex.Lock();
+    messageLog.push_back(new MessageStats(messageNumber, sendTime));
+    mutex.Unlock();
+}
 
 
 #endif // STATISTICSCOLLECTOR_H

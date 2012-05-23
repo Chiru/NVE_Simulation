@@ -20,6 +20,7 @@
 #include <string>
 #include "ns3/event-id.h"
 #include "utilities.h"
+#include "StatisticsCollector.h"
 #include "ns3/system-mutex.h"
 
 class DataGenerator;
@@ -201,10 +202,14 @@ void UserActionMessage::sendData(){
 
     char buffer[30] = "";
     Time sentTime;
+    int messageNumber;
 
-    fillMessageContents(buffer, newMessageSent());
+    messageNumber = newMessageSent();
+
+    fillMessageContents(buffer, messageNumber);
 
     sentTime = Simulator::Now();
+    StatisticsCollector::logMessageSendClient(messageNumber, sentTime);
 
     if(!sendFunction(this, (uint8_t*)buffer))
         PRINT_ERROR("Problems with socket buffer" << std::endl);   //TODO: socket buffer    
@@ -261,7 +266,7 @@ OtherDataMessage::~OtherDataMessage(){
 
 void OtherDataMessage::sendData(){
 
-    char buffer[30];
+    char buffer[30] = "";
     fillMessageContents(buffer);
 
     if(!sendFunction(this, (uint8_t*)buffer))

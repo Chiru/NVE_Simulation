@@ -29,7 +29,7 @@
                     <name="move">
                     <size="20">
                     <reliable="true">
-                    <timeinterval="100">
+                    <timeinterval="1000">
                     <clientsofinterest="0.3">
                     <timerequirement="200">
                 </message>
@@ -44,7 +44,7 @@
                 <name="test">
                 <size="35">
                 <reliable="false">
-                <timeinterval="200">
+                <timeinterval="2000">
                 <clientsofinterest="0.3">
                 <timerequirement="100">
             </message>
