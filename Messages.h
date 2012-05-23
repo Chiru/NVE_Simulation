@@ -46,7 +46,7 @@ public:
     uint16_t getMessageId() const {return messageID;}
     MessageType getType() const{return type;}
     void cancelEvent();
-    void fillMessageContents(char* buffer, int number = 0);
+    void fillMessageContents(char* buffer, int number = 0, std::string* msgName = NULL);
 
   protected:
     Message(const Message&);
@@ -153,16 +153,21 @@ void Message::cancelEvent(){
 
 }
 
-void Message::fillMessageContents(char *buffer, int number){
+void Message::fillMessageContents(char *buffer, int number, std::string* msgName){
 
     buffer[0] = '\"';
     std::stringstream str("");
-    strcat(buffer, name.c_str());
-    strcat(buffer, ":");
 
-    if(this->type == USER_ACTION){
-        str << number;
-        strcat(buffer, str.str().c_str());
+    if(msgName == NULL){
+        strcat(buffer, name.c_str());
+        strcat(buffer, ":");
+
+        if(this->type == USER_ACTION){
+            str << number;
+            strcat(buffer, str.str().c_str());
+        }
+    }else{
+        strcat(buffer, msgName->c_str());
     }
 
     strcat(buffer, "\"");

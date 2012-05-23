@@ -35,6 +35,21 @@
                 </message>
             </messages>
         </stream>
+        <stream>
+            type="udp"
+            no="2"
+            <messages>
+            <message>
+                <type="uam">
+                <name="test">
+                <size="35">
+                <reliable="false">
+                <timeinterval="200">
+                <clientsofinterest="0.3">
+                <timerequirement="100">
+            </message>
+            </messages>
+        </stream>
     </streams>
 
 
