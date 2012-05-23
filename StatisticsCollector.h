@@ -18,10 +18,16 @@
 #define STATISTICSCOLLECTOR_H
 
 #include <iostream>
+#include <vector>
 #include "utilities.h"
 
 
 class StatisticsCollector{
+
+    struct MessageStats{
+        int messageNumber;
+        Time sendTime;
+    };
 
 public:
 
@@ -30,6 +36,9 @@ public:
     static bool getClientLog() {return clientLog;}
     static bool getServerLog() {return serverLog;}
     static StatisticsCollector* createStatisticsCollector(bool, bool, bool);
+    void logMessageSend(int messageNumber);             //log times when user action messages are sent
+    void logMessageReceiveServer(int messageNumber);    //log times when user action messages are received by the server
+    void logMessageReceiveClient(int messageNumber);    //log times when user action messages are finally forwarded to other clients
 
 private:
     StatisticsCollector(bool, bool, bool);
@@ -37,6 +46,7 @@ private:
     static bool clientLog;
     static bool serverLog;
     static bool collectorCreated;
+    std::vector<MessageStats> messageLog;
 
 };
 

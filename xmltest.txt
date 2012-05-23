@@ -24,6 +24,15 @@
                     <size="500">
                     <timeinterval="200">
                 </message>
+                <message>
+                    <type="uam">
+                    <name="move">
+                    <size="20">
+                    <reliable="true">
+                    <timeinterval="100">
+                    <clientsofinterest="0.3">
+                    <timerequirement="200">
+                </message>
             </messages>
         </stream>
     </streams>

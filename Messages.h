@@ -20,6 +20,7 @@
 #include <string>
 #include "ns3/event-id.h"
 #include "utilities.h"
+#include "ns3/system-mutex.h"
 
 class DataGenerator;
 
@@ -45,8 +46,7 @@ public:
     uint16_t getMessageId() const {return messageID;}
     MessageType getType() const{return type;}
     void cancelEvent();
-    void fillMessageContents(char* buffer);
-
+    void fillMessageContents(char* buffer, int number = 0);
 
   protected:
     Message(const Message&);
@@ -72,7 +72,9 @@ public:
     ~UserActionMessage();
     Message* copyMessage();
     void scheduleSendEvent(Callback<bool, Message*, uint8_t*>);
-    double getClientsOfInterest() const{return clientsOfInterest;}
+    double getClientsOfInterest() const{return clientsOfInterest;}    
+    static SystemMutex mutex;
+    int newMessageSent();
 
 private:
     UserActionMessage(std::string name, bool reliable, int timeInterval, uint16_t messageSize, double clientsOfInterest, int requirement);
@@ -82,6 +84,7 @@ private:
     void sendData();
     void printStats(std::ostream& out, const Message& msg) const;
 
+    static uint32_t messageInstanceCounter;  //holds the count of messages sent into wire
 };
 
 class OtherDataMessage : public Message{
@@ -150,20 +153,25 @@ void Message::cancelEvent(){
 
 }
 
-void Message::fillMessageContents(char *buffer){
+void Message::fillMessageContents(char *buffer, int number){
 
     buffer[0] = '\"';
+    std::stringstream str("");
     strcat(buffer, name.c_str());
     strcat(buffer, "\":");
 
-    std::stringstream str;
-    str << messageID;
-
-    strcat(buffer, str.str().c_str());
-
+    if(this->type == USER_ACTION){
+        str << "\"";
+        str << number;
+        str << "\"";
+        strcat(buffer, str.str().c_str());
+    }
 }
 
 //Class UserActionMessage function definitions
+
+uint32_t UserActionMessage::messageInstanceCounter = 0;
+SystemMutex UserActionMessage::mutex;
 
 UserActionMessage::UserActionMessage(std::string name, bool reliable, int timeInterval, uint16_t messageSize, double clientsOfInterest, int requirement)
     :Message(name, reliable, timeInterval, messageSize), clientsOfInterest(clientsOfInterest), timeRequirement(requirement){
@@ -187,11 +195,14 @@ void UserActionMessage::scheduleSendEvent(Callback<bool, Message*, uint8_t*> sen
 void UserActionMessage::sendData(){
 
     char buffer[30] = "";
+    Time sentTime;
 
-    fillMessageContents(buffer);
+    fillMessageContents(buffer, newMessageSent());
+
+    sentTime = Simulator::Now();
 
     if(!sendFunction(this, (uint8_t*)buffer))
-        PRINT_ERROR("Problems with socket buffer" << std::endl);   //TODO: socket buffer
+        PRINT_ERROR("Problems with socket buffer" << std::endl);   //TODO: socket buffer    
 
     if(running){
         sendEvent = Simulator::Schedule(Time(MilliSeconds(timeInterval)), &UserActionMessage::sendData, this);
@@ -214,6 +225,18 @@ void UserActionMessage::printStats(std::ostream &out, const Message &msg) const{
            << "  Size: " << messageSize << " TimeInterval: " <<  timeInterval <<  "  ClientOfInterest: "
            << clientsOfInterest << "  TimeRequirement: " << timeRequirement;
 
+}
+
+int UserActionMessage::newMessageSent(){
+
+    int returnValue;
+
+    mutex.Lock();
+    returnValue = messageInstanceCounter;
+    messageInstanceCounter++;
+    mutex.Unlock();
+
+    return returnValue;
 }
 
 //Class OtherDataMessage function definitions
