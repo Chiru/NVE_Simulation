@@ -48,16 +48,20 @@ public:
     MessageType getType() const{return type;}
     void cancelEvent();
     void fillMessageContents(char* buffer, int number = 0, std::string* msgName = NULL);
+    virtual void messageReceivedServer(std::string& messageName) = 0;
+    virtual void messageReceivedClient(std::string& messageName) = 0;
 
   protected:
     Message(const Message&);
+    virtual void printStats(std::ostream& out, const Message& msg)const = 0;
+    bool parseMessageId(std::string& messageName, int& resultId);
+
     std::string name;
     bool reliable;
     int timeInterval;
     uint16_t messageSize;
     uint16_t messageID;
     MessageType type;
-    virtual void printStats(std::ostream& out, const Message& msg)const = 0;
     Callback<bool, Message*,  uint8_t*> sendFunction;
     EventId sendEvent;
     bool running;
@@ -76,6 +80,8 @@ public:
     double getClientsOfInterest() const{return clientsOfInterest;}    
     static SystemMutex mutex;
     int newMessageSent();
+    void messageReceivedServer(std::string& messageName);
+    void messageReceivedClient(std::string& messageName);
 
 private:
     UserActionMessage(std::string name, bool reliable, int timeInterval, uint16_t messageSize, double clientsOfInterest, int requirement);
@@ -97,6 +103,8 @@ public:
     void startDataTransfer();
     Message* copyMessage();
     void scheduleSendEvent(Callback<bool, Message*, uint8_t*>);
+    void messageReceivedServer(std::string& messageName);
+    void messageReceivedClient(std::string& messageName);
 
 
 private:
@@ -115,6 +123,8 @@ public:
     ~MaintenanceMessage();
     void scheduleSendEvent(Callback<bool, Message*, uint8_t*>);
     Message* copyMessage();
+    void messageReceivedServer(std::string& messageName);
+    void messageReceivedClient(std::string& messageName);
 
 private:
     MaintenanceMessage(std::string name, bool reliable, int timeInterval, uint16_t messageSize);
@@ -173,6 +183,20 @@ void Message::fillMessageContents(char *buffer, int number, std::string* msgName
 
     strcat(buffer, "\"");
 }
+
+bool Message::parseMessageId(std::string &messageName, int &resultId){
+
+    std::stringstream str;
+
+    for(unsigned int i = this->getName().length() + 1; i < messageName.length();  i++){
+        str << messageName[i];
+    }
+
+    str >> resultId;
+
+    return true;
+}
+
 
 //Class UserActionMessage function definitions
 
@@ -249,6 +273,21 @@ int UserActionMessage::newMessageSent(){
     return returnValue;
 }
 
+void UserActionMessage::messageReceivedServer(std::string& messageName){
+
+    int id = 0;
+
+    parseMessageId(messageName, id);
+
+    StatisticsCollector::logMessageReceiveServer(id, Simulator::Now());
+
+
+}
+
+void UserActionMessage::messageReceivedClient(std::string& messageName){
+
+}
+
 //Class OtherDataMessage function definitions
 
 
@@ -296,6 +335,14 @@ void OtherDataMessage::scheduleSendEvent(Callback<bool, Message*, uint8_t*> send
     this->sendFunction = sendFunction;
     running = true;
     sendEvent = Simulator::Schedule(Time(MilliSeconds(timeInterval)), &OtherDataMessage::sendData, this);
+}
+
+void OtherDataMessage::messageReceivedServer(std::string& messageName){
+
+}
+
+void OtherDataMessage::messageReceivedClient(std::string& messageName){
+
 }
 
 
@@ -351,6 +398,12 @@ void MaintenanceMessage::printStats(std::ostream &out, const Message &msg) const
 
 }
 
+void MaintenanceMessage::messageReceivedServer(std::string& messageName){
 
+}
+
+void MaintenanceMessage::messageReceivedClient(std::string& messageName){
+
+}
 
 #endif // MESSAGES_H

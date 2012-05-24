@@ -510,6 +510,7 @@ void ServerDataGenerator::dataReceivedTcp(Ptr<Socket> sock){
 
                             client->nameLeft = false;
                             client->messageBuffer.push_back(std::make_pair<Ptr<Socket>, std::pair<std::string, Message*> >(sock, std::make_pair<std::string, Message*>(messageName, message)));
+                            message->messageReceivedServer(messageName);
                             client->dataLeft = false;
                             client->bytesLeftToRead = 0;
                             client->messageNamePart.assign("");
@@ -548,6 +549,7 @@ void ServerDataGenerator::dataReceivedTcp(Ptr<Socket> sock){
                     }else{  //if we get here, the whole message has been read
                         bytesRead += messageSize;
                         client->messageBuffer.push_back(std::make_pair<Ptr<Socket>, std::pair<std::string, Message*> >(sock, std::make_pair<std::string, Message*>(messageName, message)));
+                        message->messageReceivedServer(messageName);
                         client->dataLeft = false;
                         client->bytesLeftToRead = 0;
                     }
@@ -616,6 +618,7 @@ void ServerDataGenerator::dataReceivedUdp(Ptr<Socket> sock){
                 }
                 bytesRead += message->getMessageSize();
                 udpMessages.push_back(std::make_pair<Address, std::pair<std::string, Message*> >(Address(clientAddr), std::make_pair<std::string, Message*>(messageName, message)));
+                message->messageReceivedServer(messageName);
             }
             else if(retVal == NAME_CONTINUES){
                 PRINT_ERROR("This should never happen!" << std::endl);

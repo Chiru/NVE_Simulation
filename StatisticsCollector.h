@@ -19,6 +19,7 @@
 
 #include <iostream>
 #include <vector>
+#include <list>
 #include "ns3/system-mutex.h"
 #include "utilities.h"
 
@@ -27,10 +28,12 @@ class StatisticsCollector{
 
     class MessageStats{
     public:
-        MessageStats(int no, Time time): messageNumber(no), sendTime(time){}
+        MessageStats(int no, Time time): messageNumber(no), sendTime(time), serverRecvTime(0), clientRecvTimes(0){}
     //private:
         int messageNumber;
         Time sendTime;
+        Time serverRecvTime;
+        std::list<Time> clientRecvTimes;
     };
 
 public:
@@ -87,10 +90,8 @@ StatisticsCollector::StatisticsCollector(bool verbose, bool clientLog, bool serv
 
 StatisticsCollector::~StatisticsCollector(){
 
-    for(std::vector<MessageStats*>::iterator it = messageLog.begin(); it != messageLog.end(); it++){
-        std::cout << (*it)->messageNumber << " " << (*it)->sendTime << std::endl;
+    for(std::vector<MessageStats*>::iterator it = messageLog.begin(); it != messageLog.end(); it++)
         delete *it;
-    }
 }
 
 void StatisticsCollector::logMessageReceiveClient(int messageNumber, Time recvTime){
@@ -100,7 +101,9 @@ void StatisticsCollector::logMessageReceiveClient(int messageNumber, Time recvTi
 
 void StatisticsCollector::logMessageReceiveServer(int messageNumber, Time recvTime){
 
-
+    mutex.Lock();
+    messageLog.at(messageNumber)->serverRecvTime = recvTime;
+    mutex.Unlock();
 }
 
 void StatisticsCollector::logMessageSendClient(int messageNumber, Time sendTime){
