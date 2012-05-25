@@ -95,6 +95,7 @@ private:
     bool dataLeft;
     bool nameLeft;
     std::string messageNamePart;
+    std::string fullMessageName;
 
     void dataReceivedTcp(Ptr<Socket>);
     void dataReceivedUdp(Ptr<Socket>);
@@ -119,6 +120,7 @@ class ServerDataGenerator : public DataGenerator{
         bool dataLeft;
         bool nameLeft;
         std::string  messageNamePart;
+        std::string fullMessageName;
 
     };
 
@@ -349,6 +351,13 @@ void ClientDataGenerator::dataReceivedTcp(Ptr<Socket> sock){
                 if(!nameLeft){
                     bytesRead += bytesLeftToRead;
                     messageNamePart.clear();
+                    for(std::vector<Message*>::iterator it = messages.begin(); it != messages.end(); it++){
+                        if(fullMessageName.compare(0, (*it)->getName().length(), (*it)->getName()) == 0 && fullMessageName[(*it)->getName().length()] == ':'){
+                            message = *it;
+                            break;
+                        }
+                    }
+                    message->messageReceivedClient(fullMessageName);
                 }
 
                 if(bytesRead >= bufferSize){
@@ -377,6 +386,7 @@ void ClientDataGenerator::dataReceivedTcp(Ptr<Socket> sock){
                             nameLeft = false;
                             dataLeft = true;
                             bytesRead = bufferSize;
+                            fullMessageName.assign(messageName);
                             messageNamePart.assign((""));
                         }else{  //if we get here, the whole message has been read
                              if(nameLeft){
@@ -428,6 +438,7 @@ void ClientDataGenerator::dataReceivedTcp(Ptr<Socket> sock){
                         dataLeft = true;
                         bytesLeftToRead = messageSize-(bufferSize - bytesRead);
                         bytesRead = bufferSize;
+                        fullMessageName.assign(messageName);
                         messageNamePart.assign((""));
                     }else{  //if we get here, the whole message has been read
                         bytesRead += messageSize;
@@ -609,8 +620,16 @@ void ServerDataGenerator::dataReceivedTcp(Ptr<Socket> sock){
                 client->bytesLeftToRead -= bufferSize;
             }else{
                 if(!client->nameLeft){
-                    bytesRead += client->bytesLeftToRead;
+                    bytesRead += client->bytesLeftToRead;               
                     client->messageNamePart.clear();
+                    for(std::vector<Message*>::iterator it = messages.begin(); it != messages.end(); it++){
+                        if(client->fullMessageName.compare(0, (*it)->getName().length(), (*it)->getName()) == 0 && client->fullMessageName[(*it)->getName().length()] == ':'){
+                            message = *it;
+                            break;
+                        }
+                    }
+                    client->messageBuffer.push_back(std::make_pair<Ptr<Socket>, std::pair<std::string, Message*> >(sock, std::make_pair<std::string, Message*>(client->fullMessageName, message)));
+                    message->messageReceivedServer(client->fullMessageName);
                 }
 
                 if(bytesRead >= bufferSize){
@@ -640,6 +659,7 @@ void ServerDataGenerator::dataReceivedTcp(Ptr<Socket> sock){
 
                             bytesRead = bufferSize;
                             client->messageNamePart.assign((""));
+                            client->fullMessageName.assign(messageName);
                         }else{  //if we get here, the whole message has been read
                              if(client->nameLeft){
                                  bytesRead += messageSize - (client->messageNamePart.length() +1);
@@ -652,7 +672,7 @@ void ServerDataGenerator::dataReceivedTcp(Ptr<Socket> sock){
                             message->messageReceivedServer(messageName);
                             client->dataLeft = false;
                             client->bytesLeftToRead = 0;
-                            client->messageNamePart.assign("");
+                            client->messageNamePart.assign(messageName);
                         }
 
                         messageName.assign("");
@@ -691,6 +711,7 @@ void ServerDataGenerator::dataReceivedTcp(Ptr<Socket> sock){
                         client->bytesLeftToRead = messageSize-(bufferSize - bytesRead);
                         bytesRead = bufferSize;
                         client->messageNamePart.assign((""));
+                        client->fullMessageName.assign(messageName);
                     }else{  //if we get here, the whole message has been read
                         bytesRead += messageSize;
                         client->messageBuffer.push_back(std::make_pair<Ptr<Socket>, std::pair<std::string, Message*> >(sock, std::make_pair<std::string, Message*>(messageName, message)));
