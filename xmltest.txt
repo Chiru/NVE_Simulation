@@ -1,7 +1,7 @@
 <xml>
     <clients>
         <client>
-        <no="1:3"/> <delay="0"><uplink="2"/>
+        <no="1:3"/> <delay="20"><uplink="2"/>
         <downlink="4"/> <loss="0.01"/>
         </client>
 
@@ -27,11 +27,34 @@
                 <message>
                     <type="uam">
                     <name="move">
-                    <size="1396">
+                    <size="131">
                     <reliable="true">
-                    <timeinterval="100">
+                    <timeinterval="50">
                     <clientsofinterest="0.3">
                     <timerequirement="200">
+                </message>
+                <message>
+                    <type="uam">
+                    <name="move5444">
+                    <size="2000">
+                    <reliable="true">
+                    <timeinterval="406">
+                    <clientsofinterest="0.5">
+                    <timerequirement="200">
+                </message>
+            </messages>
+        </stream>
+        <stream>
+            type="tcp"
+            no="3"
+            nagle="no"
+            <messages>
+                <message>
+                    <type="odt">
+                    <name="jippikaijee">
+                    <reliable="false">
+                    <size="1100">
+                    <timeinterval="200">
                 </message>
             </messages>
         </stream>

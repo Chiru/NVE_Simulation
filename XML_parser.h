@@ -353,7 +353,6 @@ bool XMLParser::parseStream(std::string &streamElement, DataGenerator* &stream){
         return false;
     }
 
-
     stream = new ClientDataGenerator(stream_number, proto, appProto, messages);
 
     return true;

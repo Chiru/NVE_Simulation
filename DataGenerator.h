@@ -91,6 +91,10 @@ public:
 
 private:
     uint16_t ownerClient;
+    uint16_t bytesLeftToRead;
+    bool dataLeft;
+    bool nameLeft;
+    std::string messageNamePart;
 
     void dataReceivedTcp(Ptr<Socket>);
     void dataReceivedUdp(Ptr<Socket>);
@@ -199,14 +203,24 @@ bool DataGenerator::setupStream(Ptr<Node> node, Address addr){
 DataGenerator::ReadMsgNameReturnValue DataGenerator::readMessageName(std::string &name, uint8_t *buffer, uint16_t charLeft, bool nameContinues){
 
    if(charLeft <= 1){
-        name.assign("");
+       name.assign("");
         return NAME_CONTINUES;      //read only "-character
     }
 
 
     if(nameContinues){
-        for(int i = 0; (char)buffer[i] != '\"'; i++){
+        int i;
+
+        if(name.length() == 0)   //this means there's extra " in the beginning of the buffer
+            i = 1;
+        else i = 0;
+
+        for(; (char)buffer[i] != '\"'; i++){
             name += (char)buffer[i];
+            if((i+1) == charLeft){
+                return NAME_CONTINUES;
+            }
+
         }
     }
     else{
@@ -216,8 +230,9 @@ DataGenerator::ReadMsgNameReturnValue DataGenerator::readMessageName(std::string
 
         for(int i = 1; (char)buffer[i] != '\"'; i++){
             name += (char)buffer[i];
-            if((i+1) == charLeft)
+            if((i+1) == charLeft){
                 return NAME_CONTINUES;
+            }
         }
     }
 
@@ -227,12 +242,11 @@ DataGenerator::ReadMsgNameReturnValue DataGenerator::readMessageName(std::string
 //Class ClientDataGenerator function definitions
 
 ClientDataGenerator::ClientDataGenerator(uint16_t streamNumber, Protocol proto, ApplicationProtocol* appProto, std::vector<Message*> messages, int tick)
-    : DataGenerator(streamNumber, proto, appProto, messages, tick), ownerClient(0){
-
+    : DataGenerator(streamNumber, proto, appProto, messages, tick), ownerClient(0), bytesLeftToRead(0), dataLeft(false), nameLeft(false){
 
 }
 
-ClientDataGenerator::ClientDataGenerator(const DataGenerator& stream){
+ClientDataGenerator::ClientDataGenerator(const DataGenerator& stream) : bytesLeftToRead(0), dataLeft(false), nameLeft(false){
 
     this->streamNumber = stream.getStreamNumber();
     this->ownerClient = (dynamic_cast<const ClientDataGenerator&>(stream)).getClientNumber();
@@ -249,7 +263,6 @@ ClientDataGenerator::ClientDataGenerator(const DataGenerator& stream){
     for(std::vector<Message*>::iterator it = messages.begin(); it != messages.end(); it++){
         this->messages.push_back((*it)->copyMessage());
     }
-
 }
 
 ClientDataGenerator::~ClientDataGenerator(){
@@ -310,13 +323,133 @@ void ClientDataGenerator::StopApplication(){
 
 void ClientDataGenerator::dataReceivedTcp(Ptr<Socket> sock){
 
-    uint8_t* buffer;
-    uint16_t bufferSize;
+    uint8_t* buffer = 0;
+    uint16_t bufferSize = 0;
+    uint16_t bytesRead = 0;
+    uint16_t messageSize = 0;
+    Message* message;
+    ReadMsgNameReturnValue retVal;
+    std::string messageName;
 
     bufferSize = sock->GetRxAvailable();
     buffer = (uint8_t*) calloc(sizeof(uint8_t), bufferSize);
-
     sock->Recv(buffer, bufferSize, 0);
+
+    if(running){
+
+        if(dataLeft){
+            if(nameLeft){
+                messageName.assign(messageNamePart);
+            }
+
+            if(bytesLeftToRead > bufferSize){
+                dataLeft = true;
+                bytesLeftToRead -= bufferSize;
+            }else{
+                if(!nameLeft){
+                    bytesRead += bytesLeftToRead;
+                    messageNamePart.clear();
+                }
+
+                if(bytesRead >= bufferSize){
+                    dataLeft = false;
+                }
+
+                while(bytesRead < bufferSize){
+
+                    if((retVal = readMessageName(messageName, buffer + bytesRead, bufferSize-bytesRead, nameLeft)) == READ_SUCCESS){
+
+                        for(std::vector<Message*>::iterator it = messages.begin(); it != messages.end(); it++){
+                            if(messageName.compare(0, (*it)->getName().length(), (*it)->getName()) == 0 && messageName[(*it)->getName().length()] == ':'){
+                                message = *it;
+                                break;
+                            }
+                        }
+                        messageSize = message->getMessageSize();
+
+                         if((bufferSize - bytesRead) <  messageSize - messageNamePart.length() - (nameLeft ==true ? 1 : 0)){   // -1 because of the "-character in the beginning of the name
+
+                             if(nameLeft)
+                                bytesLeftToRead = messageSize-(bufferSize - bytesRead) -(messageNamePart.length() +1);
+                            else
+                                bytesLeftToRead = messageSize-(bufferSize - bytesRead);
+
+                            nameLeft = false;
+                            dataLeft = true;
+                            bytesRead = bufferSize;
+                            messageNamePart.assign((""));
+                        }else{  //if we get here, the whole message has been read
+                             if(nameLeft){
+                                 bytesRead += messageSize - (messageNamePart.length() +1);
+                             }else{
+                                 bytesRead += messageSize;
+                             }
+
+                             nameLeft = false;
+                             message->messageReceivedClient(messageName);
+                             dataLeft = false;
+                             bytesLeftToRead = 0;
+                             messageNamePart.assign("");
+                        }
+
+                        messageName.assign("");
+
+                    }
+                    else if(retVal == NAME_CONTINUES){
+
+                        if(nameLeft)
+                            messageNamePart.append(messageName.substr(messageNamePart.length(), bufferSize-bytesRead));
+                        else
+                            messageNamePart.assign(messageName.substr(0, bufferSize-bytesRead));
+
+                        bytesLeftToRead = 0;
+                        nameLeft = true;
+                        dataLeft = true;
+                        bytesRead = bufferSize;
+                    }
+                    else if(retVal == READ_FAILED)
+                        PRINT_ERROR("This should never happen, check message names!4  " <<std::endl);
+
+                }
+            }
+        }else{
+
+            while(bytesRead < bufferSize){
+                if((retVal = readMessageName(messageName, buffer + bytesRead, bufferSize-bytesRead)) == READ_SUCCESS){
+                    for(std::vector<Message*>::iterator it = messages.begin(); it != messages.end(); it++){
+                        if(messageName.compare(0, (*it)->getName().length(), (*it)->getName()) == 0 && messageName[(*it)->getName().length()] == ':'){
+                            message = *it;
+                            break;
+                        }
+                    }
+                    messageSize = message->getMessageSize();
+
+                    if((bufferSize - bytesRead) < messageSize){   //if this is true, the message continues in the next TCP segment
+                        dataLeft = true;
+                        bytesLeftToRead = messageSize-(bufferSize - bytesRead);
+                        bytesRead = bufferSize;
+                        messageNamePart.assign((""));
+                    }else{  //if we get here, the whole message has been read
+                        bytesRead += messageSize;
+                        message->messageReceivedClient(messageName);
+                        dataLeft = false;
+                        bytesLeftToRead = 0;
+                    }
+
+                    messageName.assign("");
+                }
+                else if(retVal == NAME_CONTINUES){
+                    nameLeft = true;
+                    dataLeft = true;
+                    messageNamePart.assign(messageName.substr(0, bufferSize-bytesRead));
+                    bytesLeftToRead = 0;
+                    bytesRead = bufferSize;
+                }
+                else if(retVal == READ_FAILED)
+                    PRINT_ERROR("This should never happen, check message names!" << std::endl);
+            }
+        }
+    }
 
     if(buffer != 0)
         free(buffer);
@@ -461,7 +594,6 @@ void ServerDataGenerator::dataReceivedTcp(Ptr<Socket> sock){
                 break;
             }
         }
-
         bufferSize = sock->GetRxAvailable();
         buffer = (uint8_t*)calloc(sizeof(uint8_t), bufferSize);
         sock->Recv(buffer, bufferSize, 0);
@@ -486,19 +618,26 @@ void ServerDataGenerator::dataReceivedTcp(Ptr<Socket> sock){
                 }
 
                 while(bytesRead < bufferSize){
+
                     if((retVal = readMessageName(messageName, buffer + bytesRead, bufferSize-bytesRead, client->nameLeft)) == READ_SUCCESS){
 
                         for(std::vector<Message*>::iterator it = messages.begin(); it != messages.end(); it++){
-                            if(messageName.compare(0, (*it)->getName().length(), (*it)->getName()) == 0){
+                            if(messageName.compare(0, (*it)->getName().length(), (*it)->getName()) == 0 && messageName[(*it)->getName().length()] == ':'){
                                 message = *it;
                                 break;
                             }
                         }
                         messageSize = message->getMessageSize();
-                         if((bufferSize - bytesRead) <  messageSize -client->messageNamePart.length() - 1){   // -1 because of the "-character in the beginning of the name
+                         if((bufferSize - bytesRead) <  messageSize -client->messageNamePart.length() - (client->nameLeft ==true ? 1 : 0)){   // -1 because of the "-character in the beginning of the name
+
+                             if(client->nameLeft)
+                                client->bytesLeftToRead = messageSize-(bufferSize - bytesRead) -( client->messageNamePart.length() +1);
+                            else
+                                client->bytesLeftToRead = messageSize-(bufferSize - bytesRead);
+
                             client->nameLeft = false;
                             client->dataLeft = true;
-                            client->bytesLeftToRead = messageSize-(bufferSize - bytesRead);
+
                             bytesRead = bufferSize;
                             client->messageNamePart.assign((""));
                         }else{  //if we get here, the whole message has been read
@@ -520,14 +659,19 @@ void ServerDataGenerator::dataReceivedTcp(Ptr<Socket> sock){
 
                     }
                     else if(retVal == NAME_CONTINUES){
+
+                        if(client->nameLeft)
+                            client->messageNamePart.append(messageName.substr(client->messageNamePart.length(), bufferSize-bytesRead));
+                        else
+                            client->messageNamePart.assign(messageName.substr(0, bufferSize-bytesRead));
+
+                        client->bytesLeftToRead = 0;
                         client->nameLeft = true;
                         client->dataLeft = true;
-                        client->messageNamePart.assign(messageName.substr(messageName.length() -(bufferSize - bytesRead) +1, bufferSize-bytesRead));
-                        client->bytesLeftToRead = 0;
                         bytesRead = bufferSize;
                     }
                     else if(retVal == READ_FAILED)
-                        PRINT_ERROR("This should never happen, check message names!1" << std::endl);
+                        PRINT_ERROR("This should never happen, check message names!1  " <<std::endl);
 
                 }
             }
@@ -535,12 +679,13 @@ void ServerDataGenerator::dataReceivedTcp(Ptr<Socket> sock){
             while(bytesRead < bufferSize){
                 if((retVal = readMessageName(messageName, buffer + bytesRead, bufferSize-bytesRead)) == READ_SUCCESS){
                     for(std::vector<Message*>::iterator it = messages.begin(); it != messages.end(); it++){
-                        if(messageName.compare(0, (*it)->getName().length(), (*it)->getName()) == 0){
+                        if(messageName.compare(0, (*it)->getName().length(), (*it)->getName()) == 0 && messageName[(*it)->getName().length()] == ':'){
                             message = *it;
                             break;
                         }
                     }
                     messageSize = message->getMessageSize();
+
                     if((bufferSize - bytesRead) < messageSize){   //if this is true, the message continues in the next TCP segment
                         client->dataLeft = true;
                         client->bytesLeftToRead = messageSize-(bufferSize - bytesRead);
@@ -559,7 +704,7 @@ void ServerDataGenerator::dataReceivedTcp(Ptr<Socket> sock){
                 else if(retVal == NAME_CONTINUES){
                     client->nameLeft = true;
                     client->dataLeft = true;
-                    client->messageNamePart.assign(messageName.substr(messageName.length() -(bufferSize - bytesRead) +1, bufferSize-bytesRead));
+                    client->messageNamePart.assign(messageName.substr(0, bufferSize-bytesRead));
                     client->bytesLeftToRead = 0;
                     bytesRead = bufferSize;
                 }
