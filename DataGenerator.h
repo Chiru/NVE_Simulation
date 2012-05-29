@@ -47,7 +47,7 @@ class DataGenerator : public ns3::Application{
 public:
     enum Protocol{TCP_NAGLE_DISABLED, TCP_NAGLE_ENABLED, UDP};
     DataGenerator(){}
-    DataGenerator(uint16_t streamNumber, Protocol proto, ApplicationProtocol* appProto, std::vector<Message*> messages, int gametick = 200);   //TODO: configure gametick
+    DataGenerator(uint16_t streamNumber, Protocol proto, ApplicationProtocol* appProto, std::vector<Message*> messages, int gametick = 10);   //TODO: configure gametick
     virtual ~DataGenerator();
     virtual void StartApplication() = 0;
     virtual void StopApplication() = 0;
@@ -80,7 +80,7 @@ protected:
 class ClientDataGenerator : public DataGenerator{
 
 public:
-    ClientDataGenerator(uint16_t streamNumber, Protocol proto, ApplicationProtocol* appProto, std::vector<Message*> messages, int gametick = 200); //TODO: configure gametick
+    ClientDataGenerator(uint16_t streamNumber, Protocol proto, ApplicationProtocol* appProto, std::vector<Message*> messages, int gametick = 10); //TODO: configure gametick
     ClientDataGenerator(const DataGenerator&);
     ~ClientDataGenerator();
 
@@ -125,7 +125,7 @@ class ServerDataGenerator : public DataGenerator{
     };
 
 public:
-    ServerDataGenerator(uint16_t streamNumber, Protocol proto, ApplicationProtocol* appProto, std::vector<Message*> messages, int gametick = 200);     //TODO: configure gametick
+    ServerDataGenerator(uint16_t streamNumber, Protocol proto, ApplicationProtocol* appProto, std::vector<Message*> messages, int gametick = 10);     //TODO: configure gametick
     ServerDataGenerator(const DataGenerator&);
     ~ServerDataGenerator();
 
@@ -205,7 +205,6 @@ bool DataGenerator::setupStream(Ptr<Node> node, Address addr){
 DataGenerator::ReadMsgNameReturnValue DataGenerator::readMessageName(std::string &name, uint8_t *buffer, uint16_t charLeft, bool nameContinues){
 
    if(charLeft <= 1){
-       name.assign("");
         return NAME_CONTINUES;      //read only "-character
     }
 
@@ -605,6 +604,7 @@ void ServerDataGenerator::dataReceivedTcp(Ptr<Socket> sock){
                 break;
             }
         }
+
         bufferSize = sock->GetRxAvailable();
         buffer = (uint8_t*)calloc(sizeof(uint8_t), bufferSize);
         sock->Recv(buffer, bufferSize, 0);
@@ -666,13 +666,12 @@ void ServerDataGenerator::dataReceivedTcp(Ptr<Socket> sock){
                              }else{
                                  bytesRead += messageSize;
                              }
-
                             client->nameLeft = false;
                             client->messageBuffer.push_back(std::make_pair<Ptr<Socket>, std::pair<std::string, Message*> >(sock, std::make_pair<std::string, Message*>(messageName, message)));
                             message->messageReceivedServer(messageName);
                             client->dataLeft = false;
                             client->bytesLeftToRead = 0;
-                            client->messageNamePart.assign(messageName);
+                          //  client->messageNamePart.assign(messageName);
                         }
 
                         messageName.assign("");
@@ -729,8 +728,8 @@ void ServerDataGenerator::dataReceivedTcp(Ptr<Socket> sock){
                     client->bytesLeftToRead = 0;
                     bytesRead = bufferSize;
                 }
-                else if(retVal == READ_FAILED)
-                    PRINT_ERROR("This should never happen, check message names!" << std::endl);
+                else if(retVal == READ_FAILED){
+                    PRINT_ERROR("This should never happen, check message names!" << std::endl);sleep(10);}
             }
         }
     }

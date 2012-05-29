@@ -21,7 +21,6 @@
 #include "ns3/event-id.h"
 #include "utilities.h"
 #include "StatisticsCollector.h"
-#include "ns3/system-mutex.h"
 
 class DataGenerator;
 
@@ -78,7 +77,6 @@ public:
     Message* copyMessage();
     void scheduleSendEvent(Callback<bool, Message*, uint8_t*>);
     double getClientsOfInterest() const{return clientsOfInterest;}    
-    static SystemMutex mutex;
     int newMessageSent();
     void messageReceivedServer(std::string& messageName);
     void messageReceivedClient(std::string& messageName);
@@ -201,7 +199,6 @@ bool Message::parseMessageId(std::string &messageName, int &resultId){
 //Class UserActionMessage function definitions
 
 uint32_t UserActionMessage::messageInstanceCounter = 0;
-SystemMutex UserActionMessage::mutex;
 
 UserActionMessage::UserActionMessage(std::string name, bool reliable, int timeInterval, uint16_t messageSize, double clientsOfInterest, int requirement)
     :Message(name, reliable, timeInterval, messageSize), clientsOfInterest(clientsOfInterest), timeRequirement(requirement){
@@ -233,7 +230,7 @@ void UserActionMessage::sendData(){
     fillMessageContents(buffer, messageNumber);
 
     sentTime = Simulator::Now();
-    StatisticsCollector::logMessageSendClient(messageNumber, sentTime);
+    StatisticsCollector::logMessagesSendFromClient(messageNumber, sentTime);
 
     if(!sendFunction(this, (uint8_t*)buffer))
         PRINT_ERROR("Problems with socket buffer" << std::endl);   //TODO: socket buffer    
@@ -265,10 +262,8 @@ int UserActionMessage::newMessageSent(){
 
     int returnValue;
 
-    mutex.Lock();
     returnValue = messageInstanceCounter;
     messageInstanceCounter++;
-    mutex.Unlock();
 
     return returnValue;
 }
@@ -276,16 +271,17 @@ int UserActionMessage::newMessageSent(){
 void UserActionMessage::messageReceivedServer(std::string& messageName){
 
     int id = 0;
-
     parseMessageId(messageName, id);
-
-    StatisticsCollector::logMessageReceiveServer(id, Simulator::Now());
-
-
+    StatisticsCollector::logMessageReceivedByServer(id, Simulator::Now());
 }
 
 void UserActionMessage::messageReceivedClient(std::string& messageName){
 
+    int id = 0;
+
+    parseMessageId(messageName, id);
+
+    StatisticsCollector::logMessageReceivedByClient(id, Simulator::Now());
 }
 
 //Class OtherDataMessage function definitions

@@ -1,7 +1,7 @@
 <xml>
     <clients>
         <client>
-        <no="1:3"/> <delay="20"><uplink="2"/>
+        <no="1:3"/> <delay="10"><uplink="2"/>
         <downlink="4"/> <loss="0.01"/>
         </client>
 
@@ -17,20 +17,14 @@
             no="1"
             nagle="yes"
             <messages>
-                <message>
-                    <type="odt">
-                    <name="servertoclient">
-                    <reliable="false">
-                    <size="500">
-                    <timeinterval="200">
-                </message>
+
                 <message>
                     <type="uam">
                     <name="move">
                     <size="131">
                     <reliable="true">
                     <timeinterval="50">
-                    <clientsofinterest="0.3">
+                    <clientsofinterest="1">
                     <timerequirement="200">
                 </message>
                 <message>
@@ -38,41 +32,29 @@
                     <name="move5444">
                     <size="2000">
                     <reliable="true">
-                    <timeinterval="406">
-                    <clientsofinterest="0.5">
+                    <timeinterval="100">
+                    <clientsofinterest="1">
                     <timerequirement="200">
-                </message>
-            </messages>
-        </stream>
-        <stream>
-            type="tcp"
-            no="3"
-            nagle="no"
-            <messages>
-                <message>
-                    <type="odt">
-                    <name="jippikaijee">
-                    <reliable="false">
-                    <size="1100">
-                    <timeinterval="200">
                 </message>
             </messages>
         </stream>
         <stream>
             type="udp"
             no="2"
+            appproto="no"
             <messages>
-            <message>
-                <type="uam">
-                <name="test">
-                <size="35">
-                <reliable="false">
-                <timeinterval="2000">
-                <clientsofinterest="0.3">
-                <timerequirement="100">
-            </message>
+                <message>
+                    <type="uam">
+                    <name="udpmsg">
+                    <size="120">
+                    <reliable="false">
+                    <timeinterval="200">
+                    <clientsofinterest="0.2">
+                    <timerequirement="100">
+                </message>
             </messages>
         </stream>
+
     </streams>
 
 

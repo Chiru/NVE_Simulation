@@ -20,7 +20,7 @@
 #include <iostream>
 #include <vector>
 #include <list>
-#include "ns3/system-mutex.h"
+#include "ns3/nstime.h"
 #include "utilities.h"
 
 
@@ -43,9 +43,9 @@ public:
     static bool getClientLog() {return clientLog;}
     static bool getServerLog() {return serverLog;}
     static StatisticsCollector* createStatisticsCollector(bool, bool, bool);
-    static void logMessageSendClient(int messageNumber, Time);             //log times when user action messages are sent
-    static void logMessageReceiveServer(int messageNumber, Time);    //log times when user action messages are received by the server
-    static void logMessageReceiveClient(int messageNumber, Time);    //log times when user action messages are finally forwarded to other clients
+    static void logMessagesSendFromClient(int messageNumber, Time);             //log times when user action messages are sent
+    static void logMessageReceivedByServer(int messageNumber, Time);    //log times when user action messages are received by the server
+    static void logMessageReceivedByClient(int messageNumber, Time);    //log times when user action messages are finally forwarded to other clients
 
 private:
     StatisticsCollector(bool, bool, bool);
@@ -54,10 +54,8 @@ private:
     static bool serverLog;
     static bool collectorCreated;
     static std::vector<MessageStats*> messageLog;
-    static SystemMutex mutex;
 
 };
-
 
 
 //Class StatisticsCollector function definitions
@@ -66,7 +64,6 @@ bool StatisticsCollector::collectorCreated = false;
 bool StatisticsCollector::verbose = false;
 bool StatisticsCollector::clientLog = false;
 bool StatisticsCollector::serverLog = false;
-SystemMutex StatisticsCollector::mutex;
 std::vector<StatisticsCollector::MessageStats*> StatisticsCollector::messageLog;
 
 StatisticsCollector* StatisticsCollector::createStatisticsCollector(bool verbose, bool clientLog, bool serverLog){
@@ -90,27 +87,43 @@ StatisticsCollector::StatisticsCollector(bool verbose, bool clientLog, bool serv
 
 StatisticsCollector::~StatisticsCollector(){
 
-    for(std::vector<MessageStats*>::iterator it = messageLog.begin(); it != messageLog.end(); it++)
+    uint32_t i = 0;
+    uint64_t timeInMilliseconds = 0;
+    Time transmitTimeAverage;
+    std::list<Time>::const_iterator timeIter;
+
+    for(std::vector<MessageStats*>::iterator it = messageLog.begin(); it != messageLog.end(); it++){
+        //if(i == 1000){
+            //std::cout << "Message number: " << (*it)->messageNumber << " Send time: " << (*it)->sendTime.GetSeconds() << " server recv time: " << (*it)->serverRecvTime.GetSeconds() << std::endl;
+            for(timeIter = (*it)->clientRecvTimes.begin(); timeIter != (*it)->clientRecvTimes.end(); timeIter++){
+               // std::cout << "\tClient receive time: " << clientReceives->GetSeconds() << std::endl;
+                transmitTimeAverage += ((*timeIter) - (*it)->sendTime);
+                i++;
+            }
         delete *it;
+    }
+
+    timeInMilliseconds = transmitTimeAverage.ToInteger(Time::MS);
+    std::cout << timeInMilliseconds <<  "  " << i <<std::endl;
+    timeInMilliseconds /= i;
+
+    std::cout << "Average transmit time: " <<  Time::FromInteger(timeInMilliseconds, Time::MS).GetMilliSeconds() << " milliseconds" << std::endl;
+
 }
 
-void StatisticsCollector::logMessageReceiveClient(int messageNumber, Time recvTime){
+void StatisticsCollector::logMessageReceivedByClient(int messageNumber, Time recvTime){
 
-
+    messageLog.at(messageNumber)->clientRecvTimes.push_back(recvTime);
 }
 
-void StatisticsCollector::logMessageReceiveServer(int messageNumber, Time recvTime){
+void StatisticsCollector::logMessageReceivedByServer(int messageNumber, Time recvTime){
 
-    mutex.Lock();
     messageLog.at(messageNumber)->serverRecvTime = recvTime;
-    mutex.Unlock();
 }
 
-void StatisticsCollector::logMessageSendClient(int messageNumber, Time sendTime){
+void StatisticsCollector::logMessagesSendFromClient(int messageNumber, Time sendTime){
 
-    mutex.Lock();
-    messageLog.push_back(new MessageStats(messageNumber, sendTime));
-    mutex.Unlock();
+    messageLog.push_back(new MessageStats(messageNumber, sendTime));   //messageNumber is the same as the index of MessageStats in messageLog because they are sent in order
 }
 
 

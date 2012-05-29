@@ -49,7 +49,7 @@ Server::Server(XMLParser& parser, int runningTime, Ptr<Node> node, Address* addr
 
     for(int i = 0; i < numberOfStreams; i++){
         streams[i]->SetStartTime(Seconds(0));
-        streams[i]->SetStopTime(Seconds(runningTime));
+        streams[i]->SetStopTime(Seconds(runningTime +1));
         streams[i]->setupStream(node, address[i]);
         node->AddApplication(streams[i]);
     }
