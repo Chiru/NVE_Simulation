@@ -92,19 +92,17 @@ int main(int argc, char** argv){
         printHelpAndQuit();
     }
 
-    stats = StatisticsCollector::createStatisticsCollector(verbose, clientLog, serverLog);
-
-    if(stats == NULL){
-        PRINT_ERROR( "Can't create statistics collector!" << std::endl);
-        return EXIT_FAILURE;
-    }
-
-
     XMLParser parser = XMLParser(XML_filename);
 
     if(!parser.isFileCorrect()){
         PRINT_ERROR( "Terminating due to an incorrect XML file" << std::endl);
-        delete stats;
+        return EXIT_FAILURE;
+    }
+
+    stats = StatisticsCollector::createStatisticsCollector(verbose, clientLog, serverLog, parser.getNumberOfStreams());
+
+    if(stats == NULL){
+        PRINT_ERROR( "Can't create statistics collector!" << std::endl);
         return EXIT_FAILURE;
     }
 

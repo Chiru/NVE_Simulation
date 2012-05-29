@@ -14,10 +14,8 @@
     <streams>
         <stream>
             type="tcp"
-            no="1"
             nagle="yes"
             <messages>
-
                 <message>
                     <type="uam">
                     <name="move">
@@ -40,7 +38,6 @@
         </stream>
         <stream>
             type="udp"
-            no="2"
             appproto="no"
             <messages>
                 <message>

@@ -54,7 +54,7 @@ private:
     bool parseClients(std::string& file);
     bool parseStreams(std::string& file);
     bool parseStream(std::string& streamElement, DataGenerator*& stream);
-    bool parseMessages(std::string& messagesElement, std::vector<Message*>& messages);
+    bool parseMessages(std::string& messagesElement, std::vector<Message*>& messages, uint16_t stream_number);
     bool parseApplicationProtocol(std::string& file);
     uint16_t countStreams(std::string& file);
     template <class T> bool readValue(const std::string& file, const std::string& variable, T& result, size_t position = 0);
@@ -96,9 +96,14 @@ XMLParser::XMLParser(std::string filename): filename(filename), correctFile(true
 
     filestream.close();
 
-    correctFile = parseClients(xmlFile);
-    correctFile = parseApplicationProtocol(xmlFile);
-    correctFile = parseStreams(xmlFile);
+    if(!(correctFile = parseClients(xmlFile)))
+        return;
+
+    if(!(correctFile = parseApplicationProtocol(xmlFile)))
+        return;
+
+    if(!(correctFile = parseStreams(xmlFile)))
+        return;
 
 }
 
@@ -292,7 +297,7 @@ uint16_t XMLParser::countStreams(std::string &file){
 
 bool XMLParser::parseStream(std::string &streamElement, DataGenerator* &stream){
 
-    int stream_number;
+    static uint16_t stream_number = 0;
     DataGenerator::Protocol proto;
     ApplicationProtocol* appProto;
     uint16_t position;
@@ -302,10 +307,7 @@ bool XMLParser::parseStream(std::string &streamElement, DataGenerator* &stream){
     std::string messagesElement("");
     std::vector<Message*> messages;
 
-    if(!readValue<int>(streamElement, "no", stream_number, 0)){
-        PRINT_ERROR( "No stream number specified." << std::endl);
-        return false;
-    }
+    stream_number++;
 
     if(!readValue<std::string>(streamElement, "type", type, 0)){
         PRINT_ERROR( "No stream type specified in stream number: " << stream_number << std::endl);
@@ -344,7 +346,7 @@ bool XMLParser::parseStream(std::string &streamElement, DataGenerator* &stream){
         return false;
     }
 
-    if(!parseMessages(messagesElement, messages)){
+    if(!parseMessages(messagesElement, messages, stream_number)){
         PRINT_ERROR( "Incorrect format in message specifications." << std::endl);
         delete appProto;
         for(std::vector<Message*>::iterator it = messages.begin(); it != messages.end(); it++){
@@ -414,7 +416,7 @@ bool XMLParser::parseStreams(std::string &file){
 
 }
 
-bool XMLParser::parseMessages(std::string &messagesElement, std::vector<Message*> &messages){
+bool XMLParser::parseMessages(std::string &messagesElement, std::vector<Message*> &messages, uint16_t stream_number){
 
     size_t latest_token = 0;
     std::string messageElement("");
@@ -487,18 +489,18 @@ bool XMLParser::parseMessages(std::string &messagesElement, std::vector<Message*
                 return false;
             }
 
-            messages.push_back(new UserActionMessage(name, reliable.compare("no") == 0 ? false : true, timeInterval, size, clientsOfInterest, timeRequirement));
+            messages.push_back(new UserActionMessage(name, reliable.compare("no") == 0 ? false : true, timeInterval, size, clientsOfInterest, timeRequirement, stream_number));
 
         }
 
         if(type.compare("odt") == 0){
 
-            messages.push_back(new OtherDataMessage(name, reliable.compare("no") == 0 ? false : true, timeInterval, size));
+            messages.push_back(new OtherDataMessage(name, reliable.compare("no") == 0 ? false : true, timeInterval, size, stream_number));
         }
 
         if(type.compare("mm") == 0){
 
-            messages.push_back(new MaintenanceMessage(name, reliable.compare("no") == 0 ? false : true, timeInterval, size));
+            messages.push_back(new MaintenanceMessage(name, reliable.compare("no") == 0 ? false : true, timeInterval, size, stream_number));
 
         }
 

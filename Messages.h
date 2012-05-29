@@ -34,7 +34,7 @@ class Message{
     }
 
 public:
-    Message(std::string, bool, int, uint16_t);
+    Message(std::string, bool, int, uint16_t, uint16_t);
     virtual ~Message();
     virtual Message* copyMessage()  = 0;
     virtual void scheduleSendEvent(Callback<bool, Message*, uint8_t*>) = 0;
@@ -45,10 +45,13 @@ public:
     uint16_t getmessagesCreated() const {return messagesCreated;}
     uint16_t getMessageId() const {return messageID;}
     MessageType getType() const{return type;}
+    uint16_t getStreamNumber() const{return streamNumber;}
     void cancelEvent();
     void fillMessageContents(char* buffer, int number = 0, std::string* msgName = NULL);
     virtual void messageReceivedServer(std::string& messageName) = 0;
     virtual void messageReceivedClient(std::string& messageName) = 0;
+
+    static int newMessageNumber(uint16_t streamNumber);
 
   protected:
     Message(const Message&);
@@ -64,6 +67,7 @@ public:
     Callback<bool, Message*,  uint8_t*> sendFunction;
     EventId sendEvent;
     bool running;
+    uint16_t streamNumber;
 
     static uint16_t messagesCreated;
 };
@@ -77,12 +81,11 @@ public:
     Message* copyMessage();
     void scheduleSendEvent(Callback<bool, Message*, uint8_t*>);
     double getClientsOfInterest() const{return clientsOfInterest;}    
-    int newMessageSent();
     void messageReceivedServer(std::string& messageName);
     void messageReceivedClient(std::string& messageName);
 
 private:
-    UserActionMessage(std::string name, bool reliable, int timeInterval, uint16_t messageSize, double clientsOfInterest, int requirement);
+    UserActionMessage(std::string name, bool reliable, int timeInterval, uint16_t messageSize, double clientsOfInterest, int requirement, uint16_t streamNumber);
 
     double clientsOfInterest;
     int timeRequirement;
@@ -106,7 +109,7 @@ public:
 
 
 private:
-    OtherDataMessage(std::string name, bool reliable, int timeInterval, uint16_t messageSize);
+    OtherDataMessage(std::string name, bool reliable, int timeInterval, uint16_t messageSize, uint16_t streamNumber);
 
     void sendData();
     void printStats(std::ostream& out, const Message& msg)const;
@@ -125,7 +128,7 @@ public:
     void messageReceivedClient(std::string& messageName);
 
 private:
-    MaintenanceMessage(std::string name, bool reliable, int timeInterval, uint16_t messageSize);
+    MaintenanceMessage(std::string name, bool reliable, int timeInterval, uint16_t messageSize, uint16_t streamNumber);
 
     void sendData();
     void printStats(std::ostream& out, const Message& msg)const;
@@ -138,12 +141,13 @@ private:
 
 uint16_t Message::messagesCreated = 0;
 
-Message::Message(std::string name, bool reliable, int timeInterval, uint16_t size)
-    : name(name), reliable(reliable), timeInterval(timeInterval), messageSize(size){
+Message::Message(std::string name, bool reliable, int timeInterval, uint16_t size, uint16_t streamNumber)
+    : name(name), reliable(reliable), timeInterval(timeInterval), messageSize(size), streamNumber(streamNumber){
 
 }
 
-Message::Message(const Message &msg): name(msg.getName()), reliable(msg.getReliable()), timeInterval(msg.getTimeInterval()), messageSize(msg.getMessageSize()), type(msg.getType()){
+Message::Message(const Message &msg): name(msg.getName()), reliable(msg.getReliable()), timeInterval(msg.getTimeInterval()), messageSize(msg.getMessageSize()),
+    type(msg.getType()), streamNumber(msg.getStreamNumber()){
 
     this->messageID = ++messagesCreated;
 
@@ -195,13 +199,30 @@ bool Message::parseMessageId(std::string &messageName, int &resultId){
     return true;
 }
 
+int Message::newMessageNumber(uint16_t streamnumber){
+
+    static std::vector<int> messageNumbersForStreams;
+    int retVal;
+
+    if(messageNumbersForStreams.size() <= streamnumber){
+        retVal = 0;
+        messageNumbersForStreams.push_back(retVal);
+    }else{
+        retVal = messageNumbersForStreams.at(streamnumber-1);
+        messageNumbersForStreams.at(streamnumber-1)++;
+    }
+
+    return retVal;
+}
+
+
 
 //Class UserActionMessage function definitions
 
 uint32_t UserActionMessage::messageInstanceCounter = 0;
 
-UserActionMessage::UserActionMessage(std::string name, bool reliable, int timeInterval, uint16_t messageSize, double clientsOfInterest, int requirement)
-    :Message(name, reliable, timeInterval, messageSize), clientsOfInterest(clientsOfInterest), timeRequirement(requirement){
+UserActionMessage::UserActionMessage(std::string name, bool reliable, int timeInterval, uint16_t messageSize, double clientsOfInterest, int requirement, uint16_t streamNumber)
+    :Message(name, reliable, timeInterval, messageSize, streamNumber), clientsOfInterest(clientsOfInterest), timeRequirement(requirement){
 
     type = USER_ACTION;
 
@@ -225,12 +246,12 @@ void UserActionMessage::sendData(){
     Time sentTime;
     int messageNumber;
 
-    messageNumber = newMessageSent();
+    messageNumber = Message::newMessageNumber(streamNumber);
 
     fillMessageContents(buffer, messageNumber);
 
     sentTime = Simulator::Now();
-    StatisticsCollector::logMessagesSendFromClient(messageNumber, sentTime);
+    StatisticsCollector::logMessagesSendFromClient(messageNumber, sentTime, streamNumber);
 
     if(!sendFunction(this, (uint8_t*)buffer))
         PRINT_ERROR("Problems with socket buffer" << std::endl);   //TODO: socket buffer    
@@ -258,35 +279,26 @@ void UserActionMessage::printStats(std::ostream &out, const Message &msg) const{
 
 }
 
-int UserActionMessage::newMessageSent(){
-
-    int returnValue;
-
-    returnValue = messageInstanceCounter;
-    messageInstanceCounter++;
-
-    return returnValue;
-}
 
 void UserActionMessage::messageReceivedServer(std::string& messageName){
 
     int id = 0;
     parseMessageId(messageName, id);
-    StatisticsCollector::logMessageReceivedByServer(id, Simulator::Now());
+    StatisticsCollector::logMessageReceivedByServer(id, Simulator::Now(), streamNumber);
 }
 
 void UserActionMessage::messageReceivedClient(std::string& messageName){
 
     int id = 0;
     parseMessageId(messageName, id);
-    StatisticsCollector::logMessageReceivedByClient(id, Simulator::Now());
+    StatisticsCollector::logMessageReceivedByClient(id, Simulator::Now(), streamNumber);
 }
 
 //Class OtherDataMessage function definitions
 
 
-OtherDataMessage::OtherDataMessage(std::string name, bool reliable, int timeInterval, uint16_t messageSize)
-    : Message(name, reliable, timeInterval, messageSize){
+OtherDataMessage::OtherDataMessage(std::string name, bool reliable, int timeInterval, uint16_t messageSize, uint16_t streamNumber)
+    : Message(name, reliable, timeInterval, messageSize, streamNumber){
 
     type = OTHER_DATA;
 
@@ -343,8 +355,8 @@ void OtherDataMessage::messageReceivedClient(std::string& messageName){
 //Class MaintenanceMessage function definitions
 
 
-MaintenanceMessage::MaintenanceMessage(std::string name, bool reliable, int timeInterval, uint16_t messageSize)
-    : Message(name, reliable, timeInterval, messageSize){
+MaintenanceMessage::MaintenanceMessage(std::string name, bool reliable, int timeInterval, uint16_t messageSize, uint16_t streamNumber)
+    : Message(name, reliable, timeInterval, messageSize, streamNumber){
 
     type = MAINTENANCE;
 

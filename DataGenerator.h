@@ -208,7 +208,6 @@ DataGenerator::ReadMsgNameReturnValue DataGenerator::readMessageName(std::string
         return NAME_CONTINUES;      //read only "-character
     }
 
-
     if(nameContinues){
         int i;
 
@@ -221,7 +220,6 @@ DataGenerator::ReadMsgNameReturnValue DataGenerator::readMessageName(std::string
             if((i+1) == charLeft){
                 return NAME_CONTINUES;
             }
-
         }
     }
     else{
@@ -239,6 +237,7 @@ DataGenerator::ReadMsgNameReturnValue DataGenerator::readMessageName(std::string
 
     return READ_SUCCESS;
 }
+
 
 //Class ClientDataGenerator function definitions
 
