@@ -333,7 +333,7 @@ void ClientDataGenerator::dataReceivedTcp(Ptr<Socket> sock){
     std::string messageName;
 
     bufferSize = sock->GetRxAvailable();
-    buffer = (uint8_t*) calloc(sizeof(uint8_t), bufferSize);
+    buffer = (uint8_t*) calloc(bufferSize, sizeof(uint8_t));
     sock->Recv(buffer, bufferSize, 0);
 
     if(running){
@@ -468,7 +468,42 @@ void ClientDataGenerator::dataReceivedTcp(Ptr<Socket> sock){
 void ClientDataGenerator::dataReceivedUdp(Ptr<Socket> sock){
 
     Address addr;
-    sock->RecvFrom(addr);
+    uint16_t bufferSize = 0;
+    uint16_t bytesRead = 0;
+    uint8_t *buffer = 0;
+    Message* message = 0;
+    std::string messageName;
+    ReadMsgNameReturnValue retVal;
+
+    if(running){
+
+        bufferSize = sock->GetRxAvailable();
+        buffer = (uint8_t*)calloc(bufferSize, sizeof(uint8_t));
+
+        sock->RecvFrom(buffer, bufferSize, 0, addr);
+
+        while(bytesRead < bufferSize){
+
+            if((retVal = readMessageName(messageName, buffer, bufferSize-bytesRead)) == READ_SUCCESS){
+                for(std::vector<Message*>::iterator it = messages.begin(); it != messages.end(); it++){
+                    if(messageName.compare(0, (*it)->getName().length(), (*it)->getName()) == 0){
+                        message = (*it);
+                        break;
+                    }
+                }
+                bytesRead += message->getMessageSize();
+                message->messageReceivedClient(messageName);
+            }
+            else if(retVal == NAME_CONTINUES){
+                PRINT_ERROR("This should never happen!" << std::endl);
+            }
+            else if(retVal == READ_FAILED)
+                PRINT_ERROR("This should never happen, check message names! " << std::endl);
+        }
+    }
+
+    if(buffer != 0)
+        free(buffer);
 }
 
 
@@ -606,7 +641,7 @@ void ServerDataGenerator::dataReceivedTcp(Ptr<Socket> sock){
         }
 
         bufferSize = sock->GetRxAvailable();
-        buffer = (uint8_t*)calloc(sizeof(uint8_t), bufferSize);
+        buffer = (uint8_t*)calloc(bufferSize, sizeof(uint8_t));
         sock->Recv(buffer, bufferSize, 0);
 
         if(client->dataLeft){
@@ -753,7 +788,7 @@ void ServerDataGenerator::dataReceivedUdp(Ptr<Socket> sock){
     if(running){
 
         bufferSize = sock->GetRxAvailable();
-        buffer = (uint8_t*)calloc(sizeof(uint8_t), bufferSize);
+        buffer = (uint8_t*)calloc(bufferSize, sizeof(uint8_t));
 
         sock->RecvFrom(buffer, bufferSize, 0, clientAddr);
 

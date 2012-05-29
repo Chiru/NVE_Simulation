@@ -49,7 +49,7 @@
                     <size="120">
                     <reliable="false">
                     <timeinterval="200">
-                    <clientsofinterest="0.2">
+                    <clientsofinterest="1">
                     <timerequirement="100">
                 </message>
             </messages>

@@ -278,9 +278,7 @@ void UserActionMessage::messageReceivedServer(std::string& messageName){
 void UserActionMessage::messageReceivedClient(std::string& messageName){
 
     int id = 0;
-
     parseMessageId(messageName, id);
-
     StatisticsCollector::logMessageReceivedByClient(id, Simulator::Now());
 }
 
