@@ -21,7 +21,7 @@
                     <name="move">
                     <size="131">
                     <reliable="true">
-                    <timeinterval="50">
+                    <timeinterval="1000">
                     <clientsofinterest="1">
                     <timerequirement="200">
                 </message>
@@ -30,7 +30,7 @@
                     <name="move5444">
                     <size="2000">
                     <reliable="true">
-                    <timeinterval="100">
+                    <timeinterval="1000">
                     <clientsofinterest="1">
                     <timerequirement="200">
                 </message>

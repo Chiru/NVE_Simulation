@@ -5,6 +5,7 @@ using namespace ns3;
 #include <string>
 #include "ns3/address.h"
 
+#define PRINT_RESULT(a) (std::cout << a)
 #define PRINT_INFO(a) (StatisticsCollector::getVerbose() == true ? std::cout << a : std::cout << "")
 #define PRINT_ERROR(a) (std::cerr << a)
 

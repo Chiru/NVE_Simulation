@@ -201,20 +201,30 @@ bool Message::parseMessageId(std::string &messageName, int &resultId){
 
 int Message::newMessageNumber(uint16_t streamnumber){
 
-    static std::vector<int> messageNumbersForStreams;
+    static std::vector<std::pair<int, int> > messageNumbersForStreams;
+    static std::vector<std::pair<int, int> >::iterator it;
+    static std::pair<int, int>* temp;
+    bool exists = false;
     int retVal;
 
-    if(messageNumbersForStreams.size() <= streamnumber){
+    for(it = messageNumbersForStreams.begin(); it != messageNumbersForStreams.end(); it++){
+        if(it->first == streamnumber){
+            exists = true;
+            temp = &(*it);
+            break;
+        }
+    }
+
+    if(!exists){
+        messageNumbersForStreams.push_back(std::make_pair<int, int>(streamnumber, 0));
         retVal = 0;
-        messageNumbersForStreams.push_back(retVal);
     }else{
-        retVal = messageNumbersForStreams.at(streamnumber-1);
-        messageNumbersForStreams.at(streamnumber-1)++;
+        temp->second++;
+        retVal = temp->second;
     }
 
     return retVal;
 }
-
 
 
 //Class UserActionMessage function definitions
