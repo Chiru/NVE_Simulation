@@ -388,9 +388,7 @@ void MaintenanceMessage::scheduleSendEvent(Callback<bool, Message*, uint8_t*> fu
 void MaintenanceMessage::sendData(){
 
     char buffer[30] = "";
-    buffer[0] = '\"';
-    strcat(buffer, name.c_str());
-    strcat(buffer, "\"");
+    fillMessageContents(buffer);
 
     if(!sendFunction(this, (uint8_t*)buffer))
         PRINT_ERROR("Problems with socket buffer" << std::endl);   //TODO: socket buffer
