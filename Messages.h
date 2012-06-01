@@ -80,15 +80,18 @@ public:
     ~UserActionMessage();
     Message* copyMessage();
     void scheduleSendEvent(Callback<bool, Message*, uint8_t*>);
-    double getClientsOfInterest() const{return clientsOfInterest;}    
+    double getClientsOfInterest() const{return clientsOfInterest;}
+    uint32_t getServerTimeRequirement() const{return serverTimeRequirement;}
+    uint32_t getClientTimeRequirement() const{return clientTimeRequirement;}
     void messageReceivedServer(std::string& messageName);
     void messageReceivedClient(std::string& messageName);
 
 private:
-    UserActionMessage(std::string name, bool reliable, int timeInterval, uint16_t messageSize, double clientsOfInterest, int requirement, uint16_t streamNumber);
+    UserActionMessage(std::string name, bool reliable, int timeInterval, uint16_t messageSize, double clientsOfInterest, uint32_t clientRequirement, uint32_t serverRequirement, uint16_t streamNumber);
 
     double clientsOfInterest;
-    int timeRequirement;
+    uint32_t clientTimeRequirement;  //time requirement for messages to travel from client to client
+    uint32_t serverTimeRequirement;  //time requirement for messages to reach server
     void sendData();
     void printStats(std::ostream& out, const Message& msg) const;
 
@@ -231,8 +234,10 @@ int Message::newMessageNumber(uint16_t streamnumber){
 
 uint32_t UserActionMessage::messageInstanceCounter = 0;
 
-UserActionMessage::UserActionMessage(std::string name, bool reliable, int timeInterval, uint16_t messageSize, double clientsOfInterest, int requirement, uint16_t streamNumber)
-    :Message(name, reliable, timeInterval, messageSize, streamNumber), clientsOfInterest(clientsOfInterest), timeRequirement(requirement){
+UserActionMessage::UserActionMessage(std::string name, bool reliable, int timeInterval, uint16_t messageSize, double clientsOfInterest,
+                                     uint32_t clientRequirement,  uint32_t serverRequirement, uint16_t streamNumber)
+    :Message(name, reliable, timeInterval, messageSize, streamNumber), clientsOfInterest(clientsOfInterest),
+      clientTimeRequirement(clientRequirement), serverTimeRequirement(serverRequirement){
 
     type = USER_ACTION;
 
@@ -261,7 +266,7 @@ void UserActionMessage::sendData(){
     fillMessageContents(buffer, messageNumber);
 
     sentTime = Simulator::Now();
-    StatisticsCollector::logMessagesSendFromClient(messageNumber, sentTime, streamNumber);
+    StatisticsCollector::logMessagesSendFromClient(messageNumber, sentTime, streamNumber, clientTimeRequirement, serverTimeRequirement);
 
     if(!sendFunction(this, (uint8_t*)buffer))
         PRINT_ERROR("Problems with socket buffer" << std::endl);   //TODO: socket buffer    
@@ -285,7 +290,7 @@ void UserActionMessage::printStats(std::ostream &out, const Message &msg) const{
 
     out << "UserActionMessage  " << "  ID:" << messageID <<  "  Name: " << name << "  Reliable: " << (reliable == true ? "yes" : "no")
            << "  Size: " << messageSize << " TimeInterval: " <<  timeInterval <<  "  ClientOfInterest: "
-           << clientsOfInterest << "  TimeRequirement: " << timeRequirement;
+           << clientsOfInterest << "  ClientTimeRequirement: " << clientTimeRequirement << "   ServerTimeRequirement: " << serverTimeRequirement;
 
 }
 

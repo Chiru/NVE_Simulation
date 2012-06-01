@@ -6,8 +6,8 @@
         </client>
 
         <client>
-            <no="4"/> <delay="20"> <uplink="0.3">
-            <downlink="0.5"> <loss="0.02">
+            <no="4"/> <delay="10"> <uplink="0.3">
+            <downlink="0.5"> <loss="0.01">
         </client>
     </clients>
     <appproto>
@@ -27,7 +27,8 @@
                     <reliable="true">
                     <timeinterval="100">
                     <clientsofinterest="0.3">
-                    <timerequirement="200">
+                    <timerequirementclient="200">
+                    <timerequirementserver="200">
                 </message>
                 <message>
                     <type="uam">
@@ -36,7 +37,8 @@
                     <reliable="true">
                     <timeinterval="100">
                     <clientsofinterest="0.5">
-                    <timerequirement="200">
+                    <timerequirementclient="200">
+                    <timerequirementserver="100">
                 </message>
                 <message>
                     <type="mm">
@@ -58,7 +60,8 @@
                     <reliable="false">
                     <timeinterval="50">
                     <clientsofinterest="0.4">
-                    <timerequirement="100">
+                    <timerequirementclient="100">
+                    <timerequirementserver="50">
                 </message>
             </messages>
         </stream>
@@ -73,7 +76,8 @@
                     <reliable="true">
                     <timeinterval="400">
                     <clientsofinterest="1">
-                    <timerequirement="1000">
+                    <timerequirementclient="1000">
+                    <timerequirementserver="200">
                 </message>
                 <message>
                     <type="odt">

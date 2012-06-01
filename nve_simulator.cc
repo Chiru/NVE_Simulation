@@ -197,7 +197,7 @@ int main(int argc, char** argv){
         pointToPoint[i].EnablePcapAll("results/results.txt");
     }
 
-    stats->addFlowMonitor(flowMonHelper.InstallAll(), flowMonHelper);
+    stats->addFlowMonitor(flowMonHelper.InstallAll(), flowMonHelper);   //TODO: something leaks memory in flow monitoring (ns-3 bug?)
 
     AsciiTraceHelper ascii;
     pointToPoint[numberOfClients].EnableAsciiAll(ascii.CreateFileStream ("results/nve.tr"));
