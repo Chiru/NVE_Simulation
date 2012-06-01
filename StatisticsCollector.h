@@ -19,8 +19,11 @@
 
 #include <iostream>
 #include <vector>
+#include <map>
 #include <list>
+#include "ns3/flow-monitor.h"
 #include "ns3/nstime.h"
+#include "ns3/flow-monitor-module.h"
 #include "utilities.h"
 
 
@@ -41,15 +44,22 @@ public:
     static bool getVerbose() {return verbose;}
     static bool getClientLog() {return clientLog;}
     static bool getServerLog() {return serverLog;}
-    static StatisticsCollector* createStatisticsCollector(bool, bool, bool, uint16_t);
+    void addFlowMonitor(Ptr<FlowMonitor> flowMon, FlowMonitorHelper& helper);
+    static StatisticsCollector* createStatisticsCollector(bool, bool, bool, uint16_t, int);
     static void logMessagesSendFromClient(int messageNumber, Time, uint16_t streamNumber);             //log times when user action messages are sent
     static void logMessageReceivedByServer(int messageNumber, Time, uint16_t streamNumber);    //log times when user action messages are received by the server
     static void logMessageReceivedByClient(int messageNumber, Time, uint16_t streamNumber);    //log times when user action messages are finally forwarded to other clients
 
 private:
-    StatisticsCollector(bool, bool, bool, uint16_t);
+    StatisticsCollector(bool, bool, bool, uint16_t, int);
     void getStreamResults(std::vector<StatisticsCollector::MessageStats*>& stats, uint16_t streamNumber, Time& clientTimeResult, Time& serverTimeResult, uint32_t& clientMsgCount, uint32_t& serverMsgCount);
+    void getBandwidthResults();
+
     uint16_t streamCount;
+    Ptr<FlowMonitor> flowMon;
+    FlowMonitorHelper helper;
+    int runningTime;
+
     static bool verbose;
     static bool clientLog;
     static bool serverLog;
@@ -67,10 +77,10 @@ bool StatisticsCollector::clientLog = false;
 bool StatisticsCollector::serverLog = false;
 std::vector<StatisticsCollector::MessageStats*>* StatisticsCollector::messageLog;
 
-StatisticsCollector* StatisticsCollector::createStatisticsCollector(bool verbose, bool clientLog, bool serverLog, uint16_t streamNumber){
+StatisticsCollector* StatisticsCollector::createStatisticsCollector(bool verbose, bool clientLog, bool serverLog, uint16_t streamNumber, int runningTime){
 
     if(!collectorCreated)
-        return new StatisticsCollector(verbose, clientLog, serverLog, streamNumber);
+        return new StatisticsCollector(verbose, clientLog, serverLog, streamNumber, runningTime);
 
     else {
         PRINT_ERROR( "Already one StatisticsCollector exists." << std::endl);
@@ -78,7 +88,7 @@ StatisticsCollector* StatisticsCollector::createStatisticsCollector(bool verbose
     }
 }
 
-StatisticsCollector::StatisticsCollector(bool verbose, bool clientLog, bool serverLog, uint16_t numberOfStreams): streamCount(numberOfStreams){
+StatisticsCollector::StatisticsCollector(bool verbose, bool clientLog, bool serverLog, uint16_t numberOfStreams, int runningTime): streamCount(numberOfStreams), runningTime(runningTime){
 
     StatisticsCollector::verbose = verbose;
     StatisticsCollector::clientLog = clientLog;
@@ -133,7 +143,10 @@ StatisticsCollector::~StatisticsCollector(){
     PRINT_RESULT("Overall average transmit times   clientToServer: " <<  averageClientToServer.GetMilliSeconds() << "   clientToClient: "
               << averageClientToClient.GetMilliSeconds() << "  in milliseconds" << std::endl);
 
+    getBandwidthResults();
+
     delete[] messageLog;
+
 }
 
 void StatisticsCollector::logMessageReceivedByClient(int messageNumber, Time recvTime, uint16_t streamNumber){
@@ -187,6 +200,50 @@ void StatisticsCollector::getStreamResults(std::vector<StatisticsCollector::Mess
     PRINT_RESULT("Average transmit times for stream number: " << streamnumber << "  clientToServer: " << serverStreamTime.GetMilliSeconds() << "  clientToClient: "
               << clientStreamTime.GetMilliSeconds() << std::endl);
 
+}
+
+void StatisticsCollector::addFlowMonitor(Ptr<FlowMonitor> flowMon, FlowMonitorHelper& helper){
+
+    this->flowMon = flowMon;
+    this->helper = helper;
+
+    this->flowMon->Start(Time("0ms"));
+    this->flowMon->Stop(Time(runningTime));
+}
+
+void StatisticsCollector::getBandwidthResults(){
+
+    std::map<FlowId, FlowMonitor::FlowStats> flowStats;
+    Ipv4FlowClassifier::FiveTuple flowId;
+    std::map<Ipv4Address, std::pair<uint64_t, uint64_t> >nodesAndBandwidths;
+    std::map<Ipv4Address, std::pair<uint64_t, uint64_t> >::iterator addrIt;
+
+    //flowMon->CheckForLostPackets();
+    Ptr<Ipv4FlowClassifier> classifier = DynamicCast<Ipv4FlowClassifier> (helper.GetClassifier());
+    flowStats = flowMon->GetFlowStats();
+    for(std::map<FlowId, FlowMonitor::FlowStats>::const_iterator it = flowStats.begin(); it != flowStats.end(); it++){
+        flowId = classifier->FindFlow(it->first);
+
+        if(nodesAndBandwidths.find(flowId.sourceAddress) == nodesAndBandwidths.end())
+            nodesAndBandwidths.insert(std::make_pair<Ipv4Address, std::pair<uint64_t, uint64_t> >(flowId.sourceAddress, std::make_pair<uint64_t, uint64_t>(0, 0)));
+
+        if(nodesAndBandwidths.find(flowId.destinationAddress) == nodesAndBandwidths.end())
+            nodesAndBandwidths.insert(std::make_pair<Ipv4Address, std::pair<uint64_t, uint64_t> >(flowId.destinationAddress, std::make_pair<uint64_t, uint64_t>(0, 0)));
+
+        for(addrIt = nodesAndBandwidths.begin(); addrIt != nodesAndBandwidths.end(); addrIt++){
+            if(addrIt->first.IsEqual(flowId.sourceAddress)){
+                addrIt->second.first += it->second.txBytes;
+            }
+            if(addrIt->first.IsEqual(flowId.destinationAddress)){
+                addrIt->second.second += it->second.rxBytes;
+            }
+        }
+    }
+
+    for(addrIt = nodesAndBandwidths.begin(); addrIt != nodesAndBandwidths.end(); addrIt++){         //NOTE: network headers are not calculated into this average
+        PRINT_RESULT("Average throughput for client " << addrIt->first << " downlink: "  << addrIt->second.second *8.0 / runningTime /1024 /1024 << "Mbps  "
+                    << "uplink: " << addrIt->second.first *8.0/ runningTime / 1024 /1024 << "Mbps" << std::endl);
+    }
 }
 
 #endif // STATISTICSCOLLECTOR_H

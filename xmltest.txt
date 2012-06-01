@@ -5,6 +5,10 @@
         <downlink="4"/> <loss="0.01"/>
         </client>
 
+        <client>
+            <no="4"/> <delay="20"> <uplink="0.3">
+            <downlink="0.5"> <loss="0.02">
+        </client>
     </clients>
     <appproto>
         <acksize="25"/>
@@ -14,25 +18,32 @@
     <streams>
         <stream>
             type="tcp"
-            nagle="yes"
+            nagle="no"
             <messages>
                 <message>
                     <type="uam">
                     <name="move">
                     <size="131">
                     <reliable="true">
-                    <timeinterval="1000">
-                    <clientsofinterest="1">
+                    <timeinterval="100">
+                    <clientsofinterest="0.3">
                     <timerequirement="200">
                 </message>
                 <message>
                     <type="uam">
                     <name="move5444">
-                    <size="2000">
+                    <size="90">
+                    <reliable="true">
+                    <timeinterval="100">
+                    <clientsofinterest="0.5">
+                    <timerequirement="200">
+                </message>
+                <message>
+                    <type="mm">
+                    <name="maintenance">
+                    <size="150">
                     <reliable="true">
                     <timeinterval="1000">
-                    <clientsofinterest="1">
-                    <timerequirement="200">
                 </message>
             </messages>
         </stream>
@@ -43,15 +54,36 @@
                 <message>
                     <type="uam">
                     <name="udpmsg">
-                    <size="120">
+                    <size="229">
                     <reliable="false">
-                    <timeinterval="200">
-                    <clientsofinterest="1">
+                    <timeinterval="50">
+                    <clientsofinterest="0.4">
                     <timerequirement="100">
                 </message>
             </messages>
         </stream>
-
+        <stream>
+            type="tcp"
+            nagle="no"
+            <messages>
+                <message>
+                    <type="uam">
+                    <name="chat">
+                    <size="10">
+                    <reliable="true">
+                    <timeinterval="400">
+                    <clientsofinterest="1">
+                    <timerequirement="1000">
+                </message>
+                <message>
+                    <type="odt">
+                    <name="servermsg">
+                    <size="58">
+                    <reliable="true">
+                    <timeinterval="333">
+                </message>
+            </messages>
+        </stream>
     </streams>
 
 

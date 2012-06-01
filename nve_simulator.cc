@@ -27,6 +27,7 @@
 #include "ns3/drop-tail-queue.h"
 #include "ns3/error-model.h"
 #include "ns3/channel.h"
+#include "ns3/flow-monitor-helper.h"
 #include "XML_parser.h"
 #include "Server.h"
 #include "StatisticsCollector.h"
@@ -58,6 +59,7 @@ int main(int argc, char** argv){
     bool fileNameGiven = false;
     std::string XML_filename;
     Ptr<RateErrorModel>* packetLoss;
+    FlowMonitorHelper flowMonHelper;
 
     DropTailQueue::GetTypeId();
 
@@ -99,7 +101,7 @@ int main(int argc, char** argv){
         return EXIT_FAILURE;
     }
 
-    stats = StatisticsCollector::createStatisticsCollector(verbose, clientLog, serverLog, parser.getNumberOfStreams());
+    stats = StatisticsCollector::createStatisticsCollector(verbose, clientLog, serverLog, parser.getNumberOfStreams(), runningTime);
 
     if(stats == NULL){
         PRINT_ERROR( "Can't create statistics collector!" << std::endl);
@@ -195,6 +197,7 @@ int main(int argc, char** argv){
         pointToPoint[i].EnablePcapAll("results/results.txt");
     }
 
+    stats->addFlowMonitor(flowMonHelper.InstallAll(), flowMonHelper);
 
     AsciiTraceHelper ascii;
     pointToPoint[numberOfClients].EnableAsciiAll(ascii.CreateFileStream ("results/nve.tr"));
