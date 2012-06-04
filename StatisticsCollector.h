@@ -57,7 +57,7 @@ public:
 private:
     StatisticsCollector(bool, bool, bool, uint16_t, int);
     void getStreamResults(std::vector<StatisticsCollector::MessageStats*>& stats, uint16_t streamNumber, Time& clientTimeResult, Time& serverTimeResult, uint32_t& clientMsgCount,
-                          uint32_t& serverMsgCount, uint32_t& toServerInTime, uint32_t& toClientInTime);
+                          uint32_t& serverMsgCount, uint32_t& totalMessagesFromServer, uint32_t& toServerInTime, uint32_t& toClientInTime);
     void getBandwidthResults();
 
     uint16_t streamCount;
@@ -108,13 +108,14 @@ StatisticsCollector::~StatisticsCollector(){
     uint32_t toServerInTime = 0, toClientInTime = 0;
     double averageServerInTime = 0, averageClientInTime = 0;
     uint64_t timeInMilliseconds = 0;
+    uint32_t totalMessagesFromServer = 0;
     Time averageClientToServer("0ms");
     Time averageClientToClient("0ms");
     Time singleStreamClientToServer("0ms");
     Time singleStreamClientToClient("0ms");
 
     for(int h = 0; h < streamCount; h++){
-        getStreamResults(messageLog[h], h+1, singleStreamClientToClient, singleStreamClientToServer, clientMsgCount, serverMsgCount, toServerInTime, toClientInTime);
+        getStreamResults(messageLog[h], h+1, singleStreamClientToClient, singleStreamClientToServer, clientMsgCount, serverMsgCount, totalMessagesFromServer, toServerInTime, toClientInTime);
         averageClientToServer += singleStreamClientToServer;
         if(!singleStreamClientToServer.IsZero()){
                singleStreamClientToServer = Time::FromInteger(0, Time::MS);
@@ -138,11 +139,9 @@ StatisticsCollector::~StatisticsCollector(){
         timeInMilliseconds = averageClientToClient.ToInteger(Time::MS);
         timeInMilliseconds /= clientMsgCount;
         averageClientToClient = Time::FromInteger(timeInMilliseconds, Time::MS);
-        averageClientInTime = static_cast<double>(toClientInTime)/static_cast<double>(clientMsgCount);
+        averageClientInTime = static_cast<double>(toClientInTime)/static_cast<double>(totalMessagesFromServer);
     }else
         averageClientToClient = Time::FromInteger(0, Time::MS);
-
-
 
 
     for(int h = 0; h < streamCount; h++){
@@ -178,7 +177,7 @@ void StatisticsCollector::logMessageForwardedByServer(int messageNumber, uint16_
 }
 
 void StatisticsCollector::getStreamResults(std::vector<StatisticsCollector::MessageStats*>& stats, uint16_t streamnumber, Time& clientTimeResult, Time& serverTimeResult,
-                                           uint32_t& clientMsgCount, uint32_t& serverMsgCount, uint32_t& toServerInTime, uint32_t& toClientInTime){
+                                           uint32_t& clientMsgCount, uint32_t& serverMsgCount, uint32_t& totalMessagesFromServer, uint32_t& toServerInTime, uint32_t& toClientInTime){
 
     uint32_t tempClientMsgCount = 0, tempServerMsgCount = 0;
     uint32_t tempServerInTime = 0, tempClientInTime = 0;
@@ -230,6 +229,7 @@ void StatisticsCollector::getStreamResults(std::vector<StatisticsCollector::Mess
     serverMsgCount += tempServerMsgCount;
     toServerInTime += tempServerInTime;
     toClientInTime += tempClientInTime;
+    totalMessagesFromServer += messagesSentFromServer;
 
     if(messagesSentFromServer != 0)
         clientPercentage = static_cast<double>(tempClientInTime) / static_cast<double>(messagesSentFromServer);
