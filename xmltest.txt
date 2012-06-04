@@ -25,17 +25,17 @@
                     <name="move">
                     <size="131">
                     <reliable="true">
-                    <timeinterval="100">
-                    <clientsofinterest="0.3">
+                    <timeinterval="400">
+                    <clientsofinterest="0.5">
                     <timerequirementclient="200">
-                    <timerequirementserver="200">
+                    <timerequirementserver="100">
                 </message>
                 <message>
                     <type="uam">
                     <name="move5444">
                     <size="90">
                     <reliable="true">
-                    <timeinterval="100">
+                    <timeinterval="400">
                     <clientsofinterest="0.5">
                     <timerequirementclient="200">
                     <timerequirementserver="100">
@@ -58,10 +58,10 @@
                     <name="udpmsg">
                     <size="229">
                     <reliable="false">
-                    <timeinterval="50">
-                    <clientsofinterest="0.4">
-                    <timerequirementclient="100">
-                    <timerequirementserver="50">
+                    <timeinterval="400">
+                    <clientsofinterest="1">
+                    <timerequirementclient="200">
+                    <timerequirementserver="100">
                 </message>
             </messages>
         </stream>
@@ -76,8 +76,8 @@
                     <reliable="true">
                     <timeinterval="400">
                     <clientsofinterest="1">
-                    <timerequirementclient="1000">
-                    <timerequirementserver="200">
+                    <timerequirementclient="200">
+                    <timerequirementserver="100">
                 </message>
                 <message>
                     <type="odt">

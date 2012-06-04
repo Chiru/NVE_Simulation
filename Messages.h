@@ -50,13 +50,14 @@ public:
     void fillMessageContents(char* buffer, int number = 0, std::string* msgName = NULL);
     virtual void messageReceivedServer(std::string& messageName) = 0;
     virtual void messageReceivedClient(std::string& messageName) = 0;
+    bool parseMessageId(std::string& messageName, int& resultId) const;
 
     static int newMessageNumber(uint16_t streamNumber);
 
   protected:
     Message(const Message&);
     virtual void printStats(std::ostream& out, const Message& msg)const = 0;
-    bool parseMessageId(std::string& messageName, int& resultId);
+
 
     std::string name;
     bool reliable;
@@ -189,11 +190,11 @@ void Message::fillMessageContents(char *buffer, int number, std::string* msgName
     strcat(buffer, "\"");
 }
 
-bool Message::parseMessageId(std::string &messageName, int &resultId){
+bool Message::parseMessageId (std::string &messageName, int &resultId)const{
 
     std::stringstream str;
 
-    for(unsigned int i = this->getName().length() + 1; i < messageName.length();  i++){
+    for(unsigned int i = this->getName().length() + 1; i < messageName.length();  i++) {
         str << messageName[i];
     }
 
@@ -204,7 +205,7 @@ bool Message::parseMessageId(std::string &messageName, int &resultId){
 
 int Message::newMessageNumber(uint16_t streamnumber){
 
-    static std::vector<std::pair<int, int> > messageNumbersForStreams;
+    static std::vector<std::pair<int, int> > messageNumbersForStreams;          //every stream has separate message numbers
     static std::vector<std::pair<int, int> >::iterator it;
     static std::pair<int, int>* temp;
     bool exists = false;
@@ -259,9 +260,8 @@ void UserActionMessage::sendData(){
 
     char buffer[30] = "";
     Time sentTime;
-    int messageNumber;
 
-    messageNumber = Message::newMessageNumber(streamNumber);
+    int messageNumber = Message::newMessageNumber(streamNumber);
 
     fillMessageContents(buffer, messageNumber);
 

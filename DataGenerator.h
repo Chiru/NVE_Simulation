@@ -914,10 +914,17 @@ void ServerDataGenerator::sendToRandomClients(std::pair<Address, std::pair<std::
 void ServerDataGenerator::forwardUserActionMessageOverUdp(std::pair<std::string, Message*> msg, Address& addr){
 
     char buffer[30] = "";
+    int messageNumber;
     msg.second->fillMessageContents(buffer, 0, &msg.first);
 
-    if(socket->SendTo((uint8_t*)buffer, msg.second->getMessageSize(), 0, addr) == -1)
+    if(socket->SendTo((uint8_t*)buffer, msg.second->getMessageSize(), 0, addr) == -1){
         PRINT_ERROR("Problems with server socket buffer." << std::endl);
+        return;
+    }
+
+    msg.second->parseMessageId(msg.first, messageNumber);
+
+    StatisticsCollector::logMessageForwardedByServer(messageNumber, streamNumber);
 }
 
 bool ServerDataGenerator::sendData(Message *msg, uint8_t *buffer){
@@ -963,11 +970,17 @@ ServerDataGenerator::ClientConnection::~ClientConnection(){
 void ServerDataGenerator::ClientConnection::forwardUserActionMessage(std::pair<std::string, Message*>& msg){
 
     char buffer[30] = "";
+    int messageNumber;
     msg.second->fillMessageContents(buffer, 0, &msg.first);
 
-    if(clientSocket->Send((uint8_t*)buffer, msg.second->getMessageSize(), 0) == -1)
+    if(clientSocket->Send((uint8_t*)buffer, msg.second->getMessageSize(), 0) == -1){
         PRINT_ERROR("Problems with server socket buffer." << std::endl);
+        return;
+    }
 
+    msg.second->parseMessageId(msg.first, messageNumber);
+
+    StatisticsCollector::logMessageForwardedByServer(messageNumber, msg.second->getStreamNumber());
 }
 
 #endif // DATAGENERATOR_H
