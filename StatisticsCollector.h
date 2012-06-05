@@ -82,10 +82,10 @@ bool StatisticsCollector::clientLog = false;
 bool StatisticsCollector::serverLog = false;
 std::vector<StatisticsCollector::MessageStats*>* StatisticsCollector::messageLog;
 
-StatisticsCollector* StatisticsCollector::createStatisticsCollector(bool verbose, bool clientLog, bool serverLog, uint16_t streamNumber, int runningTime){
+StatisticsCollector* StatisticsCollector::createStatisticsCollector(bool verbose, bool clientLog, bool serverLog, uint16_t streamCount, int runningTime){
 
     if(!collectorCreated)
-        return new StatisticsCollector(verbose, clientLog, serverLog, streamNumber, runningTime);
+        return new StatisticsCollector(verbose, clientLog, serverLog, streamCount, runningTime);
 
     else {
         PRINT_ERROR( "Already one StatisticsCollector exists." << std::endl);
@@ -100,6 +100,8 @@ StatisticsCollector::StatisticsCollector(bool verbose, bool clientLog, bool serv
     StatisticsCollector::serverLog = serverLog;
 
     messageLog = new std::vector<StatisticsCollector::MessageStats*>[numberOfStreams];
+
+    timeRequirementPlot = Gnuplot2dDataset("TimeRequirements");
 }
 
 StatisticsCollector::~StatisticsCollector(){
