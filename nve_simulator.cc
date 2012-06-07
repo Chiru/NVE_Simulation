@@ -34,6 +34,7 @@
 #include "Client.h"
 #include "utilities.h"
 #include <cstdlib>
+#include <sys/stat.h>
 #include <fstream>
 #include <sstream>
 
@@ -60,6 +61,18 @@ int main(int argc, char** argv){
     std::string XML_filename;
     Ptr<RateErrorModel>* packetLoss;
     FlowMonitorHelper flowMonHelper;
+    struct stat resultDir, scriptDir;
+
+    stat("./results", &resultDir);
+    stat("./results/Rscripts", &scriptDir);
+
+    if((resultDir.st_mode & S_IFMT) != S_IFDIR || (scriptDir.st_mode& S_IFMT) != S_IFDIR ){
+
+        if(system("mkdir ./results") == -1 || system("mkdir ./results/Rscripts") == 1){
+            PRINT_ERROR("Can't create directories results and results/Rscripts, please create them." << std::endl);
+
+        }
+    }
 
     DropTailQueue::GetTypeId();
 

@@ -22,11 +22,9 @@
 #include "ApplicationProtocol.h"
 #include "DataGenerator.h"
 #include "Messages.h"
-#include "StatisticsCollector.h"
 #include <string>
 #include <vector>
 #include <typeinfo>
-
 
 
 class XMLParser{
@@ -71,11 +69,10 @@ private:
 
     std::vector<struct XMLParser::Client*> clients;
 
-    //std::ifstream &fileStream;
-
 };
 
 //class XMLParser function definitions
+
 
 XMLParser::XMLParser(std::string filename): filename(filename), correctFile(true), appProto(0), streams(0), numberOfClients(0), numberOfStreams(0), clients(0){
 
@@ -494,7 +491,6 @@ bool XMLParser::parseMessages(std::string &messagesElement, std::vector<Message*
             }
 
             messages.push_back(new UserActionMessage(name, reliable.compare("no") == 0 ? false : true, timeInterval, size, clientsOfInterest, clientTimeRequirement, serverTimeRequirement, stream_number));
-
         }
 
         if(type.compare("odt") == 0){

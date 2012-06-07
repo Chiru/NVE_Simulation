@@ -33,7 +33,19 @@ class Message{
         return out;
     }
 
+
 public:
+
+    struct StringComparator{
+        bool operator() (const std::string& s1, const std::string& s2) const{
+
+            if(s1.compare(s2) > 0)
+                return true;
+            else
+                return false;
+        }
+    };
+
     Message(std::string, bool, int, uint16_t, uint16_t);
     virtual ~Message();
     virtual Message* copyMessage()  = 0;
@@ -52,12 +64,27 @@ public:
     virtual void messageReceivedClient(std::string& messageName) = 0;
     bool parseMessageId(std::string& messageName, int& resultId) const;
 
-    static int newMessageNumber(uint16_t streamNumber);
+    static std::map<std::string ,uint16_t, StringComparator> messageNameMap;
+
+    static inline uint16_t getMessageNameIndex(const std::string& name){
+       return Message::messageNameMap.find(name)->second;
+    }
+    static std::string& getMessageIndexName(uint16_t index){
+        static std::map<std::string, uint16_t, StringComparator>::iterator it;
+        static std::string failReturn("This should never happen!");
+
+        for(it = Message::messageNameMap.begin(); it != Message::messageNameMap.end(); it++){
+            if(it->second == index){
+                return const_cast<std::string&>(it->first);
+            }
+        }
+        return failReturn;
+    }
+
 
   protected:
     Message(const Message&);
     virtual void printStats(std::ostream& out, const Message& msg)const = 0;
-
 
     std::string name;
     bool reliable;
@@ -71,7 +98,10 @@ public:
     uint16_t streamNumber;
 
     static uint16_t messagesCreated;
+    static int newMessageNumber(uint16_t streamNumber);
+
 };
+
 
 class UserActionMessage : public Message{
 
@@ -144,6 +174,7 @@ private:
 //Class Message function definitions
 
 uint16_t Message::messagesCreated = 0;
+std::map< std::string, uint16_t, Message::StringComparator> Message::messageNameMap = std::map<std::string, uint16_t, Message::StringComparator>();
 
 Message::Message(std::string name, bool reliable, int timeInterval, uint16_t size, uint16_t streamNumber)
     : name(name), reliable(reliable), timeInterval(timeInterval), messageSize(size), streamNumber(streamNumber){
@@ -242,6 +273,13 @@ UserActionMessage::UserActionMessage(std::string name, bool reliable, int timeIn
 
     type = USER_ACTION;
 
+    StatisticsCollector::fnptr = &getMessageIndexName; //this has to be done to avoid problems with includes when static functions are called from both files
+
+    if(messageNameMap.find(name) == messageNameMap.end()){
+        messageNameMap.insert(std::make_pair<std::string, uint16_t>(name, messageNameMap.size()));   //every message name has an unique index
+        StatisticsCollector::uamCount++;
+    }
+
 }
 
 UserActionMessage::~UserActionMessage(){
@@ -266,7 +304,7 @@ void UserActionMessage::sendData(){
     fillMessageContents(buffer, messageNumber);
 
     sentTime = Simulator::Now();
-    StatisticsCollector::logMessagesSendFromClient(messageNumber, sentTime, streamNumber, clientTimeRequirement, serverTimeRequirement);
+    StatisticsCollector::logMessagesSendFromClient(messageNumber, sentTime, streamNumber, clientTimeRequirement, serverTimeRequirement, Message::getMessageNameIndex(name));
 
     if(!sendFunction(this, (uint8_t*)buffer))
         PRINT_ERROR("Problems with socket buffer" << std::endl);   //TODO: socket buffer    
