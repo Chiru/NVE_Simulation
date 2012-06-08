@@ -165,7 +165,7 @@ bool RScriptGenerator::generateScriptForMessage(std::list<int> clientRecvTimes, 
     stream <<  name << "_max = max(" << server << name << ", " << client << name << ")\n";
 
     stream << "\n#Plotting for message: " << name << std::endl;
-    stream << "plot(" << serverFunc << name << ", do.points=FALSE, verticals=TRUE, " << color[0] << ", xlim=(c(0," << name << "_max" << ")))" << std::endl;
+    stream << "plot(" << serverFunc << name << ", do.points=FALSE, verticals=TRUE, main=\"message: " << name << "\"," << color[0] << ", xlim=(c(0," << name << "_max" << ")))" << std::endl;
     stream << "plot(" << clientFunc << name << ", do.points=FALSE, verticals=TRUE, add=TRUE, " << color[1] <<  ")" << std::endl;
 
     stream << "#Requirement lines to message: " << name << std::endl;
