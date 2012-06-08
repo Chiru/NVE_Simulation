@@ -2,12 +2,12 @@
     <clients>
         <client>
         <no="1:3"/> <delay="10"><uplink="2"/>
-        <downlink="4"/> <loss="0.01"/>
+        <downlink="4"/> <loss="0.02"/>
         </client>
 
         <client>
-            <no="4"/> <delay="10"> <uplink="0.3">
-            <downlink="0.5"> <loss="0.01">
+            <no="4"/> <delay="50"> <uplink="0.3">
+            <downlink="0.5"> <loss="0.02">
         </client>
     </clients>
     <appproto>
@@ -23,10 +23,10 @@
                 <message>
                     <type="uam">
                     <name="move">
-                    <size="131">
+                    <size="171">
                     <reliable="true">
                     <timeinterval="400">
-                    <clientsofinterest="0.5">
+                    <clientsofinterest="0.7">
                     <timerequirementclient="200">
                     <timerequirementserver="100">
                 </message>
@@ -60,7 +60,7 @@
                     <reliable="false">
                     <timeinterval="400">
                     <clientsofinterest="1">
-                    <timerequirementclient="200">
+                    <timerequirementclient="400">
                     <timerequirementserver="100">
                 </message>
             </messages>

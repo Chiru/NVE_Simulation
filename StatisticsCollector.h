@@ -73,6 +73,8 @@ private:
     FlowMonitorHelper helper;
     int runningTime;
     RScriptGenerator* scriptGen;
+    std::string scriptSourceFile;
+    std::string scriptResultFile;
 
     static bool verbose;
     static bool clientLog;
@@ -104,14 +106,15 @@ StatisticsCollector* StatisticsCollector::createStatisticsCollector(bool verbose
     }
 }
 
-StatisticsCollector::StatisticsCollector(bool verbose, bool clientLog, bool serverLog, uint16_t numberOfStreams, int runningTime): streamCount(numberOfStreams), runningTime(runningTime){
+StatisticsCollector::StatisticsCollector(bool verbose, bool clientLog, bool serverLog, uint16_t numberOfStreams, int runningTime): streamCount(numberOfStreams), runningTime(runningTime),
+    scriptSourceFile("results/rscriptfile.R"), scriptResultFile("results/resultgraphs.pdf"){
 
     StatisticsCollector::verbose = verbose;
     StatisticsCollector::clientLog = clientLog;
     StatisticsCollector::serverLog = serverLog;
 
     messageLog = new std::vector<StatisticsCollector::MessageStats*>[numberOfStreams];
-    scriptGen = new RScriptGenerator("results/rscriptfile.R", "results/resultgraphs.pdf");
+    scriptGen = new RScriptGenerator(scriptSourceFile, scriptResultFile);
 
 }
 
@@ -141,6 +144,8 @@ StatisticsCollector::~StatisticsCollector(){
         if(!singleStreamClientToClient.IsZero()){
             singleStreamClientToClient = Time::FromInteger(0, Time::MS);
         }
+
+        scriptGen->generateScriptForStream(clientToClientTimes, clientToServerTimes, h+1);
         getMessageStats(h);
     }
 
@@ -174,7 +179,10 @@ StatisticsCollector::~StatisticsCollector(){
 
     getBandwidthResults();
 
-    scriptGen->writeAndExecuteResultScript();
+    if(scriptGen->writeAndExecuteResultScript())
+        PRINT_RESULT(std::endl << "Generated a result file for graphs: " << scriptResultFile  << std::endl);
+    else
+        PRINT_RESULT(std::endl << "Could not generate a result file for graphs." << std::endl);
 
     delete[] messageLog;
     delete scriptGen;
@@ -337,29 +345,30 @@ void StatisticsCollector::getBandwidthResults(){
 
 void StatisticsCollector::getMessageStats(uint16_t streamNumber){
 
-    std::pair<std::string, std::list<int> > messageRecvTimesForClient[uamCount];
-    std::pair<std::string, std::list<int> > messageRecvTimesForServer[uamCount];
+    std::pair<std::pair<std::string, int>, std::list<int> > messageRecvTimesForClient[uamCount];
+    std::pair<std::pair<std::string, int>, std::list<int> > messageRecvTimesForServer[uamCount];
 
 
         for(std::vector<MessageStats*>::iterator it = messageLog[streamNumber].begin(); it != messageLog[streamNumber].end(); it++){
-            messageRecvTimesForServer[(*it)->messageNameIndex].first =  fnptr((*it)->messageNameIndex);
-            messageRecvTimesForClient[(*it)->messageNameIndex].first =  fnptr((*it)->messageNameIndex);
+            messageRecvTimesForServer[(*it)->messageNameIndex].first.first =  fnptr((*it)->messageNameIndex);
+            messageRecvTimesForClient[(*it)->messageNameIndex].first.first =  fnptr((*it)->messageNameIndex);
+            messageRecvTimesForServer[(*it)->messageNameIndex].first.second = (*it)->serverTimeRequirement;
+            messageRecvTimesForClient[(*it)->messageNameIndex].first.second = (*it)->clientTimeRequirement;
             if(!(*it)->serverRecvTime.IsZero())
                 messageRecvTimesForServer[(*it)->messageNameIndex].second.push_back(((*it)->serverRecvTime - (*it)->sendTime).GetMilliSeconds());
             for(std::list<Time>::iterator ctit = (*it)->clientRecvTimes.begin(); ctit != (*it)->clientRecvTimes.end(); ctit++){
                 if(!(*ctit).IsZero())
                     messageRecvTimesForClient[(*it)->messageNameIndex].second.push_back(((*ctit) - (*it)->sendTime).GetMilliSeconds());
             }
-        }
+        }//TODO: packet losses (in UDP)
 
-
-    for(int h = 0;h < uamCount; h++){
-        std::cout <<messageRecvTimesForServer[h].first << " ";
-        for(std::list<int>::iterator it = messageRecvTimesForServer[h].second.begin(); it != messageRecvTimesForServer[h].second.end(); it++){
-            std::cout <<" "<< (*it);
+        for(int h = 0; h < uamCount; h++){
+            if(messageRecvTimesForServer[h].first.first.compare("") != 0){
+                scriptGen->generateScriptForMessage(messageRecvTimesForClient[h].second, messageRecvTimesForServer[h].second, messageRecvTimesForServer[h].first.first,
+                                                    messageRecvTimesForServer[h].first.second, messageRecvTimesForClient[h].first.second);
+            }
         }
-        std::cout << std::endl << std::endl;  //TODO: clientreceive times too
-    }
 }
 
 #endif // STATISTICSCOLLECTOR_H
+
