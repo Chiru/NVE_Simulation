@@ -127,9 +127,11 @@ bool RScriptGenerator::generateScriptForStream(const std::list<int64_t>* transmi
     stream << "\n#Plotting for streams\n";
 
     for(int count = 0; count < maxStreams; count++){
-        if(count == 0)  //then this is the first plot to draw to server
+        if(count == 0){  //then this is the first plot to draw to server
             stream << "plot(" << serverFunc << count<< ", do.points=FALSE, verticals=TRUE, main=\"Average stream transmit times from client to server\", col="<< colors[count] <<
                       ", xlab=\"Time(ms)\", ylab=\"Frequency\", xlim=(c(0," << server << "max))" << ")\n";
+            stream << "abline(h=0.1*0:10,  col=\"lightgray\")\n";
+        }
         else
             stream << "plot(" << serverFunc << count<< ", do.points=FALSE, add=TRUE, verticals=TRUE, col="  << colors[count] << ")\n";
 
@@ -158,9 +160,11 @@ bool RScriptGenerator::generateScriptForStream(const std::list<int64_t>* transmi
     }
 
     for(int count = 0; count < maxStreams; count++){
-        if(count == 0)   //then this is the first plot to draw to client
+        if(count == 0)  { //then this is the first plot to draw to client
             stream << "plot(" << clientFunc << count << ", do.points=FALSE, verticals=TRUE, main=\"Average stream transmit times from client to client\", col=" << colors[count] <<
                       ", xlab=\"Time(ms)\", ylab=\"Frequency\", xlim=(c(0," << client << "max))" << ")\n";
+            stream << "abline(h=0.1*0:10,  col=\"lightgray\")\n";
+        }
         else
            stream << "plot(" << clientFunc << count << ", do.points=FALSE, add=TRUE, verticals=TRUE, col=" << colors[count] << ")\n";
 
@@ -239,6 +243,7 @@ bool RScriptGenerator::generateScriptForMessage(std::list<int> clientRecvTimes, 
     stream << "\n#Plotting for message: " << name << std::endl;
     stream << "plot(" << serverFunc << name << ", do.points=FALSE, verticals=TRUE, main=\"message: " << name << "\", col=" << color[0] << ", xlim=(c(0," << name << "_max" << ")), xlab=\"Time(ms)\","
            << " ylab=\"Frequency\")" << std::endl;
+    stream << "abline(h=0.1*0:10,  col=\"lightgray\")\n";
     stream << "plot(" << clientFunc << name << ", do.points=FALSE, verticals=TRUE, add=TRUE, col=" << color[1] <<  ")" << std::endl;
 
     stream << "#Requirement lines to message: " << name << std::endl;
