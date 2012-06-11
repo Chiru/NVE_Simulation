@@ -2,12 +2,12 @@
     <clients>
         <client>
         <no="1:3"/> <delay="10"><uplink="2"/>
-        <downlink="4"/> <loss="0.02"/>
+        <downlink="4"/> <loss="0.00"/>
         </client>
 
         <client>
-            <no="4"/> <delay="50"> <uplink="0.3">
-            <downlink="0.5"> <loss="0.02">
+            <no="4"/> <delay="10"> <uplink="0.3">
+            <downlink="0.5"> <loss="0.00">
         </client>
     </clients>
     <appproto>
@@ -18,14 +18,14 @@
     <streams>
         <stream>
             type="tcp"
-            nagle="no"
+            nagle="yes"
             <messages>
                 <message>
                     <type="uam">
                     <name="move">
                     <size="171">
                     <reliable="true">
-                    <timeinterval="400">
+                    <timeinterval="50">
                     <clientsofinterest="0.7">
                     <timerequirementclient="200">
                     <timerequirementserver="100">

@@ -129,12 +129,12 @@ StatisticsCollector::~StatisticsCollector(){
     Time averageClientToClient("0ms");
     Time singleStreamClientToServer("0ms");
     Time singleStreamClientToClient("0ms");
-    std::list<int64_t> clientToClientTimes;
-    std::list<int64_t> clientToServerTimes;
+    std::list<int64_t> clientToClientTimes[streamCount];
+    std::list<int64_t> clientToServerTimes[streamCount];
 
     for(int h = 0; h < streamCount; h++){
         getStreamResults(messageLog[h], h+1, singleStreamClientToClient, singleStreamClientToServer, clientMsgCount, serverMsgCount, totalMessagesFromServer, toServerInTime, toClientInTime,
-                         clientToServerTimes, clientToClientTimes);//TODO: remove 2 last parameters?
+                         clientToServerTimes[h], clientToClientTimes[h]);//TODO: remove 2 last parameters?
         averageClientToServer += singleStreamClientToServer;
         if(!singleStreamClientToServer.IsZero()){
                singleStreamClientToServer = Time::FromInteger(0, Time::MS);
@@ -144,12 +144,10 @@ StatisticsCollector::~StatisticsCollector(){
         if(!singleStreamClientToClient.IsZero()){
             singleStreamClientToClient = Time::FromInteger(0, Time::MS);
         }
-
-        scriptGen->generateScriptForStream(clientToClientTimes, clientToServerTimes, h+1);
         getMessageStats(h);
     }
 
-
+    scriptGen->generateScriptForStream(clientToClientTimes, clientToServerTimes, streamCount);
 
     if(serverMsgCount != 0){
         timeInMilliseconds = averageClientToServer.ToInteger(Time::MS);
