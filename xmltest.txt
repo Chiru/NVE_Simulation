@@ -18,7 +18,7 @@
     <streams>
         <stream>
             type="tcp"
-            nagle="yes"
+            nagle="no"
             <messages>
                 <message>
                     <type="uam">

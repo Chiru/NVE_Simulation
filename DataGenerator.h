@@ -47,7 +47,7 @@ class DataGenerator : public ns3::Application{
 public:
     enum Protocol{TCP_NAGLE_DISABLED, TCP_NAGLE_ENABLED, UDP};
     DataGenerator(){}
-    DataGenerator(uint16_t streamNumber, Protocol proto, ApplicationProtocol* appProto, std::vector<Message*> messages, int gametick = 10);   //TODO: configure gametick
+    DataGenerator(uint16_t streamNumber, Protocol proto, ApplicationProtocol* appProto, std::vector<Message*> messages, int gametick = 100);   //TODO: configure gametick
     virtual ~DataGenerator();
     virtual void StartApplication() = 0;
     virtual void StopApplication() = 0;
@@ -80,7 +80,7 @@ protected:
 class ClientDataGenerator : public DataGenerator{
 
 public:
-    ClientDataGenerator(uint16_t streamNumber, Protocol proto, ApplicationProtocol* appProto, std::vector<Message*> messages, int gametick = 10); //TODO: configure gametick
+    ClientDataGenerator(uint16_t streamNumber, Protocol proto, ApplicationProtocol* appProto, std::vector<Message*> messages, int gametick = 100); //TODO: configure gametick
     ClientDataGenerator(const DataGenerator&);
     ~ClientDataGenerator();
 
@@ -125,7 +125,7 @@ class ServerDataGenerator : public DataGenerator{
     };
 
 public:
-    ServerDataGenerator(uint16_t streamNumber, Protocol proto, ApplicationProtocol* appProto, std::vector<Message*> messages, int gametick = 10);     //TODO: configure gametick
+    ServerDataGenerator(uint16_t streamNumber, Protocol proto, ApplicationProtocol* appProto, std::vector<Message*> messages, int gametick = 100);     //TODO: configure gametick
     ServerDataGenerator(const DataGenerator&);
     ~ServerDataGenerator();
 

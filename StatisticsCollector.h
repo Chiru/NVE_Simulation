@@ -311,6 +311,9 @@ void StatisticsCollector::getBandwidthResults(){
     Ipv4FlowClassifier::FiveTuple flowId;
     std::map<Ipv4Address, std::pair<uint64_t, uint64_t> >nodesAndBandwidths;
     std::map<Ipv4Address, std::pair<uint64_t, uint64_t> >::iterator addrIt;
+    std::map<Ipv4Address, std::pair<uint64_t, uint64_t> >::const_reverse_iterator revAddrIt;
+    double averageClientUplink = 0, averageClientDownlink = 0, serverUplink = 0, serverDownlink = 0;
+    int counter;
 
     //flowMon->CheckForLostPackets();
     Ptr<Ipv4FlowClassifier> classifier = DynamicCast<Ipv4FlowClassifier> (helper.GetClassifier());
@@ -334,10 +337,25 @@ void StatisticsCollector::getBandwidthResults(){
         }
     }
 
-    for(addrIt = nodesAndBandwidths.begin(); addrIt != nodesAndBandwidths.end(); addrIt++){         //NOTE: network headers are not calculated into this average
+    revAddrIt = nodesAndBandwidths.rbegin(); //this points to the server node
+
+    for(addrIt = nodesAndBandwidths.begin(), counter = 0; addrIt != nodesAndBandwidths.end(); addrIt++){ //NOTE: network headers are not calculated into this average
+
+        if(addrIt->first != revAddrIt->first){
+            averageClientUplink +=  addrIt->second.first *8.0/ runningTime / 1024 /1024;
+            averageClientDownlink += addrIt->second.second *8.0 / runningTime /1024 /1024;
+            counter++;
+        }
+        else{
+            serverUplink +=  addrIt->second.first *8.0/ runningTime / 1024 /1024;
+            serverDownlink += addrIt->second.second *8.0 / runningTime /1024 /1024;
+        }
+
         PRINT_RESULT("Average throughput for client " << addrIt->first << " downlink: "  << addrIt->second.second *8.0 / runningTime /1024 /1024 << "Mbps  "
                     << "uplink: " << addrIt->second.first *8.0/ runningTime / 1024 /1024 << "Mbps" << std::endl);
-    }    
+    }
+
+    scriptGen->generateBandwidthHistogram(averageClientDownlink / counter, averageClientUplink / counter, serverDownlink, serverUplink);
 }
 
 

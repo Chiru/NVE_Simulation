@@ -19,6 +19,7 @@ public:
     bool generateScriptForStream(const std::list<int64_t>* transmitTimesToClients,  const std::list<int64_t>* transmitTimesToServer, uint16_t maxStreams);
     bool generateScriptForMessage(std::list<int> clientRecvTimes, std::list<int> serverRecvTimes, const std::string& name, int serverTimeReq, int clientTimeReq);
     bool writeAndExecuteResultScript();
+    bool generateBandwidthHistogram(double clientDownlink, double clientUplink, double serverDownlink, double serverUplink);
 
 private:
     std::ofstream* filestream;
@@ -255,6 +256,23 @@ bool RScriptGenerator::generateScriptForMessage(std::list<int> clientRecvTimes, 
 
     messageScript.append(stream.str());
 
+    return true;
+}
+
+bool RScriptGenerator::generateBandwidthHistogram(double clientDownlink, double clientUplink, double serverDownlink, double serverUplink){
+
+    std::string color[2] = {"\"red\"", "\"blue\""};
+    std::stringstream stream;
+
+    stream << "\n#Barplot for bandwidths\n";
+    stream << "maxbandwidth = max(" << serverDownlink << ", " << serverUplink << ")";
+    stream << "\nbarplot(c(" << clientDownlink <<  ", " << clientUplink << ", " << serverDownlink << ", " << serverUplink << "), names.arg=c(\"avg. client dl\","
+                                                     << " \"avg. client ul\", \"server downlink\", \"server uplink\"), col=c(" << color[0] << ", " << color[1]
+                                                     << "), ylim=c(0, maxbandwidth))" << std::endl;
+    stream << "title(main=\"Throughputs\",  ylab=\"Bandwidth (Mbps)\")" << std::endl;
+    stream << "abline(h=seq(from=0, to=maxbandwidth, by = (signif(maxbandwidth, 1)/(signif(maxbandwidth, 1)*10))/2), col =\"lightgrey\")";
+
+    messageScript.append(stream.str());
     return true;
 }
 
