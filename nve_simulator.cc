@@ -44,7 +44,7 @@ void printHelpAndQuit();
 
 int main(int argc, char** argv){
 
-    int runningTime = 20; //TODO: change to be configurable
+    int runningTime = 5; //TODO: change to be configurable
 
     int i;
     std::stringstream str;

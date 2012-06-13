@@ -18,14 +18,14 @@
     <streams>
         <stream>
             type="tcp"
-            nagle="no"
+            nagle="yes"
             <messages>
                 <message>
                     <type="uam">
                     <name="move">
                     <size="171">
                     <reliable="true">
-                    <timeinterval="50">
+                    <timeinterval="exponential(10)">
                     <clientsofinterest="0.7">
                     <timerequirementclient="200">
                     <timerequirementserver="100">

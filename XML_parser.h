@@ -22,6 +22,7 @@
 #include "ApplicationProtocol.h"
 #include "DataGenerator.h"
 #include "Messages.h"
+#include "ns3/random-variable.h"
 #include <string>
 #include <vector>
 #include <typeinfo>
@@ -47,8 +48,45 @@ public:
     uint16_t getNumberOfStreams()const {return numberOfStreams;}
     bool getApplicationProtocol(ApplicationProtocol*&);
     bool getClientStats(uint16_t clientIndex, uint16_t &clientNumber, int &delay, double &uplink, double &downlink, double &loss);
+    template <class T, class U, class V> bool readCommaSeparatedString(const std::string& csvString, int paramCount, T& val1, U& val2, V& val3);
 
 private:
+
+    typedef union{
+        double doubleVal;
+        long longIntVal;
+        uint32_t uintVal;
+    } RanvarValues;   //these are the different variables that are passed as a parameter to ns-3 distribution functions
+
+    //distributions supported by ns-3
+    typedef enum{Uniform = 0, Constant, Sequential, Exponential, Pareto, Weibull, Normal, Deterministic, Lognormal, Gamma, Erlang, Zipf, Zeta, Triangular, Empirical, None} Distributions;
+
+
+    //convenience class to operate with distribution enum types
+    class DistributionEnum{
+
+    public:
+        DistributionEnum();
+        explicit DistributionEnum(Distributions dist);
+        explicit DistributionEnum(int dist);
+
+        DistributionEnum(const std::string& distStr);
+        operator int() const;
+        bool operator==(const Distributions &d);
+        bool operator<(const Distributions &d);
+        bool operator>(const Distributions &d);
+        void setDistribution(Distributions dist);
+        Distributions getDistribution() const;
+        Distributions getDistribution(int i) const;
+        RandomVariable* constructRandomVariable(const std::string& params);
+
+    private:
+        Distributions distribution;
+        static const std::string distributionStrings[];
+        static const int distCount;
+    }; //end of nested class distribution
+
+
     bool parseClients(std::string& file);
     bool parseStreams(std::string& file);
     bool parseStream(std::string& streamElement, DataGenerator*& stream);
@@ -58,6 +96,7 @@ private:
     template <class T> bool readValue(const std::string& file, const std::string& variable, T& result, size_t position = 0);
     bool getRunningValue(const std::string& value, uint16_t &from, uint16_t &to);
     bool getElement(const std::string& file, size_t position,const  std::string& start, const std::string& end, std::string &result);
+    bool readRandomVariable(const std::string& element, RandomVariable* ranvar, DistributionEnum& distribution);
 
     std::string filename;
     bool correctFile;
@@ -71,8 +110,9 @@ private:
 
 };
 
-//class XMLParser function definitions
 
+
+//class XMLParser function definitions
 
 XMLParser::XMLParser(std::string filename): filename(filename), correctFile(true), appProto(0), streams(0), numberOfClients(0), numberOfStreams(0), clients(0){
 
@@ -233,24 +273,20 @@ bool XMLParser::parseClients(std::string &file){
                         return false;
                     }
 
-
                     if(!readValue<double>(token, "uplink", tempClient->uplink, latest_token)){
                         PRINT_ERROR( "Incorrect format in client parameters" << std::endl);
                         return false;
                     }
-
 
                     if(!readValue<double>(token, "downlink", tempClient->downlink, latest_token)){
                         PRINT_ERROR( "Incorrect format in client parameters" << std::endl);
                         return false;
                     }
 
-
                     if(!readValue<double>(token, "loss", tempClient->loss, latest_token)){
                         PRINT_ERROR( "Incorrect format in client parameters" << std::endl);
                         return false;
                     }
-
                 }
 
             }else{
@@ -261,9 +297,6 @@ bool XMLParser::parseClients(std::string &file){
             PRINT_ERROR( "Incorrect format in XML file." << value << std::endl);
             return false;
         }
-
-
-
     }
 
     if((latest_token = file.find("</clients>", latest_token)) == std::string::npos){
@@ -420,6 +453,8 @@ bool XMLParser::parseMessages(std::string &messagesElement, std::vector<Message*
     std::string type, reliable, name;
     int size, timeInterval, clientTimeRequirement, serverTimeRequirement;
     double clientsOfInterest;
+    RandomVariable* ranvar = 0;
+    DistributionEnum distribution;
 
     if((latest_token = messagesElement.find("<message>")) == std::string::npos){
         PRINT_ERROR( "Error in message specifications" << std::endl);
@@ -448,9 +483,11 @@ bool XMLParser::parseMessages(std::string &messagesElement, std::vector<Message*
             return false;
         }
 
-        if(!readValue<int>(messageElement, "timeinterval", timeInterval, 0)){
-            PRINT_ERROR( "Error in message timeinterval specification." << std::endl);
-            return false;
+        if(!readRandomVariable(messageElement, ranvar, distribution)){          //if no distribution is specified, read simple timeinterval
+            if(!readValue<int>(messageElement, "timeinterval", timeInterval, 0)){
+                PRINT_ERROR( "Error in message timeinterval specification." << std::endl);
+                return false;
+            }
         }
 
         if(size <= 0){
@@ -613,6 +650,195 @@ bool XMLParser::getClientStats(uint16_t clientIndex, uint16_t &clientNumber, int
 
     return true;
 
+}
+
+ bool XMLParser::readRandomVariable(const std::string& element, RandomVariable* ranvar, DistributionEnum& distribution){
+
+     std::string result;
+     readValue<std::string>(element, "timeinterval", result, 0);
+
+     std::string distName(result.substr(0, result.find('(')));
+     std::cout << "a" << distName << std::endl;
+     distribution = DistributionEnum(distName);
+     if(distribution == None)
+         return false;
+int i, j, k;
+    readCommaSeparatedString<int, int, int>(result.substr(distName.length(), result.length() - distName.length()), 1, i, j, k);
+
+     std::cout << "b " << i << std::endl;
+
+     return true;
+ }
+
+template <class T, class U, class V> bool XMLParser::readCommaSeparatedString(const std::string &csvString, int paramCount, T& val1, U& val2, V& val3){
+
+     std::stringstream stream;std::cout << csvString << std::endl;
+     stream << csvString;
+
+     char c, c2;
+     stream >> c;
+     if(c != '(' || stream.fail())
+         return false;
+
+     switch(paramCount){
+     case 1:
+         stream >> val1;
+         if(stream.fail())
+             return false;
+         break;
+     case 2:
+         stream >> val1;
+         stream >> c;
+         stream >> val2;
+         if(stream.fail() || c != ',')
+             return false;
+         break;
+     case 3:
+         stream >> val1;
+         stream >> c;
+         stream >> val2;
+         stream >> c2;
+         stream >> val3;
+         if(stream.fail() || c != ',' || c != ',')
+             return false;
+         break;
+     }
+
+     if(*csvString.end() != ')')
+         return false;
+
+    return true;
+}
+
+ //nested class DistributionEnum definitions
+
+ const int XMLParser::DistributionEnum::distCount = 16;
+ const std::string XMLParser::DistributionEnum::distributionStrings[XMLParser::DistributionEnum::distCount] = {"uniform", "constant", "sequential", "exponential", "pareto", "weibull", "normal",
+                                                                                                               "deterministic", "lognormal", "gamma", "erlang", "zipf", "zeta",
+                                                                                                               "triangular", "empirical", "none"};
+
+ XMLParser::DistributionEnum::DistributionEnum(): distribution(XMLParser::Uniform){}
+
+XMLParser::DistributionEnum::DistributionEnum(XMLParser::Distributions dist){
+     setDistribution(dist);
+ }
+
+XMLParser::DistributionEnum::DistributionEnum(int dist){
+     setDistribution(getDistribution(dist));
+ }
+
+  XMLParser::DistributionEnum::DistributionEnum(const std::string& distStr){
+
+     for(distribution = XMLParser::Uniform; this->operator<(XMLParser::None); distribution = getDistribution(((int)distribution+1))){
+         if(distributionStrings[distribution].compare(distStr) == 0){
+             break;
+         }
+     }
+ }
+
+  XMLParser::DistributionEnum::operator int() const{
+     for(int i = 0; i < distCount; i++){
+         if(i == this->distribution)
+             return i;
+     }
+     return None;
+ }
+
+ bool  XMLParser::DistributionEnum::operator==(const XMLParser::Distributions &d){
+     if(d == this->distribution)
+         return true;
+     else
+         return false;
+ }
+
+ bool  XMLParser::DistributionEnum::operator<(const XMLParser::Distributions &d){
+     if(d > distribution)
+         return true;
+     else
+         return false;
+ }
+
+ bool  XMLParser::DistributionEnum::operator>(const XMLParser::Distributions &d){
+     if(d < distribution)
+         return true;
+     else
+         return false;
+ }
+
+ void  XMLParser::DistributionEnum::setDistribution(XMLParser::Distributions dist){
+     distribution = dist;
+ }
+
+ XMLParser::Distributions  XMLParser::DistributionEnum::getDistribution() const{
+     return distribution;
+ }
+
+ XMLParser::Distributions  XMLParser::DistributionEnum::getDistribution(int i) const{
+
+     switch(i){
+         case 0: return XMLParser::Uniform;
+         case 1: return XMLParser::Constant;
+         case 2: return XMLParser::Sequential;
+         case 3: return XMLParser::Exponential;
+         case 4: return XMLParser::Pareto;
+         case 5: return XMLParser::Weibull;
+         case 6: return XMLParser::Normal;
+         case 7: return XMLParser::Deterministic;
+         case 8: return XMLParser::Lognormal;
+         case 9: return XMLParser::Gamma;
+         case 10: return XMLParser::Erlang;
+         case 11: return XMLParser::Zipf;
+         case 12: return XMLParser::Zeta;
+         case 13: return XMLParser::Triangular;
+         case 14: return XMLParser::Empirical;
+         case 15: return XMLParser::None;
+         default: return XMLParser::None;
+     }
+}
+
+RandomVariable* XMLParser::DistributionEnum::constructRandomVariable(const std::string &params){
+
+    RandomVariable* retVal = 0;
+
+     switch(distribution){
+
+     case Uniform:
+         break;
+     case Constant:
+         break;
+     case Sequential:
+         break;
+     case Exponential:
+         break;
+     case Pareto:
+         break;
+     case Weibull:
+         break;
+     case Normal:
+         break;
+     case Deterministic:
+         break;
+     case Lognormal:
+         break;
+     case Gamma:
+         break;
+     case Erlang:
+         break;
+     case Zipf:
+         break;
+     case Zeta:
+         break;
+     case Triangular:
+         break;
+     case Empirical:
+         break;
+     case None:
+         break;
+     default:
+         return false;
+     }
+
+     return retVal;
 }
 
 #endif // XML_PARSER_H
