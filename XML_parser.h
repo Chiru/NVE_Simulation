@@ -48,7 +48,6 @@ public:
     uint16_t getNumberOfStreams()const {return numberOfStreams;}
     bool getApplicationProtocol(ApplicationProtocol*&);
     bool getClientStats(uint16_t clientIndex, uint16_t &clientNumber, int &delay, double &uplink, double &downlink, double &loss);
-    template <class T, class U, class V> bool readCommaSeparatedString(const std::string& csvString, int paramCount, T& val1, U& val2, V& val3);
 
 private:
 
@@ -59,7 +58,7 @@ private:
     } RanvarValues;   //these are the different variables that are passed as a parameter to ns-3 distribution functions
 
     //distributions supported by ns-3
-    typedef enum{Uniform = 0, Constant, Sequential, Exponential, Pareto, Weibull, Normal, Deterministic, Lognormal, Gamma, Erlang, Zipf, Zeta, Triangular, Empirical, None} Distributions;
+    typedef enum{Uniform = 0, Constant, Sequential, Exponential, Pareto, Weibull, Normal, Lognormal, Gamma, Erlang, Zipf, Zeta, Triangular, Empirical, None} Distributions;
 
 
     //convenience class to operate with distribution enum types
@@ -84,6 +83,8 @@ private:
         Distributions distribution;
         static const std::string distributionStrings[];
         static const int distCount;
+
+        template <class T, class U, class V, class W> bool readCommaSeparatedString(const std::string& csvString, int paramCount, T& val1, U& val2, V& val3, W& val4);
     }; //end of nested class distribution
 
 
@@ -96,7 +97,7 @@ private:
     template <class T> bool readValue(const std::string& file, const std::string& variable, T& result, size_t position = 0);
     bool getRunningValue(const std::string& value, uint16_t &from, uint16_t &to);
     bool getElement(const std::string& file, size_t position,const  std::string& start, const std::string& end, std::string &result);
-    bool readRandomVariable(const std::string& element, RandomVariable* ranvar, DistributionEnum& distribution);
+    bool readRandomVariable(const std::string& element, RandomVariable*& ranvar, DistributionEnum& distribution);
 
     std::string filename;
     bool correctFile;
@@ -451,7 +452,7 @@ bool XMLParser::parseMessages(std::string &messagesElement, std::vector<Message*
     size_t latest_token = 0;
     std::string messageElement("");
     std::string type, reliable, name;
-    int size, timeInterval, clientTimeRequirement, serverTimeRequirement;
+    int size = 0, timeInterval = 0, clientTimeRequirement = 0, serverTimeRequirement = 0;
     double clientsOfInterest;
     RandomVariable* ranvar = 0;
     DistributionEnum distribution;
@@ -462,6 +463,8 @@ bool XMLParser::parseMessages(std::string &messagesElement, std::vector<Message*
     }
 
     while(getElement(messagesElement, latest_token, "<message>", "</message>", messageElement)){
+
+        ranvar = 0;
 
         if(!readValue<std::string>(messageElement, "type", type, 0)){
             PRINT_ERROR( "Error in message type specification." << std::endl);
@@ -495,12 +498,10 @@ bool XMLParser::parseMessages(std::string &messagesElement, std::vector<Message*
             return false;
         }
 
-        if(timeInterval <= 0){
-            PRINT_ERROR( "TimeInterval must be more than 0." << std::endl);
+        if(timeInterval <= 0 && ranvar == 0){
+            PRINT_ERROR( "TimeInterval value must be either more than 0 or distribution must be specified." << std::endl);
             return false;
         }
-
-
         if(type.compare("uam") == 0){
 
             if(!readValue<int>(messageElement, "timerequirementclient", clientTimeRequirement, 0)){
@@ -527,18 +528,19 @@ bool XMLParser::parseMessages(std::string &messagesElement, std::vector<Message*
                 return false;
             }
 
-            messages.push_back(new UserActionMessage(name, reliable.compare("no") == 0 ? false : true, timeInterval, size, clientsOfInterest, clientTimeRequirement, serverTimeRequirement, stream_number));
+
+           messages.push_back(new UserActionMessage(name, reliable.compare("no") == 0 ? false : true, timeInterval, size, clientsOfInterest, clientTimeRequirement,
+                                                         serverTimeRequirement, stream_number, ranvar));
         }
 
         if(type.compare("odt") == 0){
 
-            messages.push_back(new OtherDataMessage(name, reliable.compare("no") == 0 ? false : true, timeInterval, size, stream_number));
+           messages.push_back(new OtherDataMessage(name, reliable.compare("no") == 0 ? false : true, timeInterval, size, stream_number, ranvar));
         }
 
         if(type.compare("mm") == 0){
 
-            messages.push_back(new MaintenanceMessage(name, reliable.compare("no") == 0 ? false : true, timeInterval, size, stream_number));
-
+           messages.push_back(new MaintenanceMessage(name, reliable.compare("no") == 0 ? false : true, timeInterval, size, stream_number, ranvar));
         }
 
         if((latest_token = messagesElement.find("</message>", latest_token)) == std::string::npos){
@@ -547,7 +549,6 @@ bool XMLParser::parseMessages(std::string &messagesElement, std::vector<Message*
         }
 
         latest_token++;
-
     }
 
     return true;
@@ -652,69 +653,29 @@ bool XMLParser::getClientStats(uint16_t clientIndex, uint16_t &clientNumber, int
 
 }
 
- bool XMLParser::readRandomVariable(const std::string& element, RandomVariable* ranvar, DistributionEnum& distribution){
+ bool XMLParser::readRandomVariable(const std::string& element, RandomVariable*& ranvar, DistributionEnum& distribution){
 
      std::string result;
      readValue<std::string>(element, "timeinterval", result, 0);
 
      std::string distName(result.substr(0, result.find('(')));
-     std::cout << "a" << distName << std::endl;
      distribution = DistributionEnum(distName);
      if(distribution == None)
          return false;
-int i, j, k;
-    readCommaSeparatedString<int, int, int>(result.substr(distName.length(), result.length() - distName.length()), 1, i, j, k);
 
-     std::cout << "b " << i << std::endl;
+     ranvar = distribution.constructRandomVariable(result.substr(distName.length(), result.length() - distName.length()));
+     if(ranvar == 0)
+         return false;
 
      return true;
  }
 
-template <class T, class U, class V> bool XMLParser::readCommaSeparatedString(const std::string &csvString, int paramCount, T& val1, U& val2, V& val3){
-
-     std::stringstream stream;std::cout << csvString << std::endl;
-     stream << csvString;
-
-     char c, c2;
-     stream >> c;
-     if(c != '(' || stream.fail())
-         return false;
-
-     switch(paramCount){
-     case 1:
-         stream >> val1;
-         if(stream.fail())
-             return false;
-         break;
-     case 2:
-         stream >> val1;
-         stream >> c;
-         stream >> val2;
-         if(stream.fail() || c != ',')
-             return false;
-         break;
-     case 3:
-         stream >> val1;
-         stream >> c;
-         stream >> val2;
-         stream >> c2;
-         stream >> val3;
-         if(stream.fail() || c != ',' || c != ',')
-             return false;
-         break;
-     }
-
-     if(*csvString.end() != ')')
-         return false;
-
-    return true;
-}
 
  //nested class DistributionEnum definitions
 
- const int XMLParser::DistributionEnum::distCount = 16;
+ const int XMLParser::DistributionEnum::distCount = 15;
  const std::string XMLParser::DistributionEnum::distributionStrings[XMLParser::DistributionEnum::distCount] = {"uniform", "constant", "sequential", "exponential", "pareto", "weibull", "normal",
-                                                                                                               "deterministic", "lognormal", "gamma", "erlang", "zipf", "zeta",
+                                                                                                               "lognormal", "gamma", "erlang", "zipf", "zeta",
                                                                                                                "triangular", "empirical", "none"};
 
  XMLParser::DistributionEnum::DistributionEnum(): distribution(XMLParser::Uniform){}
@@ -783,7 +744,6 @@ XMLParser::DistributionEnum::DistributionEnum(int dist){
          case 4: return XMLParser::Pareto;
          case 5: return XMLParser::Weibull;
          case 6: return XMLParser::Normal;
-         case 7: return XMLParser::Deterministic;
          case 8: return XMLParser::Lognormal;
          case 9: return XMLParser::Gamma;
          case 10: return XMLParser::Erlang;
@@ -796,44 +756,169 @@ XMLParser::DistributionEnum::DistributionEnum(int dist){
      }
 }
 
+ template <class T, class U, class V, class W> bool XMLParser::DistributionEnum::readCommaSeparatedString(const std::string &csvString, int paramCount, T& val1, U& val2, V& val3, W& val4){
+
+      std::stringstream stream;
+      stream << csvString;
+
+      char c, c2,c3;
+      stream >> c;
+      if(c != '(' || stream.fail())
+          return false;
+
+      switch(paramCount){
+      case 1:
+          stream >> val1;
+          if(stream.fail())
+              return false;
+          break;
+      case 2:
+          stream >> val1;
+          stream >> c;
+          stream >> val2;
+          if(stream.fail() || c != ',')
+              return false;
+          break;
+      case 3:
+          stream >> val1;
+          stream >> c;
+          stream >> val2;
+          stream >> c2;
+          stream >> val3;
+          if(stream.fail() || c != ',' || c2 != ',')
+              return false;
+          break;
+      case 4:
+          stream >> val1;
+          stream >> c;
+          stream >> val2;
+          stream >> c2;
+          stream >> val3;
+          stream >> c3;
+          stream >> val4;
+          if(stream.fail() || c != ',' || c2 != ',' || c3 != ',')
+              return false;
+          break;
+      }
+
+      stream >> c;
+
+      if(c != ')' || stream.fail())
+          return false;
+
+     return true;
+ }
+
+
+
 RandomVariable* XMLParser::DistributionEnum::constructRandomVariable(const std::string &params){
 
     RandomVariable* retVal = 0;
+    XMLParser::RanvarValues v1, v2, v3, v4;
 
      switch(distribution){
 
-     case Uniform:
+     case XMLParser::Uniform:
+         if(!readCommaSeparatedString<double, double, uint32_t, uint32_t>(params, 2, v1.doubleVal, v2.doubleVal, v3.uintVal, v4.uintVal)){
+             PRINT_ERROR("Error in timeinterval distribution parameters" << std::endl);
+         }else{
+             retVal = new UniformVariable(v1.doubleVal, v2.doubleVal);
+         }
          break;
-     case Constant:
+     case XMLParser::Constant:
+         if(!readCommaSeparatedString<double, uint32_t, uint32_t, uint32_t>(params, 1, v1.doubleVal, v2.uintVal, v3.uintVal, v4.uintVal)){
+             PRINT_ERROR("Error in timeinterval distribution parameters" << std::endl);
+         }else{
+             retVal = new ConstantVariable(v1.doubleVal);
+         }
          break;
-     case Sequential:
+     case XMLParser::Sequential:
+         if(!readCommaSeparatedString<double, double, double, uint32_t>(params, 4, v1.doubleVal, v2.doubleVal, v3.doubleVal, v3.uintVal)){
+             PRINT_ERROR("Error in timeinterval distribution parameters" << std::endl);
+         }else{
+             retVal = new SequentialVariable(v1.doubleVal, v2.doubleVal, v3.doubleVal, v4.uintVal);
+         }
          break;
-     case Exponential:
+
+     case XMLParser::Exponential:
+         if(!readCommaSeparatedString<double, double, uint32_t, uint32_t>(params, 2, v1.doubleVal, v2.doubleVal, v3.uintVal, v4.uintVal)){
+             PRINT_ERROR("Error in timeinterval distribution parameters" << std::endl);
+         }else{
+             retVal = new ExponentialVariable(v1.doubleVal, v2.doubleVal);
+         }
          break;
-     case Pareto:
+     case XMLParser::Pareto:
+         if(!readCommaSeparatedString<double, double, double, uint32_t>(params, 3, v1.doubleVal, v2.doubleVal, v3.doubleVal, v4.uintVal)){
+             PRINT_ERROR("Error in timeinterval distribution parameters" << std::endl);
+         }else{
+             retVal = new ParetoVariable(v1.doubleVal, v2.doubleVal, v3.doubleVal);
+         }
          break;
-     case Weibull:
+     case XMLParser::Weibull:
+         if(!readCommaSeparatedString<double, double, double, uint32_t>(params, 3, v1.doubleVal, v2.doubleVal, v3.doubleVal, v4.uintVal)){
+             PRINT_ERROR("Error in timeinterval distribution parameters" << std::endl);
+         }else{
+             retVal = new WeibullVariable(v1.doubleVal, v2.doubleVal, v3.doubleVal);
+         }
          break;
-     case Normal:
+     case XMLParser::Normal:
+         if(!readCommaSeparatedString<double, double, uint32_t, uint32_t>(params, 2, v1.doubleVal, v2.doubleVal, v3.uintVal, v4.uintVal)){
+             PRINT_ERROR("Error in timeinterval distribution parameters" << std::endl);
+         }else{
+             retVal = new NormalVariable(v1.doubleVal, v2.doubleVal);
+         }
          break;
-     case Deterministic:
+     case XMLParser::Lognormal:
+         if(!readCommaSeparatedString<double, double, uint32_t, uint32_t>(params, 2, v1.doubleVal, v2.doubleVal, v3.uintVal, v4.uintVal)){
+             PRINT_ERROR("Error in timeinterval distribution parameters" << std::endl);
+         }else{
+             retVal = new LogNormalVariable(v1.doubleVal, v2.doubleVal);
+         }
          break;
-     case Lognormal:
+     case XMLParser::Gamma:
+         if(!readCommaSeparatedString<double, double, uint32_t, uint32_t>(params, 2, v1.doubleVal, v2.doubleVal, v3.uintVal, v4.uintVal)){
+             PRINT_ERROR("Error in timeinterval distribution parameters" << std::endl);
+         }else{
+             retVal = new GammaVariable(v1.doubleVal, v2.doubleVal);
+         }
          break;
-     case Gamma:
+     case XMLParser::Erlang:
+         if(!readCommaSeparatedString<uint32_t, double, uint32_t, uint32_t>(params, 2, v1.uintVal, v2.doubleVal, v3.uintVal, v4.uintVal)){
+             PRINT_ERROR("Error in timeinterval distribution parameters" << std::endl);
+         }else{
+             retVal = new ErlangVariable(v1.uintVal, v2.doubleVal);
+         }
          break;
-     case Erlang:
+     case XMLParser::Zipf:
+         if(!readCommaSeparatedString<long, double, uint32_t, uint32_t>(params, 2, v1.longIntVal, v2.doubleVal, v3.uintVal, v4.uintVal)){
+             PRINT_ERROR("Error in timeinterval distribution parameters" << std::endl);
+         }else{
+             retVal = new ZipfVariable(v1.longIntVal, v2.doubleVal);
+         }
          break;
-     case Zipf:
+     case XMLParser::Zeta:
+         if(!readCommaSeparatedString<double, uint32_t, uint32_t, uint32_t>(params, 1, v1.doubleVal, v2.uintVal, v3.uintVal, v4.uintVal)){
+             PRINT_ERROR("Error in timeinterval distribution parameters" << std::endl);
+         }else{
+             retVal = new ZetaVariable(v1.doubleVal);
+         }
          break;
-     case Zeta:
+     case XMLParser::Triangular:
+         if(!readCommaSeparatedString<double, double, double, uint32_t>(params, 3, v1.doubleVal, v2.doubleVal, v3.doubleVal, v4.uintVal)){
+             PRINT_ERROR("Error in timeinterval distribution parameters" << std::endl);
+         }else{
+             retVal = new TriangularVariable(v1.doubleVal, v2.doubleVal, v3.doubleVal);
+         }
          break;
-     case Triangular:
-         break;
-     case Empirical:
-         break;
-     case None:
-         break;
+         //TODO: get the empirical data from a file
+    /* case XMLParser::Empirical:
+         if(!readCommaSeparatedString<int, int, int>(params, 3, i, j, k)){
+             PRINT_ERROR("Error in timeinterval distribution parameters" << std::endl);
+         }else{
+             retVal = new ;
+         }
+         break;*/
+     case XMLParser::None:
      default:
          return false;
      }

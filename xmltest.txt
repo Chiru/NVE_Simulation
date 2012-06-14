@@ -1,13 +1,13 @@
 <xml>
     <clients>
         <client>
-        <no="1:3"/> <delay="10"><uplink="2"/>
-        <downlink="4"/> <loss="0.00"/>
+        <no="1:3"/> <delay="10"><uplink="200"/>
+        <downlink="400"/> <loss="0.00"/>
         </client>
 
         <client>
-            <no="4"/> <delay="10"> <uplink="0.3">
-            <downlink="0.5"> <loss="0.00">
+            <no="4"/> <delay="10"> <uplink="50">
+            <downlink="100"> <loss="0.00">
         </client>
     </clients>
     <appproto>
@@ -18,14 +18,14 @@
     <streams>
         <stream>
             type="tcp"
-            nagle="yes"
+            nagle="no"
             <messages>
                 <message>
                     <type="uam">
                     <name="move">
                     <size="171">
                     <reliable="true">
-                    <timeinterval="exponential(10)">
+                    <timeinterval="exponential(40, 200)">
                     <clientsofinterest="0.7">
                     <timerequirementclient="200">
                     <timerequirementserver="100">
@@ -35,7 +35,7 @@
                     <name="move5444">
                     <size="90">
                     <reliable="true">
-                    <timeinterval="400">
+                    <timeinterval="normal(100,20)">
                     <clientsofinterest="0.5">
                     <timerequirementclient="200">
                     <timerequirementserver="100">

@@ -20,6 +20,7 @@
 #include <string>
 #include "ns3/event-id.h"
 #include "utilities.h"
+#include "ns3/random-variable.h"
 #include "StatisticsCollector.h"
 
 class DataGenerator;
@@ -46,7 +47,7 @@ public:
         }
     };
 
-    Message(std::string, bool, int, uint16_t, uint16_t);
+    Message(std::string, bool, int, uint16_t, uint16_t, RandomVariable*);
     virtual ~Message();
     virtual Message* copyMessage()  = 0;
     virtual void scheduleSendEvent(Callback<bool, Message*, uint8_t*>) = 0;
@@ -96,6 +97,7 @@ public:
     EventId sendEvent;
     bool running;
     uint16_t streamNumber;
+    RandomVariable* ranvar;
 
     static uint16_t messagesCreated;
     static int newMessageNumber(uint16_t streamNumber);
@@ -118,7 +120,8 @@ public:
     void messageReceivedClient(std::string& messageName);
 
 private:
-    UserActionMessage(std::string name, bool reliable, int timeInterval, uint16_t messageSize, double clientsOfInterest, uint32_t clientRequirement, uint32_t serverRequirement, uint16_t streamNumber);
+    UserActionMessage(std::string name, bool reliable, int timeInterval, uint16_t messageSize, double clientsOfInterest, uint32_t clientRequirement, uint32_t serverRequirement,
+                      uint16_t streamNumber, RandomVariable* ranvar = 0);
 
     double clientsOfInterest;
     uint32_t clientTimeRequirement;  //time requirement for messages to travel from client to client
@@ -143,7 +146,7 @@ public:
 
 
 private:
-    OtherDataMessage(std::string name, bool reliable, int timeInterval, uint16_t messageSize, uint16_t streamNumber);
+    OtherDataMessage(std::string name, bool reliable, int timeInterval, uint16_t messageSize, uint16_t streamNumber, RandomVariable* ranvar = 0);
 
     void sendData();
     void printStats(std::ostream& out, const Message& msg)const;
@@ -162,7 +165,7 @@ public:
     void messageReceivedClient(std::string& messageName);
 
 private:
-    MaintenanceMessage(std::string name, bool reliable, int timeInterval, uint16_t messageSize, uint16_t streamNumber);
+    MaintenanceMessage(std::string name, bool reliable, int timeInterval, uint16_t messageSize, uint16_t streamNumber, RandomVariable* ranvar = 0);
 
     void sendData();
     void printStats(std::ostream& out, const Message& msg)const;
@@ -170,26 +173,26 @@ private:
 };
 
 
-
 //Class Message function definitions
 
 uint16_t Message::messagesCreated = 0;
 std::map< std::string, uint16_t, Message::StringComparator> Message::messageNameMap = std::map<std::string, uint16_t, Message::StringComparator>();
 
-Message::Message(std::string name, bool reliable, int timeInterval, uint16_t size, uint16_t streamNumber)
-    : name(name), reliable(reliable), timeInterval(timeInterval), messageSize(size), streamNumber(streamNumber){
+Message::Message(std::string name, bool reliable, int timeInterval, uint16_t size, uint16_t streamNumber, RandomVariable* ranvar)
+    : name(name), reliable(reliable), timeInterval(timeInterval), messageSize(size), streamNumber(streamNumber), ranvar(ranvar){
 
 }
 
 Message::Message(const Message &msg): name(msg.getName()), reliable(msg.getReliable()), timeInterval(msg.getTimeInterval()), messageSize(msg.getMessageSize()),
     type(msg.getType()), streamNumber(msg.getStreamNumber()){
-
+    if(msg.ranvar != 0)
+        this->ranvar = new RandomVariable(*msg.ranvar);
     this->messageID = ++messagesCreated;
 
 }
 
 Message::~Message(){
-
+    delete ranvar;
 }
 
 void Message::cancelEvent(){
@@ -267,8 +270,8 @@ int Message::newMessageNumber(uint16_t streamnumber){
 uint32_t UserActionMessage::messageInstanceCounter = 0;
 
 UserActionMessage::UserActionMessage(std::string name, bool reliable, int timeInterval, uint16_t messageSize, double clientsOfInterest,
-                                     uint32_t clientRequirement,  uint32_t serverRequirement, uint16_t streamNumber)
-    :Message(name, reliable, timeInterval, messageSize, streamNumber), clientsOfInterest(clientsOfInterest),
+                                     uint32_t clientRequirement,  uint32_t serverRequirement, uint16_t streamNumber, RandomVariable* ranvar)
+    :Message(name, reliable, timeInterval, messageSize, streamNumber, ranvar), clientsOfInterest(clientsOfInterest),
       clientTimeRequirement(clientRequirement), serverTimeRequirement(serverRequirement){
 
     type = USER_ACTION;
@@ -290,29 +293,35 @@ void UserActionMessage::scheduleSendEvent(Callback<bool, Message*, uint8_t*> sen
 
     this->sendFunction = sendFunction;
     running = true;
-    sendEvent = Simulator::Schedule(Time(MilliSeconds(timeInterval)), &UserActionMessage::sendData, this);
 
+    if(ranvar == 0)
+        sendEvent = Simulator::Schedule(Time(MilliSeconds(timeInterval)), &UserActionMessage::sendData, this);
+    else
+        sendEvent = Simulator::Schedule(Time(MilliSeconds(ranvar->GetInteger())), &UserActionMessage::sendData, this);
 }
 
 void UserActionMessage::sendData(){
 
     char buffer[30] = "";
-    Time sentTime;
+    static Time sentTime;
 
     int messageNumber = Message::newMessageNumber(streamNumber);
 
     fillMessageContents(buffer, messageNumber);
 
     sentTime = Simulator::Now();
+
     StatisticsCollector::logMessagesSendFromClient(messageNumber, sentTime, streamNumber, clientTimeRequirement, serverTimeRequirement, Message::getMessageNameIndex(name));
 
     if(!sendFunction(this, (uint8_t*)buffer))
         PRINT_ERROR("Problems with socket buffer" << std::endl);   //TODO: socket buffer    
 
     if(running){
-        sendEvent = Simulator::Schedule(Time(MilliSeconds(timeInterval)), &UserActionMessage::sendData, this);
+        if(ranvar == 0)
+            sendEvent = Simulator::Schedule(Time(MilliSeconds(timeInterval)), &UserActionMessage::sendData, this);
+        else
+            sendEvent = Simulator::Schedule(Time(MilliSeconds(ranvar->GetInteger())), &UserActionMessage::sendData, this);
     }
-
 }
 
 Message* UserActionMessage::copyMessage(){
@@ -350,8 +359,8 @@ void UserActionMessage::messageReceivedClient(std::string& messageName){
 //Class OtherDataMessage function definitions
 
 
-OtherDataMessage::OtherDataMessage(std::string name, bool reliable, int timeInterval, uint16_t messageSize, uint16_t streamNumber)
-    : Message(name, reliable, timeInterval, messageSize, streamNumber){
+OtherDataMessage::OtherDataMessage(std::string name, bool reliable, int timeInterval, uint16_t messageSize, uint16_t streamNumber, RandomVariable* ranvar)
+    : Message(name, reliable, timeInterval, messageSize, streamNumber, ranvar){
 
     type = OTHER_DATA;
 
@@ -393,7 +402,10 @@ void OtherDataMessage::scheduleSendEvent(Callback<bool, Message*, uint8_t*> send
 
     this->sendFunction = sendFunction;
     running = true;
-    sendEvent = Simulator::Schedule(Time(MilliSeconds(timeInterval)), &OtherDataMessage::sendData, this);
+    if(ranvar == 0)
+        sendEvent = Simulator::Schedule(Time(MilliSeconds(timeInterval)), &OtherDataMessage::sendData, this);
+    else
+        sendEvent = Simulator::Schedule(Time(MilliSeconds(ranvar->GetInteger())), &OtherDataMessage::sendData, this);
 }
 
 void OtherDataMessage::messageReceivedServer(std::string& messageName){
@@ -408,8 +420,8 @@ void OtherDataMessage::messageReceivedClient(std::string& messageName){
 //Class MaintenanceMessage function definitions
 
 
-MaintenanceMessage::MaintenanceMessage(std::string name, bool reliable, int timeInterval, uint16_t messageSize, uint16_t streamNumber)
-    : Message(name, reliable, timeInterval, messageSize, streamNumber){
+MaintenanceMessage::MaintenanceMessage(std::string name, bool reliable, int timeInterval, uint16_t messageSize, uint16_t streamNumber, RandomVariable* ranvar)
+    : Message(name, reliable, timeInterval, messageSize, streamNumber, ranvar){
 
     type = MAINTENANCE;
 
@@ -424,8 +436,10 @@ void MaintenanceMessage::scheduleSendEvent(Callback<bool, Message*, uint8_t*> fu
 
     this->sendFunction = function;
     running = true;
-    sendEvent = Simulator::Schedule(Time(MilliSeconds(timeInterval)), &MaintenanceMessage::sendData, this);
-
+    if(ranvar == 0)
+        sendEvent = Simulator::Schedule(Time(MilliSeconds(timeInterval)), &MaintenanceMessage::sendData, this);
+    else
+        sendEvent = Simulator::Schedule(Time(MilliSeconds(ranvar->GetInteger())), &MaintenanceMessage::sendData, this);
 }
 
 void MaintenanceMessage::sendData(){

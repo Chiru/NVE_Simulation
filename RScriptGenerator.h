@@ -81,19 +81,23 @@ bool RScriptGenerator::generateScriptForStream(const std::list<int64_t>* transmi
         stream << serverFunc << count << " = ecdf(" << server << count << ")\n";
 
         stream << "\n#Vector for client receive times on stream number: " << count +1 << std::endl;
-        stream << client << count;
-        stream << " = c(";
+        if(!transmitTimesToClients[count].empty()){
+            stream << client << count;
+            stream << " = c(";
 
-        for(std::list<int64_t>::const_iterator it = transmitTimesToClients[count].begin(); it != transmitTimesToClients[count].end();){
-            stream << *it;
+            for(std::list<int64_t>::const_iterator it = transmitTimesToClients[count].begin(); it != transmitTimesToClients[count].end();){
+                stream << *it;
 
-            if(++it == transmitTimesToClients[count].end()){
-                stream << ")\n";
-                break;
+                if(++it == transmitTimesToClients[count].end()){
+                    stream << ")\n";
+                    break;
+                }
+                else
+                    stream << ", ";
             }
-            else
-                stream << ", ";
         }
+        else
+            stream << client << count << " = c(0)" << std::endl;
 
         stream << "\n#Step function for stream number: " << count +1 << "\n";
         stream << clientFunc << count << " = ecdf(" << client << count << ")\n";
@@ -223,18 +227,23 @@ bool RScriptGenerator::generateScriptForMessage(std::list<int> clientRecvTimes, 
     stream << serverFunc << name << " = ecdf(" << server << name << ");\n";
 
     stream << "\n#Vector of client receive times for message: " << name << std::endl;
-    stream << client << name;
-    stream << " = c(";
+    if(!clientRecvTimes.empty()){
+        stream << client << name;
+        stream << " = c(";
 
-    for(std::list<int>::const_iterator it = clientRecvTimes.begin(); it != clientRecvTimes.end();){
-        stream << *it;
-        if(++it == clientRecvTimes.end()){
-            stream << ")\n";
-            break;
+        for(std::list<int>::const_iterator it = clientRecvTimes.begin(); it != clientRecvTimes.end();){
+            stream << *it;
+            if(++it == clientRecvTimes.end()){
+                stream << ")\n";
+                break;
+            }
+            else
+                stream << ", ";
         }
-        else
-            stream << ", ";
     }
+    else
+        stream << client << name << " = c(0)" << std::endl;
+
     stream << "\n#Client step function for message: " << name << std::endl;
     stream << clientFunc << name << " = ecdf(" << client << name << ");\n";
 
