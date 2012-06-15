@@ -320,7 +320,7 @@ void UserActionMessage::sendData(){
 
     sentTime = Simulator::Now();
 
-    StatisticsCollector::logMessagesSendFromClient(messageNumber, sentTime, streamNumber, clientTimeRequirement, serverTimeRequirement, Message::getMessageNameIndex(name));
+    StatisticsCollector::logMessagesSendFromClient(messageNumber, sentTime, streamNumber, clientTimeRequirement, serverTimeRequirement, Message::getMessageNameIndex(name), messageID);
 
     if(!sendFunction(this, (uint8_t*)buffer))
         PRINT_ERROR("Problems with socket buffer" << std::endl);   //TODO: socket buffer    

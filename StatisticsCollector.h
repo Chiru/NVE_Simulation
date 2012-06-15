@@ -38,6 +38,7 @@ class StatisticsCollector{
         Time sendTime;
         Time serverRecvTime;
         std::list<Time> clientRecvTimes;
+        Time sendTimeInterval;
         uint32_t clientTimeRequirement;
         uint32_t serverTimeRequirement;
         uint16_t numberOfClientsForwarded;
@@ -54,7 +55,7 @@ public:
     void addFlowMonitor(Ptr<FlowMonitor> flowMon, FlowMonitorHelper& helper);
     static StatisticsCollector* createStatisticsCollector(bool, bool, bool, uint16_t, int);
     static void logMessagesSendFromClient(int messageNumber, Time, uint16_t streamNumber, uint32_t clientTimeRequirement, uint32_t serverTimeRequirement,
-                                          uint16_t messageNameIndex);//log times when user action messages are sent
+                                          uint16_t messageNameIndex, uint16_t messageId);//log times when user action messages are sent
     static void logMessageReceivedByServer(int messageNumber, Time, uint16_t streamNumber);    //log times when user action messages are received by the server
     static void logMessageReceivedByClient(int messageNumber, Time, uint16_t streamNumber);    //log times when user action messages are finally forwarded to other clients
     static void logMessageForwardedByServer(int messageNumber, uint16_t streamNumber); //counts the messages forwarded to clients
@@ -195,9 +196,22 @@ void StatisticsCollector::logMessageReceivedByServer(int messageNumber, Time rec
     messageLog[streamNumber-1].at(messageNumber)->serverRecvTime = recvTime;
 }
 
-void StatisticsCollector::logMessagesSendFromClient(int messageNumber, Time sendTime, uint16_t streamNumber, uint32_t clientTimeRequirement, uint32_t serverTimeRequirement, uint16_t nameIndex){
+void StatisticsCollector::logMessagesSendFromClient(int messageNumber, Time sendTime, uint16_t streamNumber, uint32_t clientTimeRequirement, uint32_t serverTimeRequirement, uint16_t nameIndex,
+                                                    uint16_t messageId){
+
+    static std::map<int, Time> lastTimes;
+
     messageLog[streamNumber-1].push_back(new MessageStats(messageNumber, sendTime, clientTimeRequirement, serverTimeRequirement, nameIndex));
                                                 //messageNumber is the same as the index of MessageStats in messageLog because they are sent in order
+
+    if(!lastTimes.count(messageId)){
+        messageLog[streamNumber-1].back()->sendTimeInterval = sendTime;
+        lastTimes.insert(std::make_pair<int, Time>(messageId, sendTime));
+    }
+    else{
+        messageLog[streamNumber-1].back()->sendTimeInterval = sendTime - lastTimes[messageId];
+        lastTimes[messageId] = sendTime;
+    }
 }
 
 void StatisticsCollector::logMessageForwardedByServer(int messageNumber, uint16_t streamNumber){
@@ -363,6 +377,7 @@ void StatisticsCollector::getMessageStats(uint16_t streamNumber){
 
     std::pair<std::pair<std::string, int>, std::list<int> > messageRecvTimesForClient[uamCount];
     std::pair<std::pair<std::string, int>, std::list<int> > messageRecvTimesForServer[uamCount];
+    std::list<int> messageSendIntervals[uamCount];
 
 
         for(std::vector<MessageStats*>::iterator it = messageLog[streamNumber].begin(); it != messageLog[streamNumber].end(); it++){
@@ -370,6 +385,7 @@ void StatisticsCollector::getMessageStats(uint16_t streamNumber){
             messageRecvTimesForClient[(*it)->messageNameIndex].first.first =  fnptr((*it)->messageNameIndex);
             messageRecvTimesForServer[(*it)->messageNameIndex].first.second = (*it)->serverTimeRequirement;
             messageRecvTimesForClient[(*it)->messageNameIndex].first.second = (*it)->clientTimeRequirement;
+            messageSendIntervals[(*it)->messageNameIndex].push_back((*it)->sendTimeInterval.GetMilliSeconds());
             if(!(*it)->serverRecvTime.IsZero())
                 messageRecvTimesForServer[(*it)->messageNameIndex].second.push_back(((*it)->serverRecvTime - (*it)->sendTime).GetMilliSeconds());
             for(std::list<Time>::iterator ctit = (*it)->clientRecvTimes.begin(); ctit != (*it)->clientRecvTimes.end(); ctit++){
@@ -380,7 +396,7 @@ void StatisticsCollector::getMessageStats(uint16_t streamNumber){
 
         for(int h = 0; h < uamCount; h++){
             if(messageRecvTimesForServer[h].first.first.compare("") != 0){
-                scriptGen->generateScriptForMessage(messageRecvTimesForClient[h].second, messageRecvTimesForServer[h].second, messageRecvTimesForServer[h].first.first,
+                scriptGen->generateScriptForMessage(messageRecvTimesForClient[h].second, messageRecvTimesForServer[h].second, messageSendIntervals[h], messageRecvTimesForServer[h].first.first,
                                                     messageRecvTimesForServer[h].first.second, messageRecvTimesForClient[h].first.second);
             }
         }
