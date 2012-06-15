@@ -291,19 +291,28 @@ UserActionMessage::~UserActionMessage(){
 
 void UserActionMessage::scheduleSendEvent(Callback<bool, Message*, uint8_t*> sendFunction){
 
+    int interval = 0;
+
     this->sendFunction = sendFunction;
     running = true;
+
+    if(ranvar != 0){
+        interval = ranvar->GetInteger();
+        if(interval <= 0)
+            interval = 1;
+    }
 
     if(ranvar == 0)
         sendEvent = Simulator::Schedule(Time(MilliSeconds(timeInterval)), &UserActionMessage::sendData, this);
     else
-        sendEvent = Simulator::Schedule(Time(MilliSeconds(ranvar->GetInteger())), &UserActionMessage::sendData, this);
+        sendEvent = Simulator::Schedule(Time(MilliSeconds(interval)), &UserActionMessage::sendData, this);
 }
 
 void UserActionMessage::sendData(){
 
     char buffer[30] = "";
     static Time sentTime;
+    static int interval = 0;
 
     int messageNumber = Message::newMessageNumber(streamNumber);
 
@@ -316,11 +325,17 @@ void UserActionMessage::sendData(){
     if(!sendFunction(this, (uint8_t*)buffer))
         PRINT_ERROR("Problems with socket buffer" << std::endl);   //TODO: socket buffer    
 
+    if(ranvar != 0){
+        interval = ranvar->GetInteger();
+        if(interval <= 0)
+            interval = 1;
+    }
+
     if(running){
         if(ranvar == 0)
             sendEvent = Simulator::Schedule(Time(MilliSeconds(timeInterval)), &UserActionMessage::sendData, this);
         else
-            sendEvent = Simulator::Schedule(Time(MilliSeconds(ranvar->GetInteger())), &UserActionMessage::sendData, this);
+            sendEvent = Simulator::Schedule(Time(MilliSeconds(interval)), &UserActionMessage::sendData, this);
     }
 }
 
@@ -375,12 +390,22 @@ void OtherDataMessage::sendData(){
 
     char buffer[30] = "";
     fillMessageContents(buffer);
+    static int interval = 0;
+
+    if(ranvar != 0){
+        interval = ranvar->GetInteger();
+        if(interval <= 0)
+            interval = 1;
+    }
 
     if(!sendFunction(this, (uint8_t*)buffer))
         PRINT_ERROR("Problems with server socket sending buffer." << std::endl);
 
     if(running){
-        sendEvent = Simulator::Schedule(Time(MilliSeconds(timeInterval)), &OtherDataMessage::sendData, this);
+        if(ranvar == 0)
+            sendEvent = Simulator::Schedule(Time(MilliSeconds(timeInterval)), &OtherDataMessage::sendData, this);
+        else
+            sendEvent = Simulator::Schedule(Time(MilliSeconds(interval)), &OtherDataMessage::sendData, this);
     }
 }
 
@@ -400,12 +425,21 @@ void OtherDataMessage::printStats(std::ostream &out, const Message &msg) const{
 
 void OtherDataMessage::scheduleSendEvent(Callback<bool, Message*, uint8_t*> sendFunction){
 
+    int interval = 0;
+
     this->sendFunction = sendFunction;
     running = true;
+
+    if(ranvar != 0){
+        interval = ranvar->GetInteger();
+        if(interval <= 0)
+            interval = 1;
+    }
+
     if(ranvar == 0)
         sendEvent = Simulator::Schedule(Time(MilliSeconds(timeInterval)), &OtherDataMessage::sendData, this);
     else
-        sendEvent = Simulator::Schedule(Time(MilliSeconds(ranvar->GetInteger())), &OtherDataMessage::sendData, this);
+        sendEvent = Simulator::Schedule(Time(MilliSeconds(interval)), &OtherDataMessage::sendData, this);
 }
 
 void OtherDataMessage::messageReceivedServer(std::string& messageName){
@@ -434,24 +468,44 @@ MaintenanceMessage::~MaintenanceMessage(){
 
 void MaintenanceMessage::scheduleSendEvent(Callback<bool, Message*, uint8_t*> function){
 
+    int interval = 0;
+
     this->sendFunction = function;
     running = true;
+
+    if(ranvar != 0){
+        interval = ranvar->GetInteger();
+        if(interval <= 0)
+            interval = 1;
+    }
+
     if(ranvar == 0)
         sendEvent = Simulator::Schedule(Time(MilliSeconds(timeInterval)), &MaintenanceMessage::sendData, this);
     else
-        sendEvent = Simulator::Schedule(Time(MilliSeconds(ranvar->GetInteger())), &MaintenanceMessage::sendData, this);
+        sendEvent = Simulator::Schedule(Time(MilliSeconds(interval)), &MaintenanceMessage::sendData, this);
 }
 
 void MaintenanceMessage::sendData(){
 
     char buffer[30] = "";
+    static int interval = 0;
     fillMessageContents(buffer);
+
+    if(ranvar != 0){
+        interval = ranvar->GetInteger();
+        if(interval <= 0)
+            interval = 1;
+    }
 
     if(!sendFunction(this, (uint8_t*)buffer))
         PRINT_ERROR("Problems with socket buffer" << std::endl);   //TODO: socket buffer
 
-    if(running)
-        sendEvent = Simulator::Schedule(Time(MilliSeconds(timeInterval)), &MaintenanceMessage::sendData, this);
+    if(running){
+        if(ranvar == 0)
+            sendEvent = Simulator::Schedule(Time(MilliSeconds(timeInterval)), &MaintenanceMessage::sendData, this);
+        else
+            sendEvent = Simulator::Schedule(Time(MilliSeconds(interval)), &MaintenanceMessage::sendData, this);
+    }
 
 }
 
