@@ -58,7 +58,7 @@
                     <name="udpmsg">
                     <size="229">
                     <reliable="false">
-                    <timeinterval="400">
+                    <timeinterval="empirical()">
                     <clientsofinterest="1">
                     <timerequirementclient="400">
                     <timerequirementserver="100">

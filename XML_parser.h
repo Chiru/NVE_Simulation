@@ -85,7 +85,9 @@ private:
         static const int distCount;
 
         template <class T, class U, class V, class W> bool readCommaSeparatedString(const std::string& csvString, int paramCount, T& val1, U& val2, V& val3, W& val4);
-    }; //end of nested class distribution
+        bool readEmpiricalDataFile(const std::string& filename, EmpiricalVariable& ranvar);
+
+    }; //end of nested class
 
 
     bool parseClients(std::string& file);
@@ -659,6 +661,7 @@ bool XMLParser::getClientStats(uint16_t clientIndex, uint16_t &clientNumber, int
      readValue<std::string>(element, "timeinterval", result, 0);
 
      std::string distName(result.substr(0, result.find('(')));
+
      distribution = DistributionEnum(distName);
      if(distribution == None)
          return false;
@@ -690,7 +693,7 @@ XMLParser::DistributionEnum::DistributionEnum(int dist){
 
   XMLParser::DistributionEnum::DistributionEnum(const std::string& distStr){
 
-     for(distribution = XMLParser::Uniform; this->operator<(XMLParser::None); distribution = getDistribution(((int)distribution+1))){
+      for(distribution = XMLParser::Uniform; this->operator<(XMLParser::None); distribution = getDistribution(((int)distribution+1))){
          if(distributionStrings[distribution].compare(distStr) == 0){
              break;
          }
@@ -744,14 +747,14 @@ XMLParser::DistributionEnum::DistributionEnum(int dist){
          case 4: return XMLParser::Pareto;
          case 5: return XMLParser::Weibull;
          case 6: return XMLParser::Normal;
-         case 8: return XMLParser::Lognormal;
-         case 9: return XMLParser::Gamma;
-         case 10: return XMLParser::Erlang;
-         case 11: return XMLParser::Zipf;
-         case 12: return XMLParser::Zeta;
-         case 13: return XMLParser::Triangular;
-         case 14: return XMLParser::Empirical;
-         case 15: return XMLParser::None;
+         case 7: return XMLParser::Lognormal;
+         case 8: return XMLParser::Gamma;
+         case 9: return XMLParser::Erlang;
+         case 10: return XMLParser::Zipf;
+         case 11: return XMLParser::Zeta;
+         case 12: return XMLParser::Triangular;
+         case 13: return XMLParser::Empirical;
+         case 14: return XMLParser::None;
          default: return XMLParser::None;
      }
 }
@@ -911,19 +914,62 @@ RandomVariable* XMLParser::DistributionEnum::constructRandomVariable(const std::
          }
          break;
          //TODO: get the empirical data from a file
-    /* case XMLParser::Empirical:
-         if(!readCommaSeparatedString<int, int, int>(params, 3, i, j, k)){
-             PRINT_ERROR("Error in timeinterval distribution parameters" << std::endl);
-         }else{
-             retVal = new ;
+     case XMLParser::Empirical:
+         retVal = new EmpiricalVariable();
+         if(!readEmpiricalDataFile("scratch/empdata.txt", *((EmpiricalVariable*)retVal))){
+             PRINT_ERROR("Couldn't read empirical values from file: " << std::endl);
+             delete retVal;
+             retVal = 0;
          }
-         break;*/
+         break;
      case XMLParser::None:
      default:
-         return false;
+         return 0;
      }
 
      return retVal;
+}
+
+bool XMLParser::DistributionEnum::readEmpiricalDataFile(const std::string &filename, EmpiricalVariable &ranvar){
+//data file must contain each the amount of packets for each x-value (time) {1, ... , n} where n is the max time value
+    std::ifstream file(filename.c_str(), std::ios_base::in);
+
+    if(file.fail())
+        return false;
+
+    char c;
+    double yval;
+    double xval = 1;
+    double totalValues = 0;
+    double valuesThisFar = 0;  //these exist in order to calculate the probabilities
+
+
+    do{
+        file >> yval;
+
+        if(!file.eof() && !file.fail()){
+            totalValues += yval;
+        }
+
+    }while(file >> c, !file.fail() && !file.eof());
+
+    file.clear(std::ios_base::goodbit);
+
+    file.seekg(std::ios_base::beg);
+
+    do{
+        file >> yval;
+        valuesThisFar += yval;
+
+        if(yval > 0){
+            ranvar.CDF(xval, valuesThisFar/totalValues);
+        }
+
+        xval += 1;
+    }while(file >> c, !file.fail() && !file.eof());
+
+    file.close();
+    return true;
 }
 
 #endif // XML_PARSER_H

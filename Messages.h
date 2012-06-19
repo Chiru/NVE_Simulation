@@ -47,7 +47,7 @@ public:
         }
     };
 
-    Message(std::string, bool, int, uint16_t, uint16_t, RandomVariable*);
+    Message(std::string, bool, int, uint16_t, uint16_t, RandomVariable* ranvar = 0);
     virtual ~Message();
     virtual Message* copyMessage()  = 0;
     virtual void scheduleSendEvent(Callback<bool, Message*, uint8_t*>) = 0;
@@ -187,8 +187,8 @@ Message::Message(const Message &msg): name(msg.getName()), reliable(msg.getRelia
     type(msg.getType()), streamNumber(msg.getStreamNumber()){
     if(msg.ranvar != 0)
         this->ranvar = new RandomVariable(*msg.ranvar);
-    this->messageID = ++messagesCreated;
 
+    this->messageID = ++messagesCreated;
 }
 
 Message::~Message(){
@@ -376,7 +376,6 @@ void UserActionMessage::messageReceivedClient(std::string& messageName){
 
 OtherDataMessage::OtherDataMessage(std::string name, bool reliable, int timeInterval, uint16_t messageSize, uint16_t streamNumber, RandomVariable* ranvar)
     : Message(name, reliable, timeInterval, messageSize, streamNumber, ranvar){
-
     type = OTHER_DATA;
 
 }
@@ -429,7 +428,6 @@ void OtherDataMessage::scheduleSendEvent(Callback<bool, Message*, uint8_t*> send
 
     this->sendFunction = sendFunction;
     running = true;
-
     if(ranvar != 0){
         interval = ranvar->GetInteger();
         if(interval <= 0)
