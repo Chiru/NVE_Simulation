@@ -77,7 +77,7 @@ private:
         void setDistribution(Distributions dist);
         Distributions getDistribution() const;
         Distributions getDistribution(int i) const;
-        RandomVariable* constructRandomVariable(const std::string& params);
+        RandomVariable* constructRandomVariable(const std::string& params, const std::string& fileName);
 
     private:
         Distributions distribution;
@@ -561,7 +561,7 @@ bool XMLParser::parseApplicationProtocol(std::string &file){
 
     size_t position;
     std::string token, value;
-    int acksize, delack, retransmit;
+    int acksize, delack, retransmit, headerSize;
 
     if((position = file.find("<appproto>")) == std::string::npos){
         appProto = 0;
@@ -591,7 +591,12 @@ bool XMLParser::parseApplicationProtocol(std::string &file){
         return false;
     }
 
-    appProto = new ApplicationProtocol(acksize, delack, retransmit);
+    if(!readValue<int>(token, "headersize", headerSize)){
+        PRINT_ERROR("Incorrect format in application protocol parameter: headersize" << std::endl);
+        return false;
+    }
+
+    appProto = new ApplicationProtocol(acksize, delack, retransmit, headerSize);
 
     return true;
 
@@ -658,15 +663,20 @@ bool XMLParser::getClientStats(uint16_t clientIndex, uint16_t &clientNumber, int
  bool XMLParser::readRandomVariable(const std::string& element, RandomVariable*& ranvar, DistributionEnum& distribution){
 
      std::string result;
+     std::string filename("");
      readValue<std::string>(element, "timeinterval", result, 0);
 
      std::string distName(result.substr(0, result.find('(')));
+     if(distName.compare("empirical") == 0){
+         getElement(result, 0, "(", ")", filename);
+         filename = filename.substr(1, filename.length()-2);
+     }
 
      distribution = DistributionEnum(distName);
      if(distribution == None)
          return false;
 
-     ranvar = distribution.constructRandomVariable(result.substr(distName.length(), result.length() - distName.length()));
+     ranvar = distribution.constructRandomVariable(result.substr(distName.length(), result.length() - distName.length()), filename);
      if(ranvar == 0)
          return false;
 
@@ -705,7 +715,7 @@ XMLParser::DistributionEnum::DistributionEnum(int dist){
          if(i == this->distribution)
              return i;
      }
-     return None;
+     return XMLParser::None;
  }
 
  bool  XMLParser::DistributionEnum::operator==(const XMLParser::Distributions &d){
@@ -814,7 +824,7 @@ XMLParser::DistributionEnum::DistributionEnum(int dist){
 
 
 
-RandomVariable* XMLParser::DistributionEnum::constructRandomVariable(const std::string &params){
+RandomVariable* XMLParser::DistributionEnum::constructRandomVariable(const std::string &params, const std::string& fileName){
 
     RandomVariable* retVal = 0;
     XMLParser::RanvarValues v1, v2, v3, v4;
@@ -916,8 +926,9 @@ RandomVariable* XMLParser::DistributionEnum::constructRandomVariable(const std::
          //TODO: get the empirical data from a file
      case XMLParser::Empirical:
          retVal = new EmpiricalVariable();
-         if(!readEmpiricalDataFile("scratch/empdata.txt", *((EmpiricalVariable*)retVal))){
-             PRINT_ERROR("Couldn't read empirical values from file: " << std::endl);
+
+         if(!readEmpiricalDataFile(fileName, *((EmpiricalVariable*)retVal))){
+             PRINT_ERROR("Couldn't read empirical values from file: " << fileName << std::endl);
              delete retVal;
              retVal = 0;
          }

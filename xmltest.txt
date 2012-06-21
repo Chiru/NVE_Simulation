@@ -1,19 +1,20 @@
 <xml>
     <clients>
         <client>
-        <no="1:3"/> <delay="10"><uplink="200"/>
-        <downlink="400"/> <loss="0.00"/>
+        <no="1:3"/> <delay="10"><uplink="3"/>
+        <downlink="10"/> <loss="0.01"/>
         </client>
 
         <client>
-            <no="4"/> <delay="10"> <uplink="50">
-            <downlink="100"> <loss="0.00">
+            <no="4"/> <delay="20"> <uplink="0.7">
+            <downlink="1.2"> <loss="0.02">
         </client>
     </clients>
     <appproto>
         <acksize="25"/>
         <delayedack="100"/>
         <retransmit="200"/>
+        <headersize="20"/>
     </appproto>
     <streams>
         <stream>
@@ -58,7 +59,7 @@
                     <name="udpmsg">
                     <size="229">
                     <reliable="false">
-                    <timeinterval="empirical()">
+                    <timeinterval="empirical(scratch/empdata.txt)">
                     <clientsofinterest="1">
                     <timerequirementclient="400">
                     <timerequirementserver="100">

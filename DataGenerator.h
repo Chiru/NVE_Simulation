@@ -141,7 +141,7 @@ private:
     void forwardData();
     void sendToRandomClients(std::pair<Ptr<Socket>, std::pair<std::string, Message*> >&);   //for TCP streams
     void sendToRandomClients(std::pair<Address, std::pair<std::string, Message*> >&);       //for UDP streams
-    void forwardUserActionMessageOverUdp(std::pair<std::string, Message*>, Address&);
+    void forwardUserActionMessage(std::pair<std::string, Message*>, Address&);
     bool sendData(Message*, uint8_t*);
 
     std::vector<ServerDataGenerator::ClientConnection*> clientConnections;
@@ -515,15 +515,22 @@ bool ClientDataGenerator::sendData(Message *msg, uint8_t* buffer){
     uint16_t bytesSent;
 
     if(running){
-        if(socket->GetTxAvailable() < msg->getMessageSize())   {        //TODO: how to remember messages when buffer overflows
-            return false;
-        }
 
-        if((bytesSent = socket->Send(buffer, msg->getMessageSize(), 0)) == -1){
-            return false;
+        if(appProto){
+            appProto->sendFromClient(msg, buffer, socket);
         }
+        else{
 
-        totalBytesSent += bytesSent;
+            if(socket->GetTxAvailable() < msg->getMessageSize()){        //TODO: how to remember messages when buffer overflows
+                return false;
+            }
+
+            if((bytesSent = socket->Send(buffer, msg->getMessageSize(), 0)) == -1){
+                return false;
+            }
+
+            totalBytesSent += bytesSent;
+        }
     }
 
     return true;
@@ -883,7 +890,7 @@ void ServerDataGenerator::forwardData(){
     }
 }
 
-void ServerDataGenerator::sendToRandomClients(std::pair<Ptr<Socket>, std::pair<std::string, Message*> > &msg){
+void ServerDataGenerator::sendToRandomClients(std::pair<Ptr<Socket>, std::pair<std::string, Message*> > &msg){    //forwarding over UDP
 
     double clientsToSend = ((UserActionMessage*)msg.second.second)->getClientsOfInterest();
 
@@ -897,7 +904,7 @@ void ServerDataGenerator::sendToRandomClients(std::pair<Ptr<Socket>, std::pair<s
     }
 }
 
-void ServerDataGenerator::sendToRandomClients(std::pair<Address, std::pair<std::string, Message*> > &msg){
+void ServerDataGenerator::sendToRandomClients(std::pair<Address, std::pair<std::string, Message*> > &msg){      //forwarding over TCP
 
     double clientsToSend = ((UserActionMessage*)msg.second.second)->getClientsOfInterest();
 
@@ -906,20 +913,25 @@ void ServerDataGenerator::sendToRandomClients(std::pair<Address, std::pair<std::
             continue;
 
         if(clientsToSend >= probability.GetValue()){
-            forwardUserActionMessageOverUdp(msg.second, (**it));
+            forwardUserActionMessage(msg.second, (**it));
         }
     }
 }
 
-void ServerDataGenerator::forwardUserActionMessageOverUdp(std::pair<std::string, Message*> msg, Address& addr){
+void ServerDataGenerator::forwardUserActionMessage(std::pair<std::string, Message*> msg, Address& addr){    //forwarding over UDP
 
     char buffer[30] = "";
     int messageNumber;
     msg.second->fillMessageContents(buffer, 0, &msg.first);
 
-    if(socket->SendTo((uint8_t*)buffer, msg.second->getMessageSize(), 0, addr) == -1){
-        PRINT_ERROR("Problems with server socket buffer." << std::endl);
-        return;
+    if(appProto){
+        appProto->sendFromServer((uint8_t*)buffer, msg.second->getMessageSize(), addr);
+
+    }else{
+        if(socket->SendTo((uint8_t*)buffer, msg.second->getMessageSize(), 0, addr) == -1){
+            PRINT_ERROR("Problems with server socket buffer." << std::endl);
+            return;
+        }
     }
 
     msg.second->parseMessageId(msg.first, messageNumber);
@@ -937,17 +949,23 @@ bool ServerDataGenerator::sendData(Message *msg, uint8_t *buffer){
             for(std::vector<ServerDataGenerator::ClientConnection*>::iterator it = clientConnections.begin(); it != clientConnections.end(); it++){
                 if((*it)->clientSocket->GetTxAvailable() < msg->getMessageSize())
                     return false;
+
                 if((bytesSent = (*it)->clientSocket->Send(buffer, msg->getMessageSize(), 0)) == -1)
                     return false;
-
                 totalBytesSent += bytesSent;
+
             }
         }else if(this->proto == UDP){
             for(std::vector<Address*>::iterator it = udpClients.begin(); it != udpClients.end(); it++){
-                if((bytesSent = socket->SendTo(buffer, msg->getMessageSize(), 0, **it)) == -1)
-                    return false;
 
-                totalBytesSent += bytesSent;
+                if(appProto){
+                    appProto->sendFromServer(buffer, msg->getMessageSize(), **it);
+                }else{
+                    if((bytesSent = socket->SendTo(buffer, msg->getMessageSize(), 0, **it)) == -1)
+                        return false;
+
+                    totalBytesSent += bytesSent;
+                }
             }
         }
     }
@@ -967,7 +985,7 @@ ServerDataGenerator::ClientConnection::~ClientConnection(){
     clientSocket->Close();
 }
 
-void ServerDataGenerator::ClientConnection::forwardUserActionMessage(std::pair<std::string, Message*>& msg){
+void ServerDataGenerator::ClientConnection::forwardUserActionMessage(std::pair<std::string, Message*>& msg){           //forwarding over TCP
 
     char buffer[30] = "";
     int messageNumber;
