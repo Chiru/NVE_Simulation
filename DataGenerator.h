@@ -925,7 +925,7 @@ void ServerDataGenerator::forwardUserActionMessage(std::pair<std::string, Messag
     msg.second->fillMessageContents(buffer, 0, &msg.first);
 
     if(appProto){
-        appProto->sendFromServer((uint8_t*)buffer, msg.second->getMessageSize(), addr);
+        appProto->sendFromServer((uint8_t*)buffer, msg.second->getMessageSize(), addr, socket);
 
     }else{
         if(socket->SendTo((uint8_t*)buffer, msg.second->getMessageSize(), 0, addr) == -1){
@@ -959,7 +959,7 @@ bool ServerDataGenerator::sendData(Message *msg, uint8_t *buffer){
             for(std::vector<Address*>::iterator it = udpClients.begin(); it != udpClients.end(); it++){
 
                 if(appProto){
-                    appProto->sendFromServer(buffer, msg->getMessageSize(), **it);
+                    appProto->sendFromServer(buffer, msg->getMessageSize(), **it, socket);
                 }else{
                     if((bytesSent = socket->SendTo(buffer, msg->getMessageSize(), 0, **it)) == -1)
                         return false;
