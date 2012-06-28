@@ -52,16 +52,26 @@
         </stream>
         <stream>
             type="udp"
-            appproto="no"
+            appproto="yes"
             <messages>
                 <message>
                     <type="uam">
                     <name="udpmsg">
                     <size="229">
-                    <reliable="false">
+                    <reliable="no">
                     <timeinterval="empirical(scratch/empdata.txt)">
                     <clientsofinterest="1">
                     <timerequirementclient="400">
+                    <timerequirementserver="100">
+                </message>
+                <message>
+                    <type="uam">
+                    <name="udpmsg2">
+                    <size="247">
+                    <reliable="yes">
+                    <timeinterval="uniform(100, 170)">
+                    <clientsofinterest="0.5">
+                    <timerequirementclient="200">
                     <timerequirementserver="100">
                 </message>
             </messages>
@@ -74,7 +84,7 @@
                     <type="uam">
                     <name="chat">
                     <size="10">
-                    <reliable="true">
+                    <reliable="no">
                     <timeinterval="400">
                     <clientsofinterest="1">
                     <timerequirementclient="200">

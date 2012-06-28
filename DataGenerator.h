@@ -65,6 +65,7 @@ public:
 protected:
     enum ReadMsgNameReturnValue{READ_FAILED = 0, READ_SUCCESS, NAME_CONTINUES};
     ReadMsgNameReturnValue readMessageName(std::string& name, uint8_t* buffer, uint16_t charLeft, bool nameContinues = false);
+    virtual void readReceivedData(uint8_t*, uint16_t, Address& srcAddr) = 0;
 
     uint16_t streamNumber;
     Protocol proto;
@@ -99,6 +100,7 @@ private:
 
     void dataReceivedTcp(Ptr<Socket>);
     void dataReceivedUdp(Ptr<Socket>);
+    void readReceivedData(uint8_t *, uint16_t, Address&);
     void moreBufferSpaceAvailable(Ptr<Socket>, uint32_t);
     bool sendData(Message*, uint8_t* buffer);
 };
@@ -135,6 +137,7 @@ public:
 private:
     void dataReceivedTcp(Ptr<Socket>);
     void dataReceivedUdp(Ptr<Socket>);
+    void readReceivedData(uint8_t *, uint16_t, Address&);
     void moreBufferSpaceAvailable(Ptr<Socket>, uint32_t);
     bool connectionRequest(Ptr<Socket>, const Address&);
     void newConnectionCreated(Ptr<Socket>, const Address&);
@@ -291,7 +294,12 @@ void ClientDataGenerator::StartApplication(){
 
     case UDP:
             socket->Connect(peerAddr);
-            socket->SetRecvCallback(MakeCallback(&ClientDataGenerator::dataReceivedUdp, this));
+            if(appProto){
+                socket->SetRecvCallback(MakeCallback(&ApplicationProtocol::recv, appProto));
+                appProto->configureForStream(MakeCallback(&ClientDataGenerator::readReceivedData, this));
+            }else{
+                socket->SetRecvCallback(MakeCallback(&ClientDataGenerator::dataReceivedUdp, this));
+            }
             break;
     }
 
@@ -416,7 +424,7 @@ void ClientDataGenerator::dataReceivedTcp(Ptr<Socket> sock){
                         bytesRead = bufferSize;
                     }
                     else if(retVal == READ_FAILED)
-                        PRINT_ERROR("This should never happen, check message names!4  " <<std::endl);
+                        PRINT_ERROR("This should never happen, check message names!" <<std::endl);
 
                 }
             }
@@ -467,25 +475,33 @@ void ClientDataGenerator::dataReceivedTcp(Ptr<Socket> sock){
 void ClientDataGenerator::dataReceivedUdp(Ptr<Socket> sock){
 
     Address addr;
+    uint8_t* buffer = 0;
     uint16_t bufferSize = 0;
+
+    bufferSize = sock->GetRxAvailable();
+    buffer = (uint8_t*)calloc(bufferSize, sizeof(uint8_t));
+
+    sock->RecvFrom(buffer, bufferSize, 0, addr);
+
+    readReceivedData(buffer, bufferSize, addr);
+
+    free(buffer);
+}
+
+void ClientDataGenerator::readReceivedData(uint8_t* buffer, uint16_t bufferSize, Address& srcAddr){
+
     uint16_t bytesRead = 0;
-    uint8_t *buffer = 0;
     Message* message = 0;
     std::string messageName;
     ReadMsgNameReturnValue retVal;
 
     if(running){
 
-        bufferSize = sock->GetRxAvailable();
-        buffer = (uint8_t*)calloc(bufferSize, sizeof(uint8_t));
-
-        sock->RecvFrom(buffer, bufferSize, 0, addr);
-
         while(bytesRead < bufferSize){
 
             if((retVal = readMessageName(messageName, buffer, bufferSize-bytesRead)) == READ_SUCCESS){
                 for(std::vector<Message*>::iterator it = messages.begin(); it != messages.end(); it++){
-                    if(messageName.compare(0, (*it)->getName().length(), (*it)->getName()) == 0){
+                    if(messageName.compare(0, (*it)->getName().length(), (*it)->getName()) == 0 && messageName[(*it)->getName().length()] == ':'){
                         message = (*it);
                         break;
                     }
@@ -497,12 +513,9 @@ void ClientDataGenerator::dataReceivedUdp(Ptr<Socket> sock){
                 PRINT_ERROR("This should never happen!" << std::endl);
             }
             else if(retVal == READ_FAILED)
-                PRINT_ERROR("This should never happen, check message names! " << std::endl);
+                PRINT_ERROR("This should never happen, check message names!" << std::endl);
         }
     }
-
-    if(buffer != 0)
-        free(buffer);
 }
 
 
@@ -517,7 +530,8 @@ bool ClientDataGenerator::sendData(Message *msg, uint8_t* buffer){
     if(running){
 
         if(appProto){
-            appProto->sendFromClient(msg, buffer, socket);
+            if(!appProto->sendFromClient(msg, buffer, socket))
+                return false;
         }
         else{
 
@@ -595,7 +609,12 @@ void ServerDataGenerator::StartApplication(){
             break;
 
         case UDP:
+        if(appProto){
+            socket->SetRecvCallback(MakeCallback(&ApplicationProtocol::recv, appProto));
+            appProto->configureForStream(MakeCallback(&ServerDataGenerator::readReceivedData, this));
+        }else{
             socket->SetRecvCallback(MakeCallback(&ServerDataGenerator::dataReceivedUdp, this));
+        }
             break;
     }
 
@@ -712,7 +731,6 @@ void ServerDataGenerator::dataReceivedTcp(Ptr<Socket> sock){
                             message->messageReceivedServer(messageName);
                             client->dataLeft = false;
                             client->bytesLeftToRead = 0;
-                          //  client->messageNamePart.assign(messageName);
                         }
 
                         messageName.assign("");
@@ -731,7 +749,7 @@ void ServerDataGenerator::dataReceivedTcp(Ptr<Socket> sock){
                         bytesRead = bufferSize;
                     }
                     else if(retVal == READ_FAILED)
-                        PRINT_ERROR("This should never happen, check message names!1  " <<std::endl);
+                        PRINT_ERROR("This should never happen, check message names!" <<std::endl);
 
                 }
             }
@@ -769,8 +787,8 @@ void ServerDataGenerator::dataReceivedTcp(Ptr<Socket> sock){
                     client->bytesLeftToRead = 0;
                     bytesRead = bufferSize;
                 }
-                else if(retVal == READ_FAILED){
-                    PRINT_ERROR("This should never happen, check message names!" << std::endl);sleep(10);}
+                else if(retVal == READ_FAILED)
+                    PRINT_ERROR("This should never happen, check message names!" << std::endl);
             }
         }
     }
@@ -779,24 +797,30 @@ void ServerDataGenerator::dataReceivedTcp(Ptr<Socket> sock){
             free(buffer);
 }
 
-
 void ServerDataGenerator::dataReceivedUdp(Ptr<Socket> sock){
 
+    Address addr;
+    uint8_t* buffer = 0;
     uint16_t bufferSize = 0;
+
+    bufferSize = sock->GetRxAvailable();
+    buffer = (uint8_t*)calloc(bufferSize, sizeof(uint8_t));
+
+    sock->RecvFrom(buffer, bufferSize, 0, addr);
+    readReceivedData(buffer, bufferSize, addr);
+
+    free(buffer);
+}
+
+void ServerDataGenerator::readReceivedData(uint8_t *buffer, uint16_t bufferSize, Address& clientAddr){
+
     std::string messageName;
     Message* message = 0;
-    uint8_t* buffer = 0;
     uint16_t bytesRead = 0;
-    Address clientAddr;
     ReadMsgNameReturnValue retVal;
     bool addressExists = false;
 
     if(running){
-
-        bufferSize = sock->GetRxAvailable();
-        buffer = (uint8_t*)calloc(bufferSize, sizeof(uint8_t));
-
-        sock->RecvFrom(buffer, bufferSize, 0, clientAddr);
 
         if(udpClients.empty()){
             udpClients.push_back(new Address(clientAddr));
@@ -817,7 +841,7 @@ void ServerDataGenerator::dataReceivedUdp(Ptr<Socket> sock){
 
             if((retVal = readMessageName(messageName, buffer, bufferSize-bytesRead)) == READ_SUCCESS){
                 for(std::vector<Message*>::iterator it = messages.begin(); it != messages.end(); it++){
-                    if(messageName.compare(0, (*it)->getName().length(), (*it)->getName()) == 0){
+                    if(messageName.compare(0, (*it)->getName().length(), (*it)->getName()) == 0 && messageName[(*it)->getName().length()] == ':'){
                         message = (*it);
                         break;
                     }
@@ -832,11 +856,7 @@ void ServerDataGenerator::dataReceivedUdp(Ptr<Socket> sock){
             else if(retVal == READ_FAILED)
                 PRINT_ERROR("This should never happen, check message names! " << std::endl);
         }
-
-        if(buffer != 0)
-            free(buffer);
     }
-
 }
 
 void ServerDataGenerator::moreBufferSpaceAvailable(Ptr<Socket> sock, uint32_t size){
@@ -925,7 +945,9 @@ void ServerDataGenerator::forwardUserActionMessage(std::pair<std::string, Messag
     msg.second->fillMessageContents(buffer, 0, &msg.first);
 
     if(appProto){
-        appProto->sendFromServer((uint8_t*)buffer, msg.second->getMessageSize(), addr, socket);
+        if(!appProto->sendFromServer((uint8_t*)buffer, msg.second, addr, socket)){
+            PRINT_ERROR("Problems with server socket buffer." << std::endl);
+        }
 
     }else{
         if(socket->SendTo((uint8_t*)buffer, msg.second->getMessageSize(), 0, addr) == -1){
@@ -959,7 +981,9 @@ bool ServerDataGenerator::sendData(Message *msg, uint8_t *buffer){
             for(std::vector<Address*>::iterator it = udpClients.begin(); it != udpClients.end(); it++){
 
                 if(appProto){
-                    appProto->sendFromServer(buffer, msg->getMessageSize(), **it, socket);
+                    if(!appProto->sendFromServer(buffer, msg, **it, socket)){
+                        return false;
+                    }
                 }else{
                     if((bytesSent = socket->SendTo(buffer, msg->getMessageSize(), 0, **it)) == -1)
                         return false;
