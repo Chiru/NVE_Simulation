@@ -255,10 +255,7 @@ void ApplicationProtocol::addAppProtoHeader(char *buffer, bool reliable){
 
     str << "\"";
 
-    const char* header;
-    header = str.str().c_str(); //MUUTA
-
-    strncpy(buffer, header, headerSize);
+    strncpy(buffer, str.str().c_str(), headerSize);
 }
 
 ApplicationProtocol::AppProtoPacketType ApplicationProtocol::parseAppProtoHeader(uint8_t* buffer, const Address& addr, Ptr<Socket> sock){
@@ -353,7 +350,7 @@ bool ApplicationProtocol::sendAck(int *messagesToAck, uint16_t numberOfMessages,
 
     createAck(ack, messagesToAck, numberOfMessages);
 
-    if(sock->GetTxAvailable() < ackSize)
+    if(sock->GetTxAvailable() < (uint32_t)(ackSize * numberOfMessages))
         return false;
 
     if(sock->SendTo((uint8_t*)ack, ackSize * numberOfMessages, 0, addr) == -1)
@@ -374,7 +371,7 @@ void ApplicationProtocol::createAck(char *ack, int* number, uint16_t numberOfMes
     }
     str << "\"";
 
-    strncpy(ack, str.str().c_str(), ackSize);
+    strncpy(ack, str.str().c_str(), ackSize * numberOfMessages);
 }
 
 #endif // APPLICATION_PROTOCOL_H
