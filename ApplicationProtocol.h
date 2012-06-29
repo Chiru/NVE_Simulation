@@ -237,7 +237,7 @@ void ApplicationProtocol::resendCheckServer(uint32_t reliableMsgNumber, Address 
                 return;
             }
             socket->SendTo((**it).buffer, (**it).msgSize + headerSize, 0, (**it).addr);
-            Simulator::Schedule(Time(MilliSeconds(retransmit)), &ApplicationProtocol::resendCheckClient, this, reliableMsgNumber);
+            Simulator::Schedule(Time(MilliSeconds(retransmit)), &ApplicationProtocol::resendCheckServer, this, reliableMsgNumber, addr);
             break;
         }
     }
