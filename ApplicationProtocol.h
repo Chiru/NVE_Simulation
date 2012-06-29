@@ -35,7 +35,7 @@ class ApplicationProtocol{
     friend class XMLParser;
 
 public:
-
+    ~ApplicationProtocol();
     bool sendFromClient(Message*, uint8_t*, Ptr<Socket>);
     bool sendFromServer(uint8_t*, Message*, const Address&, Ptr<Socket>);
     void configureForStream(Callback<void, uint8_t*, uint16_t, Address&> memFunc);
@@ -44,10 +44,12 @@ public:
 private:
     ApplicationProtocol(uint16_t ackSize, uint16_t delayedAck, uint16_t retransmit, uint16_t headerSize);
 
+
     class ReliablePacket{
     public:
         ReliablePacket(uint32_t msgNumber, uint16_t msgSize, uint8_t* buffer, Address addr = Address()):
             addr(addr), msgNumber(msgNumber), msgSize(msgSize), buffer(buffer){}
+
         ~ReliablePacket(){
             free(buffer);
         }
@@ -57,11 +59,11 @@ private:
         uint8_t* buffer;
     };
 
-    enum AppProtoPacketType{UNRELIABLE, RELIABLE, ACK, ERROR}; //distinguish between different application proto headers
+    enum AppProtoPacketType{UNRELIABLE, RELIABLE, DUPLICATE, ACK, ERROR}; //distinguish between different application proto headers
 
     std::list<ReliablePacket*> packetsWaitingAcks;
     std::map<const Address, std::deque<uint32_t> > packetsToAck;  //server needs to remember also the client address for each message it has received
-    std::deque<std::pair<Address, uint32_t> > alreadyReceived;
+    std::map<const Address, std::list<uint32_t> > alreadyAcked;   //ack these again, but do not forward to application
     uint16_t ackSize;
     uint16_t delayedAck;
     uint16_t retransmit;
@@ -90,6 +92,14 @@ ApplicationProtocol::ApplicationProtocol(uint16_t packetSize, uint16_t delayedAc
       headerSize(headerSize),
       reliableMsgNumber(1),
       socket(0){
+
+}
+
+ApplicationProtocol::~ApplicationProtocol(){
+
+    for(std::list<ReliablePacket*>::iterator it = packetsWaitingAcks.begin(); it != packetsWaitingAcks.end(); it++){
+        delete(*it);
+    }
 
 }
 
@@ -149,6 +159,7 @@ void ApplicationProtocol::recv(Ptr<Socket> socket){
             forwardToApplication(buffer + headerSize, bufferSize - headerSize, addr);
             break;
 
+        case DUPLICATE:  //this is already handled
         case ACK:  //this is only ack, do not forward to application
             break;
 
@@ -204,9 +215,7 @@ void ApplicationProtocol::configureForStream(Callback<void, uint8_t*, uint16_t, 
 
 void ApplicationProtocol::resendCheckClient(uint32_t reliableMsgNumber){
 
-    static std::list<ApplicationProtocol::ReliablePacket*>::const_iterator it;
-
-    for(it = packetsWaitingAcks.begin(); it != packetsWaitingAcks.end(); it++){
+    for(std::list<ApplicationProtocol::ReliablePacket*>::const_iterator it = packetsWaitingAcks.begin(); it != packetsWaitingAcks.end(); it++){
         if((**it).msgNumber == reliableMsgNumber){
             if(socket->GetTxAvailable() < (**it).msgSize + headerSize){
                 Simulator::Schedule(Time(MilliSeconds(retransmit)), &ApplicationProtocol::resendCheckClient, this, reliableMsgNumber);
@@ -221,9 +230,7 @@ void ApplicationProtocol::resendCheckClient(uint32_t reliableMsgNumber){
 
 void ApplicationProtocol::resendCheckServer(uint32_t reliableMsgNumber, Address addr){
 
-    static std::list<ApplicationProtocol::ReliablePacket*>::const_iterator it;
-
-    for(it = packetsWaitingAcks.begin(); it != packetsWaitingAcks.end(); it++){
+    for(std::list<ApplicationProtocol::ReliablePacket*>::const_iterator it = packetsWaitingAcks.begin(); it != packetsWaitingAcks.end(); it++){
         if((**it).msgNumber == reliableMsgNumber && (**it).addr == addr){
             if(socket->GetTxAvailable() < (**it).msgSize + headerSize){
                 Simulator::Schedule(Time(MilliSeconds(retransmit)), &ApplicationProtocol::resendCheckClient, this, reliableMsgNumber);
@@ -265,6 +272,11 @@ ApplicationProtocol::AppProtoPacketType ApplicationProtocol::parseAppProtoHeader
         free(numberStr);
 
         if(packetsToAck.count(addr) == 1){
+            for(std::list<uint32_t>::const_iterator it = alreadyAcked[addr].begin(); it != alreadyAcked[addr].end(); it++){
+                if(*it == msgNumber){
+                    return DUPLICATE;
+                }
+            }
             packetsToAck[addr].push_back(msgNumber);
         }else{
             packetsToAck.insert(std::make_pair<Address, std::deque<uint32_t> >(addr, std::deque<uint32_t>()));
@@ -285,7 +297,8 @@ ApplicationProtocol::AppProtoPacketType ApplicationProtocol::parseAppProtoHeader
         do{
             stream >> msgNumber;
             for(it = packetsWaitingAcks.begin(); it != packetsWaitingAcks.end(); it++){
-                if((**it).msgNumber == msgNumber && ( (**it).addr.IsInvalid() || (**it).addr == addr)){
+                if((**it).msgNumber == msgNumber && ((**it).addr.IsInvalid() || (**it).addr == addr)){
+                    delete *it;
                     packetsWaitingAcks.erase(it);
                     break;
                 }
@@ -304,10 +317,9 @@ void ApplicationProtocol::ackAllPackets(){
     int i;
 
     for(std::map<Address, std::deque<uint32_t> >::iterator it = packetsToAck.begin(); it != packetsToAck.end(); it++){
-        if(it->second.empty()){
-
+        if(it->second.empty())
             continue;
-        }
+
         messages = new int[it->second.size()];
         i = 0;
 
@@ -316,7 +328,18 @@ void ApplicationProtocol::ackAllPackets(){
             it->second.pop_front();
         }
 
-        sendAck(messages, i, it->first, socket);    //TODO: if there's problems with socket buffer, no ack is sent and packet gets "lost"
+        if(sendAck(messages, i, it->first, socket)){    //TODO: if there's problems with socket buffer, no ack is sent and packet gets "lost"
+            if(alreadyAcked.count(it->first) == 0){
+                alreadyAcked.insert(std::make_pair<Address, std::list<uint32_t> >(it->first, std::list<uint32_t>()));
+                for(int h = 0; h < i; h++)
+                    alreadyAcked[it->first].push_back(messages[h]);
+
+            }else{
+                for(int h = 0; h < i; h++){
+                    alreadyAcked[it->first].push_back(messages[h]);
+                }
+            }
+        }
         delete [] messages;
     }
 
