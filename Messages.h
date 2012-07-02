@@ -116,16 +116,18 @@ public:
     double getClientsOfInterest() const{return clientsOfInterest;}
     uint32_t getServerTimeRequirement() const{return serverTimeRequirement;}
     uint32_t getClientTimeRequirement() const{return clientTimeRequirement;}
+    uint16_t getForwardMessageSize() const {return forwardSize;}
     void messageReceivedServer(std::string& messageName);
     void messageReceivedClient(std::string& messageName);
 
 private:
     UserActionMessage(std::string name, bool reliable, int timeInterval, uint16_t messageSize, double clientsOfInterest, uint32_t clientRequirement, uint32_t serverRequirement,
-                      uint16_t streamNumber, RandomVariable* ranvar = 0);
+                      uint16_t streamNumber, uint16_t forwardSize, RandomVariable* ranvar = 0);
 
     double clientsOfInterest;
     uint32_t clientTimeRequirement;  //time requirement for messages to travel from client to client
     uint32_t serverTimeRequirement;  //time requirement for messages to reach server
+    uint16_t forwardSize;
     void sendData();
     void printStats(std::ostream& out, const Message& msg) const;
 
@@ -270,9 +272,9 @@ int Message::newMessageNumber(uint16_t streamnumber){
 uint32_t UserActionMessage::messageInstanceCounter = 0;
 
 UserActionMessage::UserActionMessage(std::string name, bool reliable, int timeInterval, uint16_t messageSize, double clientsOfInterest,
-                                     uint32_t clientRequirement,  uint32_t serverRequirement, uint16_t streamNumber, RandomVariable* ranvar)
+                                     uint32_t clientRequirement,  uint32_t serverRequirement, uint16_t streamNumber, uint16_t forwardSize, RandomVariable* ranvar)
     :Message(name, reliable, timeInterval, messageSize, streamNumber, ranvar), clientsOfInterest(clientsOfInterest),
-      clientTimeRequirement(clientRequirement), serverTimeRequirement(serverRequirement){
+      clientTimeRequirement(clientRequirement), serverTimeRequirement(serverRequirement), forwardSize(forwardSize){
 
     type = USER_ACTION;
 

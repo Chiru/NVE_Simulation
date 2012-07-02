@@ -454,7 +454,7 @@ bool XMLParser::parseMessages(std::string &messagesElement, std::vector<Message*
     size_t latest_token = 0;
     std::string messageElement("");
     std::string type, reliable, name;
-    int size = 0, timeInterval = 0, clientTimeRequirement = 0, serverTimeRequirement = 0;
+    int size = 0, timeInterval = 0, clientTimeRequirement = 0, serverTimeRequirement = 0, forwardSize = 0;
     double clientsOfInterest;
     RandomVariable* ranvar = 0;
     DistributionEnum distribution;
@@ -515,6 +515,11 @@ bool XMLParser::parseMessages(std::string &messagesElement, std::vector<Message*
                 return false;
             }
 
+            if(!readValue<int>(messageElement, "forwardmessagesize", forwardSize, 0)){
+                PRINT_ERROR( "Error in message forwardmessagesize specification." << std::endl);
+                return false;
+            }
+
             if(serverTimeRequirement <= 0 || clientTimeRequirement <= 0){
                 PRINT_ERROR( "TimeRequirement must be more than 0." << std::endl);
                 return false;
@@ -530,9 +535,8 @@ bool XMLParser::parseMessages(std::string &messagesElement, std::vector<Message*
                 return false;
             }
 
-
            messages.push_back(new UserActionMessage(name, reliable.compare("no") == 0 ? false : true, timeInterval, size, clientsOfInterest, clientTimeRequirement,
-                                                         serverTimeRequirement, stream_number, ranvar));
+                                                         serverTimeRequirement, stream_number, forwardSize, ranvar));
         }
 
         if(type.compare("odt") == 0){

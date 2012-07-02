@@ -380,7 +380,10 @@ void ClientDataGenerator::dataReceivedTcp(Ptr<Socket> sock){
                                 break;
                             }
                         }
-                        messageSize = message->getMessageSize();
+                        if(message->getType() == USER_ACTION)
+                            messageSize = static_cast<UserActionMessage*>(message)->getForwardMessageSize();
+                        else
+                            messageSize = message->getMessageSize();
 
                          if((bufferSize - bytesRead) <  messageSize - messageNamePart.length() - (nameLeft ==true ? 1 : 0)){   // -1 because of the "-character in the beginning of the name
 
@@ -438,7 +441,10 @@ void ClientDataGenerator::dataReceivedTcp(Ptr<Socket> sock){
                             break;
                         }
                     }
-                    messageSize = message->getMessageSize();
+                    if(message->getType() == USER_ACTION)
+                        messageSize = static_cast<UserActionMessage*>(message)->getForwardMessageSize();
+                    else
+                        messageSize = message->getMessageSize();
 
                     if((bufferSize - bytesRead) < messageSize){   //if this is true, the message continues in the next TCP segment
                         dataLeft = true;
@@ -506,7 +512,11 @@ void ClientDataGenerator::readReceivedData(uint8_t* buffer, uint16_t bufferSize,
                         break;
                     }
                 }
-                bytesRead += message->getMessageSize();
+                if(message->getType() == USER_ACTION)
+                    bytesRead += static_cast<UserActionMessage*>(message)->getForwardMessageSize();
+                else
+                    bytesRead += message->getMessageSize();
+
                 message->messageReceivedClient(messageName);
             }
             else if(retVal == NAME_CONTINUES){
@@ -1015,7 +1025,7 @@ void ServerDataGenerator::ClientConnection::forwardUserActionMessage(std::pair<s
     int messageNumber;
     msg.second->fillMessageContents(buffer, 0, &msg.first);
 
-    if(clientSocket->Send((uint8_t*)buffer, msg.second->getMessageSize(), 0) == -1){
+    if(clientSocket->Send((uint8_t*)buffer, static_cast<UserActionMessage*>(msg.second)->getForwardMessageSize(), 0) == -1){
         PRINT_ERROR("Problems with server socket buffer." << std::endl);
         return;
     }
