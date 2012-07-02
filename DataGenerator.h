@@ -925,7 +925,7 @@ void ServerDataGenerator::sendToRandomClients(std::pair<Ptr<Socket>, std::pair<s
     double clientsToSend = ((UserActionMessage*)msg.second.second)->getClientsOfInterest();
 
     for(std::vector<ClientConnection*>::iterator it = clientConnections.begin(); it != clientConnections.end(); it++){
-        if(msg.first == (*it)->clientSocket)
+        if(msg.first == (*it)->clientSocket && !(static_cast<UserActionMessage*>(msg.second.second)->doForwardBack()))
             continue;
 
         if(clientsToSend >= probability.GetValue()){
@@ -939,7 +939,7 @@ void ServerDataGenerator::sendToRandomClients(std::pair<Address, std::pair<std::
     double clientsToSend = ((UserActionMessage*)msg.second.second)->getClientsOfInterest();
 
     for(std::vector<Address*>::iterator it = udpClients.begin(); it != udpClients.end(); it++){
-        if((**it) == msg.first)
+        if((**it) == msg.first && !(static_cast<UserActionMessage*>(msg.second.second)->doForwardBack()))
             continue;
 
         if(clientsToSend >= probability.GetValue()){
@@ -955,7 +955,7 @@ void ServerDataGenerator::forwardUserActionMessage(std::pair<std::string, Messag
     msg.second->fillMessageContents(buffer, 0, &msg.first);
 
     if(appProto){
-        if(!appProto->sendFromServer((uint8_t*)buffer, msg.second, addr, socket)){
+        if(!appProto->sendFromServer((uint8_t*)buffer, msg.second, addr, socket, true)){
             PRINT_ERROR("Problems with server socket buffer." << std::endl);
         }
 

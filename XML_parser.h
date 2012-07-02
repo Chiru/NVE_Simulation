@@ -453,7 +453,7 @@ bool XMLParser::parseMessages(std::string &messagesElement, std::vector<Message*
 
     size_t latest_token = 0;
     std::string messageElement("");
-    std::string type, reliable, name;
+    std::string type, reliable, name, forwardBack;
     int size = 0, timeInterval = 0, clientTimeRequirement = 0, serverTimeRequirement = 0, forwardSize = 0;
     double clientsOfInterest;
     RandomVariable* ranvar = 0;
@@ -530,13 +530,18 @@ bool XMLParser::parseMessages(std::string &messagesElement, std::vector<Message*
                 return false;
             }
 
+            if(!readValue<std::string>(messageElement, "forwardback", forwardBack, 0)){
+                PRINT_ERROR( "Error in forwardback specification." << std::endl);
+                return false;
+            }
+
             if(clientsOfInterest < 0 || clientsOfInterest > 1){
                 PRINT_ERROR( "ClientsOfInterest must be between 0 and 1." << std::endl);
                 return false;
             }
 
            messages.push_back(new UserActionMessage(name, reliable.compare("no") == 0 ? false : true, timeInterval, size, clientsOfInterest, clientTimeRequirement,
-                                                         serverTimeRequirement, stream_number, forwardSize, ranvar));
+                                                         serverTimeRequirement, stream_number, forwardSize, forwardBack.compare("no") == 0 ? false : true, ranvar));
         }else if(type.compare("odt") == 0){
 
            messages.push_back(new OtherDataMessage(name, reliable.compare("no") == 0 ? false : true, timeInterval, size, stream_number, ranvar));
