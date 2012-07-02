@@ -155,25 +155,6 @@ private:
 
 };
 
-class MaintenanceMessage : public Message{
-
-    friend class XMLParser;
-
-public:
-    ~MaintenanceMessage();
-    void scheduleSendEvent(Callback<bool, Message*, uint8_t*>);
-    Message* copyMessage();
-    void messageReceivedServer(std::string& messageName);
-    void messageReceivedClient(std::string& messageName);
-
-private:
-    MaintenanceMessage(std::string name, bool reliable, int timeInterval, uint16_t messageSize, uint16_t streamNumber, RandomVariable* ranvar = 0);
-
-    void sendData();
-    void printStats(std::ostream& out, const Message& msg)const;
-
-};
-
 
 //Class Message function definitions
 
@@ -450,85 +431,5 @@ void OtherDataMessage::messageReceivedClient(std::string& messageName){
 
 }
 
-
-//Class MaintenanceMessage function definitions
-
-
-MaintenanceMessage::MaintenanceMessage(std::string name, bool reliable, int timeInterval, uint16_t messageSize, uint16_t streamNumber, RandomVariable* ranvar)
-    : Message(name, reliable, timeInterval, messageSize, streamNumber, ranvar){
-
-    type = MAINTENANCE;
-
-}
-
-MaintenanceMessage::~MaintenanceMessage(){
-
-
-}
-
-void MaintenanceMessage::scheduleSendEvent(Callback<bool, Message*, uint8_t*> function){
-
-    int interval = 0;
-
-    this->sendFunction = function;
-    running = true;
-
-    if(ranvar != 0){
-        interval = ranvar->GetInteger();
-        if(interval <= 0)
-            interval = 1;
-    }
-
-    if(ranvar == 0)
-        sendEvent = Simulator::Schedule(Time(MilliSeconds(timeInterval)), &MaintenanceMessage::sendData, this);
-    else
-        sendEvent = Simulator::Schedule(Time(MilliSeconds(interval)), &MaintenanceMessage::sendData, this);
-}
-
-void MaintenanceMessage::sendData(){
-
-    char buffer[30] = "";
-    static int interval = 0;
-    fillMessageContents(buffer);
-
-    if(ranvar != 0){
-        interval = ranvar->GetInteger();
-        if(interval <= 0)
-            interval = 1;
-    }
-
-    if(!sendFunction(this, (uint8_t*)buffer))
-        PRINT_ERROR("Problems with socket buffer" << std::endl);   //TODO: socket buffer
-
-    if(running){
-        if(ranvar == 0)
-            sendEvent = Simulator::Schedule(Time(MilliSeconds(timeInterval)), &MaintenanceMessage::sendData, this);
-        else
-            sendEvent = Simulator::Schedule(Time(MilliSeconds(interval)), &MaintenanceMessage::sendData, this);
-    }
-
-}
-
-Message* MaintenanceMessage::copyMessage(){
-
-    Message *msg;
-    msg = new MaintenanceMessage(*this);
-    return msg;
-}
-
-void MaintenanceMessage::printStats(std::ostream &out, const Message &msg) const{
-
-    out << "MaintenanceMessage  " << "  ID:" << messageID << "  Name: " << name << "  Reliable: " << (reliable == true ? "yes" : "no")
-        << "  Size: " << messageSize << " TimeInterval: " <<  timeInterval;
-
-}
-
-void MaintenanceMessage::messageReceivedServer(std::string& messageName){
-
-}
-
-void MaintenanceMessage::messageReceivedClient(std::string& messageName){
-
-}
 
 #endif // MESSAGES_H

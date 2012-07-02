@@ -537,16 +537,12 @@ bool XMLParser::parseMessages(std::string &messagesElement, std::vector<Message*
 
            messages.push_back(new UserActionMessage(name, reliable.compare("no") == 0 ? false : true, timeInterval, size, clientsOfInterest, clientTimeRequirement,
                                                          serverTimeRequirement, stream_number, forwardSize, ranvar));
-        }
-
-        if(type.compare("odt") == 0){
+        }else if(type.compare("odt") == 0){
 
            messages.push_back(new OtherDataMessage(name, reliable.compare("no") == 0 ? false : true, timeInterval, size, stream_number, ranvar));
-        }
-
-        if(type.compare("mm") == 0){
-
-           messages.push_back(new MaintenanceMessage(name, reliable.compare("no") == 0 ? false : true, timeInterval, size, stream_number, ranvar));
+        }else{
+            PRINT_ERROR("Unknown message type: " << type <<std::endl);
+            return false;
         }
 
         if((latest_token = messagesElement.find("</message>", latest_token)) == std::string::npos){
