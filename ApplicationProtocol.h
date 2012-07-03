@@ -277,7 +277,7 @@ ApplicationProtocol::AppProtoPacketType ApplicationProtocol::parseAppProtoHeader
         free(numberStr);
 
         if(packetsToAck.count(addr) == 1){
-            for(std::list<uint32_t>::const_iterator it = alreadyAcked[addr].begin(); it != alreadyAcked[addr].end(); it++){
+            for(std::list<uint32_t>::const_reverse_iterator it = alreadyAcked[addr].rend(); it != alreadyAcked[addr].rbegin(); it++){
                 if(*it == msgNumber){
                     return DUPLICATE;
                 }
