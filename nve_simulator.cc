@@ -214,9 +214,6 @@ int main(int argc, char** argv){
 
     stats->addFlowMonitor(flowMonHelper.InstallAll(), flowMonHelper);   //TODO: something leaks memory in flow monitoring (ns-3 bug?)
 
-    AsciiTraceHelper ascii;
-    pointToPoint[numberOfClients].EnableAsciiAll(ascii.CreateFileStream ("results/nve.tr"));
-
     Simulator::Stop(Seconds(runningTime + 1));   //+1 second because of giving the connections time to finish
     Simulator::Run();
     Simulator::Destroy();
