@@ -25,7 +25,7 @@
 
 class DataGenerator;
 
-enum MessageType{USER_ACTION, OTHER_DATA, MAINTENANCE};
+enum MessageType{USER_ACTION, OTHER_DATA};
 
 class Message{
 

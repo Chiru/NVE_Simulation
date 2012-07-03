@@ -48,6 +48,8 @@ public:
     uint16_t getNumberOfStreams()const {return numberOfStreams;}
     bool getApplicationProtocol(ApplicationProtocol*&);
     bool getClientStats(uint16_t clientIndex, uint16_t &clientNumber, int &delay, double &uplink, double &downlink, double &loss);
+    uint16_t getServerGameTick() const{return gameTick;}
+    uint16_t getRunningTime() const{return runningTime;}
 
 private:
 
@@ -95,6 +97,8 @@ private:
     bool parseStream(std::string& streamElement, DataGenerator*& stream);
     bool parseMessages(std::string& messagesElement, std::vector<Message*>& messages, uint16_t stream_number);
     bool parseApplicationProtocol(std::string& file);
+    bool parseServerGameTick(std::string& xmlFile);
+    bool parseRunningTime(std::string& file);
     uint16_t countStreams(std::string& file);
     template <class T> bool readValue(const std::string& file, const std::string& variable, T& result, size_t position = 0);
     bool getRunningValue(const std::string& value, uint16_t &from, uint16_t &to);
@@ -108,6 +112,8 @@ private:
     DataGenerator **streams;
     uint16_t numberOfClients;
     uint16_t numberOfStreams;
+    int gameTick;
+    int runningTime;
 
     std::vector<struct XMLParser::Client*> clients;
 
@@ -145,6 +151,11 @@ XMLParser::XMLParser(std::string filename): filename(filename), correctFile(true
     if(!(correctFile = parseStreams(xmlFile)))
         return;
 
+    if(!(correctFile = parseServerGameTick(xmlFile)))
+        return;
+
+    if(!(correctFile = parseRunningTime(xmlFile)))
+        return;
 }
 
 XMLParser::~XMLParser(){
@@ -649,9 +660,27 @@ bool XMLParser::getClientStats(uint16_t clientIndex, uint16_t &clientNumber, int
     }
 
     return true;
-
 }
 
+bool XMLParser::parseServerGameTick(std::string& file){
+
+    if(!readValue<int>(file, "<gametick", gameTick) || gameTick <= 0){
+        PRINT_ERROR(" Incorrect gametick value." << std::endl);
+        return false;
+    }
+
+    return true;
+}
+
+bool XMLParser::parseRunningTime(std::string &file){
+
+    if(!readValue<int>(file, "<runningtime", runningTime) || runningTime <= 0){
+        PRINT_ERROR(" Incorrect runningtime value." << std::endl);
+        return false;
+    }
+
+    return true;
+}
 
  bool XMLParser::getApplicationProtocol(ApplicationProtocol* &proto){
 

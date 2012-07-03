@@ -44,7 +44,7 @@ void printHelpAndQuit();
 
 int main(int argc, char** argv){
 
-    int runningTime = 10; //TODO: change to be configurable
+    int runningTime;
 
     int i;
     std::stringstream str;
@@ -113,6 +113,8 @@ int main(int argc, char** argv){
         PRINT_ERROR( "Terminating due to an incorrect XML file" << std::endl);
         return EXIT_FAILURE;
     }
+
+    runningTime = parser.getRunningTime();
 
     stats = StatisticsCollector::createStatisticsCollector(verbose, clientLog, serverLog, parser.getNumberOfStreams(), runningTime);
 

@@ -54,7 +54,7 @@ public:
     virtual void dataReceivedTcp(Ptr<Socket>) = 0;
     virtual void dataReceivedUdp(Ptr<Socket>) = 0;
     virtual void moreBufferSpaceAvailable(Ptr<Socket>, uint32_t) = 0;
-    bool setupStream(Ptr<Node> node, Address addr);
+    bool setupStream(Ptr<Node> node, Address addr, uint16_t gameTick = 10);
     uint64_t getBytesSent() const{return totalBytesSent;}
     uint16_t getStreamNumber() const{return streamNumber;}
     Protocol getProtocol() const{return proto;}
@@ -176,9 +176,11 @@ DataGenerator::~DataGenerator(){
 }
 
 
-bool DataGenerator::setupStream(Ptr<Node> node, Address addr){
+bool DataGenerator::setupStream(Ptr<Node> node, Address addr, uint16_t gameTick){
 
     peerAddr = addr;
+
+    this->gameTick = gameTick;
 
     switch(proto){
 
@@ -308,7 +310,7 @@ void ClientDataGenerator::StartApplication(){
     socket->SetSendCallback(MakeCallback(&ClientDataGenerator::moreBufferSpaceAvailable, this));
 
     for(std::vector<Message*>::iterator it = messages.begin(); it != messages.end(); it++){
-        if((*it)->getType() == USER_ACTION || (*it)->getType() == MAINTENANCE){
+        if((*it)->getType() == USER_ACTION){
             (*it)->scheduleSendEvent(MakeCallback(&ClientDataGenerator::sendData, this));
         }
     }
