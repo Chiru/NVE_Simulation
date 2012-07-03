@@ -342,7 +342,7 @@ uint16_t XMLParser::countStreams(std::string &file){
 bool XMLParser::parseStream(std::string &streamElement, DataGenerator* &stream){
 
     static uint16_t stream_number = 0;
-    DataGenerator::Protocol proto;
+    DataGenerator::Protocol proto = DataGenerator::UDP;
     ApplicationProtocol* appProto;
     uint16_t position;
     std::string type;

@@ -337,7 +337,7 @@ void ClientDataGenerator::dataReceivedTcp(Ptr<Socket> sock){
     uint16_t bufferSize = 0;
     uint16_t bytesRead = 0;
     uint16_t messageSize = 0;
-    Message* message;
+    Message* message = 0;
     ReadMsgNameReturnValue retVal;
     std::string messageName;
 
