@@ -127,8 +127,8 @@ bool ApplicationProtocol::sendFromClient(Message *msg, uint8_t *buffer, Ptr<Sock
 
     if(msg->getReliable()){
         uint8_t* tempMsg;
-        tempMsg = (uint8_t*)malloc(30 + headerSize);
-        memcpy(tempMsg, msgContents, 30 + headerSize);
+        tempMsg = (uint8_t*)malloc(msg->getMessageSize() + headerSize);
+        memcpy(tempMsg, msgContents, msg->getMessageSize() + headerSize);
         packetsWaitingAcks.push_back(new ApplicationProtocol::ReliablePacket(reliableMsgNumber, msg->getMessageSize(), tempMsg));
         Simulator::Schedule(Time(MilliSeconds(retransmit)), &ApplicationProtocol::resendCheckClient, this, reliableMsgNumber);
         reliableMsgNumber++;
@@ -159,7 +159,7 @@ void ApplicationProtocol::recv(Ptr<Socket> socket){
             forwardToApplication(buffer + headerSize, bufferSize - headerSize, addr);
             break;
 
-        case DUPLICATE:  //this is already handled
+        case DUPLICATE: //this is already handled
         case ACK:  //this is only ack, do not forward to application
             break;
 
@@ -203,8 +203,8 @@ bool ApplicationProtocol::sendFromServer(uint8_t *buffer, Message* msg, const Ad
 
     if(msg->getReliable()){
         uint8_t* tempMsg;
-        tempMsg = (uint8_t*)malloc(30 + headerSize);
-        memcpy(tempMsg, msgContents, 30 + headerSize);
+        tempMsg = (uint8_t*)malloc(msg->getMessageSize() + headerSize);
+        memcpy(tempMsg, msgContents, msg->getMessageSize() + headerSize);
         packetsWaitingAcks.push_back(new ApplicationProtocol::ReliablePacket(reliableMsgNumber, size, tempMsg, addr));
         Simulator::Schedule(Time(MilliSeconds(retransmit)), &ApplicationProtocol::resendCheckServer, this, reliableMsgNumber, addr);
         reliableMsgNumber++;
@@ -277,8 +277,9 @@ ApplicationProtocol::AppProtoPacketType ApplicationProtocol::parseAppProtoHeader
         free(numberStr);
 
         if(packetsToAck.count(addr) == 1){
-            for(std::list<uint32_t>::const_reverse_iterator it = alreadyAcked[addr].rend(); it != alreadyAcked[addr].rbegin(); it++){
+            for(std::list<uint32_t>::const_reverse_iterator it = alreadyAcked[addr].rbegin(); it != alreadyAcked[addr].rend(); it++){
                 if(*it == msgNumber){
+                    packetsToAck[addr].push_back(msgNumber);
                     return DUPLICATE;
                 }
             }
@@ -336,8 +337,9 @@ void ApplicationProtocol::ackAllPackets(){
         if(sendAck(messages, i, it->first, socket)){    //TODO: if there's problems with socket buffer, no ack is sent and packet gets "lost"
             if(alreadyAcked.count(it->first) == 0){
                 alreadyAcked.insert(std::make_pair<Address, std::list<uint32_t> >(it->first, std::list<uint32_t>()));
-                for(int h = 0; h < i; h++)
+                for(int h = 0; h < i; h++){
                     alreadyAcked[it->first].push_back(messages[h]);
+                }
 
             }else{
                 for(int h = 0; h < i; h++){
