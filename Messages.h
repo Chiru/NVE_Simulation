@@ -172,6 +172,8 @@ Message::Message(const Message &msg): name(msg.getName()), reliable(msg.getRelia
     type(msg.getType()), streamNumber(msg.getStreamNumber()){
     if(msg.ranvar != 0)
         this->ranvar = new RandomVariable(*msg.ranvar);
+    else
+        ranvar = 0;
 
     this->messageID = ++messagesCreated;
 }
