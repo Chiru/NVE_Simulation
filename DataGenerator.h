@@ -61,6 +61,7 @@ public:
     ApplicationProtocol* getApplicationProtocol() const{return appProto;}
     virtual std::vector<Message*> getMessages()const {return messages;}
     int getGameTick() const{return gameTick;}
+    void sendBackToSender(const Message*, const Address&, const Ptr<Socket>, std::string& messageName, bool isClient);
 
 protected:
     enum ReadMsgNameReturnValue{READ_FAILED = 0, READ_SUCCESS, NAME_CONTINUES};
@@ -243,6 +244,46 @@ DataGenerator::ReadMsgNameReturnValue DataGenerator::readMessageName(std::string
     return READ_SUCCESS;
 }
 
+void DataGenerator::sendBackToSender(const Message* msg, const Address& addr, const Ptr<Socket> socket, std::string& messageName, bool isClient){
+
+    char buffer[30] = "";
+    msg->fillMessageContents(buffer, 0, &messageName);
+
+    switch(this->proto){
+
+    case TCP_NAGLE_DISABLED:
+    case TCP_NAGLE_ENABLED:
+        if(socket->Send((uint8_t*)buffer, msg->getForwardMessageSize(), 0) == -1){
+            PRINT_ERROR("Problems with server socket buffer." << std::endl);
+            return;
+        }
+        break;
+
+    case UDP:
+
+
+        if(appProto){
+            if(isClient){
+                if(!appProto->sendFromClient(msg, (uint8_t*)buffer, socket)){
+                    PRINT_ERROR("Problems with server socket buffer." << std::endl);
+                    return;
+                }
+            }else{
+                if(!appProto->sendFromServer((uint8_t*)buffer, msg, addr, socket, true)){
+                    PRINT_ERROR("Problems with server socket buffer." << std::endl);
+                    return;
+                }
+            }
+        }else{
+            if(socket->SendTo((uint8_t*)buffer, msg->getForwardMessageSize(), 0, addr) == -1){
+                PRINT_ERROR("Problems with server socket buffer." << std::endl);
+                return;
+            }
+        }
+        break;
+    }
+}
+
 
 //Class ClientDataGenerator function definitions
 
@@ -310,7 +351,7 @@ void ClientDataGenerator::StartApplication(){
     socket->SetSendCallback(MakeCallback(&ClientDataGenerator::moreBufferSpaceAvailable, this));
 
     for(std::vector<Message*>::iterator it = messages.begin(); it != messages.end(); it++){
-        if((*it)->getType() == USER_ACTION){
+        if((*it)->getType() == USER_ACTION || (*it)->getType() == MAINTENANCE){
             (*it)->scheduleSendEvent(MakeCallback(&ClientDataGenerator::sendData, this));
         }
     }
@@ -382,10 +423,9 @@ void ClientDataGenerator::dataReceivedTcp(Ptr<Socket> sock){
                                 break;
                             }
                         }
-                        if(message->getType() == USER_ACTION)
-                            messageSize = static_cast<UserActionMessage*>(message)->getForwardMessageSize();
-                        else
-                            messageSize = message->getMessageSize();
+
+                         messageSize = (message)->getForwardMessageSize();
+
 
                          if((bufferSize - bytesRead) <  messageSize - messageNamePart.length() - (nameLeft ==true ? 1 : 0)){   // -1 because of the "-character in the beginning of the name
 
@@ -443,10 +483,8 @@ void ClientDataGenerator::dataReceivedTcp(Ptr<Socket> sock){
                             break;
                         }
                     }
-                    if(message->getType() == USER_ACTION)
-                        messageSize = static_cast<UserActionMessage*>(message)->getForwardMessageSize();
-                    else
-                        messageSize = message->getMessageSize();
+
+                    messageSize = (message)->getForwardMessageSize();
 
                     if((bufferSize - bytesRead) < messageSize){   //if this is true, the message continues in the next TCP segment
                         dataLeft = true;
@@ -514,12 +552,14 @@ void ClientDataGenerator::readReceivedData(uint8_t* buffer, uint16_t bufferSize,
                         break;
                     }
                 }
-                if(message->getType() == USER_ACTION)
-                    bytesRead += static_cast<UserActionMessage*>(message)->getForwardMessageSize();
-                else
-                    bytesRead += message->getMessageSize();
+
+                bytesRead += (message)->getForwardMessageSize();
 
                 message->messageReceivedClient(messageName);
+
+                if(message->getType() == OTHER_DATA && message->doForwardBack()){
+                    sendBackToSender(message, srcAddr, this->socket, messageName, true);
+                }
             }
             else if(retVal == NAME_CONTINUES){
                 PRINT_ERROR("This should never happen!" << std::endl);
@@ -902,6 +942,10 @@ void ServerDataGenerator::forwardData(){
                         if((*messages).second.second->getType() == USER_ACTION){
                             sendToRandomClients(*messages);
                         }
+                        else if((*messages).second.second->getType() == MAINTENANCE && (*messages).second.second->doForwardBack()){
+                            sendBackToSender(messages->second.second, this->peerAddr/*this is not needed over TCP*/, (*it)->clientSocket,  messages->second.first, false);
+                        }
+
                     }
                     (*it)->messageBuffer.clear();
                 }
@@ -913,6 +957,11 @@ void ServerDataGenerator::forwardData(){
                     if((*it).second.second->getType() == USER_ACTION){
                         sendToRandomClients(*it);
                     }
+                    else if((*it).second.second->getType() == MAINTENANCE && (*it).second.second->doForwardBack()){
+                        sendBackToSender(it->second.second, it->first, this->socket,  it->second.first, false);
+
+                    }
+
                 }
                 udpMessages.clear();
 
@@ -927,7 +976,7 @@ void ServerDataGenerator::sendToRandomClients(std::pair<Ptr<Socket>, std::pair<s
     double clientsToSend = ((UserActionMessage*)msg.second.second)->getClientsOfInterest();
 
     for(std::vector<ClientConnection*>::iterator it = clientConnections.begin(); it != clientConnections.end(); it++){
-        if(msg.first == (*it)->clientSocket && !(static_cast<UserActionMessage*>(msg.second.second)->doForwardBack()))
+        if(msg.first == (*it)->clientSocket && !(msg.second.second->doForwardBack()))
             continue;
 
         if(clientsToSend >= probability.GetValue()){
@@ -941,7 +990,7 @@ void ServerDataGenerator::sendToRandomClients(std::pair<Address, std::pair<std::
     double clientsToSend = ((UserActionMessage*)msg.second.second)->getClientsOfInterest();
 
     for(std::vector<Address*>::iterator it = udpClients.begin(); it != udpClients.end(); it++){
-        if((**it) == msg.first && !(static_cast<UserActionMessage*>(msg.second.second)->doForwardBack()))
+        if((**it) == msg.first && !(msg.second.second->doForwardBack()))
             continue;
 
         if(clientsToSend >= probability.GetValue()){
@@ -1027,7 +1076,7 @@ void ServerDataGenerator::ClientConnection::forwardUserActionMessage(std::pair<s
     int messageNumber;
     msg.second->fillMessageContents(buffer, 0, &msg.first);
 
-    if(clientSocket->Send((uint8_t*)buffer, static_cast<UserActionMessage*>(msg.second)->getForwardMessageSize(), 0) == -1){
+    if(clientSocket->Send((uint8_t*)buffer, msg.second->getForwardMessageSize(), 0) == -1){
         PRINT_ERROR("Problems with server socket buffer." << std::endl);
         return;
     }

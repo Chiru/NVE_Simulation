@@ -25,7 +25,7 @@
 
 class DataGenerator;
 
-enum MessageType{USER_ACTION, OTHER_DATA};
+enum MessageType{USER_ACTION, OTHER_DATA, MAINTENANCE};
 
 class Message{
 
@@ -47,7 +47,7 @@ public:
         }
     };
 
-    Message(std::string, bool, int, uint16_t, uint16_t, RandomVariable* ranvar = 0);
+    Message(std::string, bool, int, uint16_t, uint16_t, uint16_t forwardSize, bool forwardBack, RandomVariable* ranvar = 0);
     virtual ~Message();
     virtual Message* copyMessage()  = 0;
     virtual void scheduleSendEvent(Callback<bool, Message*, uint8_t*>) = 0;
@@ -60,10 +60,12 @@ public:
     MessageType getType() const{return type;}
     uint16_t getStreamNumber() const{return streamNumber;}
     void cancelEvent();
-    void fillMessageContents(char* buffer, int number = 0, std::string* msgName = NULL);
+    void fillMessageContents(char* buffer, int number = 0, std::string* msgName = NULL) const;
     virtual void messageReceivedServer(std::string& messageName) = 0;
     virtual void messageReceivedClient(std::string& messageName) = 0;
     bool parseMessageId(std::string& messageName, int& resultId) const;
+    bool doForwardBack() const {return forwardBack;}
+    uint16_t getForwardMessageSize() const {return forwardSize;}
 
     static std::map<std::string ,uint16_t, StringComparator> messageNameMap;
 
@@ -98,6 +100,8 @@ public:
     bool running;
     uint16_t streamNumber;
     RandomVariable* ranvar;
+    uint16_t forwardSize;
+    bool forwardBack;
 
     static uint16_t messagesCreated;
     static int newMessageNumber(uint16_t streamNumber);
@@ -116,10 +120,8 @@ public:
     double getClientsOfInterest() const{return clientsOfInterest;}
     uint32_t getServerTimeRequirement() const{return serverTimeRequirement;}
     uint32_t getClientTimeRequirement() const{return clientTimeRequirement;}
-    uint16_t getForwardMessageSize() const {return forwardSize;}
     void messageReceivedServer(std::string& messageName);
     void messageReceivedClient(std::string& messageName);
-    bool doForwardBack() const {return forwardBack;}
 
 private:
     UserActionMessage(std::string name, bool reliable, int timeInterval, uint16_t messageSize, double clientsOfInterest, uint32_t clientRequirement, uint32_t serverRequirement,
@@ -128,8 +130,6 @@ private:
     double clientsOfInterest;
     uint32_t clientTimeRequirement;  //time requirement for messages to travel from client to client
     uint32_t serverTimeRequirement;  //time requirement for messages to reach server
-    uint16_t forwardSize;
-    bool forwardBack;
     void sendData();
     void printStats(std::ostream& out, const Message& msg) const;
 
@@ -150,7 +150,27 @@ public:
 
 
 private:
-    OtherDataMessage(std::string name, bool reliable, int timeInterval, uint16_t messageSize, uint16_t streamNumber, RandomVariable* ranvar = 0);
+    OtherDataMessage(std::string name, bool reliable, int timeInterval, uint16_t messageSize, uint16_t streamNumber, uint16_t forwardSize, bool forwardBack, RandomVariable* ranvar = 0);
+
+    void sendData();
+    void printStats(std::ostream& out, const Message& msg)const;
+
+};
+
+
+class MaintenanceMessage : public Message{
+
+    friend class XMLParser;
+
+public:
+    ~MaintenanceMessage();
+    void scheduleSendEvent(Callback<bool, Message*, uint8_t*>);
+    Message* copyMessage();
+    void messageReceivedServer(std::string& messageName);
+    void messageReceivedClient(std::string& messageName);
+
+private:
+    MaintenanceMessage(std::string name, bool reliable, int timeInterval, uint16_t messageSize, uint16_t streamNumber, uint16_t forwardSize, bool forwardBack, RandomVariable* ranvar = 0);
 
     void sendData();
     void printStats(std::ostream& out, const Message& msg)const;
@@ -163,13 +183,13 @@ private:
 uint16_t Message::messagesCreated = 0;
 std::map< std::string, uint16_t, Message::StringComparator> Message::messageNameMap = std::map<std::string, uint16_t, Message::StringComparator>();
 
-Message::Message(std::string name, bool reliable, int timeInterval, uint16_t size, uint16_t streamNumber, RandomVariable* ranvar)
-    : name(name), reliable(reliable), timeInterval(timeInterval), messageSize(size), streamNumber(streamNumber), ranvar(ranvar){
+Message::Message(std::string name, bool reliable, int timeInterval, uint16_t size, uint16_t streamNumber, uint16_t forwardSize, bool forwardBack, RandomVariable* ranvar)
+    : name(name), reliable(reliable), timeInterval(timeInterval), messageSize(size), streamNumber(streamNumber), ranvar(ranvar), forwardSize(forwardSize), forwardBack(forwardBack){
 
 }
 
 Message::Message(const Message &msg): name(msg.getName()), reliable(msg.getReliable()), timeInterval(msg.getTimeInterval()), messageSize(msg.getMessageSize()),
-    type(msg.getType()), streamNumber(msg.getStreamNumber()){
+    type(msg.getType()), streamNumber(msg.getStreamNumber()), forwardSize(msg.getForwardMessageSize()), forwardBack(msg.doForwardBack()){
     if(msg.ranvar != 0)
         this->ranvar = new RandomVariable(*msg.ranvar);
     else
@@ -191,7 +211,7 @@ void Message::cancelEvent(){
 
 }
 
-void Message::fillMessageContents(char *buffer, int number, std::string* msgName){
+void Message::fillMessageContents(char *buffer, int number, std::string* msgName) const{
 
     buffer[0] = '\"';
     std::stringstream str("");
@@ -258,8 +278,8 @@ uint32_t UserActionMessage::messageInstanceCounter = 0;
 
 UserActionMessage::UserActionMessage(std::string name, bool reliable, int timeInterval, uint16_t messageSize, double clientsOfInterest,
                                      uint32_t clientRequirement,  uint32_t serverRequirement, uint16_t streamNumber, uint16_t forwardSize, bool forwardBack, RandomVariable* ranvar)
-    :Message(name, reliable, timeInterval, messageSize, streamNumber, ranvar), clientsOfInterest(clientsOfInterest),
-      clientTimeRequirement(clientRequirement), serverTimeRequirement(serverRequirement), forwardSize(forwardSize), forwardBack(forwardBack){
+    :Message(name, reliable, timeInterval, messageSize, streamNumber, forwardSize, forwardBack, ranvar), clientsOfInterest(clientsOfInterest),
+      clientTimeRequirement(clientRequirement), serverTimeRequirement(serverRequirement){
 
     type = USER_ACTION;
 
@@ -355,14 +375,15 @@ void UserActionMessage::messageReceivedClient(std::string& messageName){
 
     int id = 0;
     parseMessageId(messageName, id);
+
     StatisticsCollector::logMessageReceivedByClient(id, Simulator::Now(), streamNumber);
 }
 
 //Class OtherDataMessage function definitions
 
 
-OtherDataMessage::OtherDataMessage(std::string name, bool reliable, int timeInterval, uint16_t messageSize, uint16_t streamNumber, RandomVariable* ranvar)
-    : Message(name, reliable, timeInterval, messageSize, streamNumber, ranvar){
+OtherDataMessage::OtherDataMessage(std::string name, bool reliable, int timeInterval, uint16_t messageSize, uint16_t streamNumber, uint16_t forwardSize, bool forwardBack, RandomVariable* ranvar)
+    : Message(name, reliable, timeInterval, messageSize, streamNumber, forwardSize, forwardBack, ranvar){
     type = OTHER_DATA;
 
 }
@@ -432,6 +453,87 @@ void OtherDataMessage::messageReceivedServer(std::string& messageName){
 }
 
 void OtherDataMessage::messageReceivedClient(std::string& messageName){
+
+}
+
+
+//Class MaintenanceMessage function definitions
+
+
+MaintenanceMessage::MaintenanceMessage(std::string name, bool reliable, int timeInterval, uint16_t messageSize, uint16_t streamNumber, uint16_t forwardSize, bool forwardBack, RandomVariable* ranvar)
+    : Message(name, reliable, timeInterval, messageSize, streamNumber, forwardSize, forwardBack, ranvar){
+
+    type = MAINTENANCE;
+
+}
+
+MaintenanceMessage::~MaintenanceMessage(){
+
+
+}
+
+void MaintenanceMessage::scheduleSendEvent(Callback<bool, Message*, uint8_t*> function){
+
+    int interval = 0;
+
+    this->sendFunction = function;
+    running = true;
+
+    if(ranvar != 0){
+        interval = ranvar->GetInteger();
+        if(interval <= 0)
+            interval = 1;
+    }
+
+    if(ranvar == 0)
+        sendEvent = Simulator::Schedule(Time(MilliSeconds(timeInterval)), &MaintenanceMessage::sendData, this);
+    else
+        sendEvent = Simulator::Schedule(Time(MilliSeconds(interval)), &MaintenanceMessage::sendData, this);
+}
+
+void MaintenanceMessage::sendData(){
+
+    char buffer[30] = "";
+    static int interval = 0;
+    fillMessageContents(buffer);
+
+    if(ranvar != 0){
+        interval = ranvar->GetInteger();
+        if(interval <= 0)
+            interval = 1;
+    }
+
+    if(!sendFunction(this, (uint8_t*)buffer))
+        PRINT_ERROR("Problems with socket buffer" << std::endl);   //TODO: socket buffer
+
+    if(running){
+        if(ranvar == 0)
+            sendEvent = Simulator::Schedule(Time(MilliSeconds(timeInterval)), &MaintenanceMessage::sendData, this);
+        else
+            sendEvent = Simulator::Schedule(Time(MilliSeconds(interval)), &MaintenanceMessage::sendData, this);
+    }
+
+}
+
+Message* MaintenanceMessage::copyMessage(){
+
+    Message *msg;
+    msg = new MaintenanceMessage(*this);
+    return msg;
+}
+
+void MaintenanceMessage::printStats(std::ostream &out, const Message &msg) const{
+
+    out << "MaintenanceMessage  " << "  ID:" << messageID << "  Name: " << name << "  Reliable: " << (reliable == true ? "yes" : "no")
+        << "  Size: " << messageSize << " TimeInterval: " <<  timeInterval;
+
+}
+
+void MaintenanceMessage::messageReceivedServer(std::string& messageName){
+
+}
+
+void MaintenanceMessage::messageReceivedClient(std::string& messageName){
 
 }
 

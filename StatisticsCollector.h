@@ -389,8 +389,9 @@ void StatisticsCollector::getMessageStats(uint16_t streamNumber){
             if(!(*it)->serverRecvTime.IsZero())
                 messageRecvTimesForServer[(*it)->messageNameIndex].second.push_back(((*it)->serverRecvTime - (*it)->sendTime).GetMilliSeconds());
             for(std::list<Time>::iterator ctit = (*it)->clientRecvTimes.begin(); ctit != (*it)->clientRecvTimes.end(); ctit++){
-                if(!(*ctit).IsZero())
+                if(!(*ctit).IsZero()){
                     messageRecvTimesForClient[(*it)->messageNameIndex].second.push_back(((*ctit) - (*it)->sendTime).GetMilliSeconds());
+                }
             }
         }//TODO: packet losses (in UDP)
 

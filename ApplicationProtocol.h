@@ -36,8 +36,8 @@ class ApplicationProtocol{
 
 public:
     ~ApplicationProtocol();
-    bool sendFromClient(Message*, uint8_t*, Ptr<Socket>);
-    bool sendFromServer(uint8_t*, Message*, const Address&, Ptr<Socket>, bool forward = false);
+    bool sendFromClient(const Message*, uint8_t*, Ptr<Socket>, bool forward = false);
+    bool sendFromServer(uint8_t*, const Message*, const Address&, Ptr<Socket>, bool forward = false);
     void configureForStream(Callback<void, uint8_t*, uint16_t, Address&> memFunc);
     void recv(Ptr<Socket>);
 
@@ -103,7 +103,7 @@ ApplicationProtocol::~ApplicationProtocol(){
 
 }
 
-bool ApplicationProtocol::sendFromClient(Message *msg, uint8_t *buffer, Ptr<Socket> socket){
+bool ApplicationProtocol::sendFromClient(const Message *msg, uint8_t *buffer, Ptr<Socket> socket, bool forward){
 
     if(this->socket == 0){
         this->socket = socket;
@@ -117,18 +117,25 @@ bool ApplicationProtocol::sendFromClient(Message *msg, uint8_t *buffer, Ptr<Sock
     addAppProtoHeader(msgContents, msg->getReliable());
     strncpy(msgContents + headerSize, (char*)buffer, 30);
 
-    if(socket->GetTxAvailable() < msg->getMessageSize() + headerSize){        //TODO: how to remember messages when buffer overflows
+    uint16_t messageSize;
+
+    if(!forward)
+        messageSize = msg->getMessageSize();
+    else
+        messageSize = msg->getForwardMessageSize();
+
+    if(socket->GetTxAvailable() < messageSize + headerSize){        //TODO: how to remember messages when buffer overflows
         return false;
     }
 
-    if((bytesSent = socket->Send((uint8_t*)msgContents, msg->getMessageSize() + headerSize, 0)) == -1){
+    if((bytesSent = socket->Send((uint8_t*)msgContents, messageSize + headerSize, 0)) == -1){
         return false;
     }
 
     if(msg->getReliable()){
         uint8_t* tempMsg;
-        tempMsg = (uint8_t*)malloc(msg->getMessageSize() + headerSize);
-        memcpy(tempMsg, msgContents, msg->getMessageSize() + headerSize);
+        tempMsg = (uint8_t*)malloc(messageSize + headerSize);
+        memcpy(tempMsg, msgContents, messageSize + headerSize);
         packetsWaitingAcks.push_back(new ApplicationProtocol::ReliablePacket(reliableMsgNumber, msg->getMessageSize(), tempMsg));
         Simulator::Schedule(Time(MilliSeconds(retransmit)), &ApplicationProtocol::resendCheckClient, this, reliableMsgNumber);
         reliableMsgNumber++;
@@ -172,12 +179,12 @@ void ApplicationProtocol::recv(Ptr<Socket> socket){
     free(buffer);
 }
 
-bool ApplicationProtocol::sendFromServer(uint8_t *buffer, Message* msg, const Address& addr, Ptr<Socket> socket, bool forward){
+bool ApplicationProtocol::sendFromServer(uint8_t *buffer, const Message* msg, const Address& addr, Ptr<Socket> socket, bool forward){
 
     uint16_t size;
 
     if(forward)
-        size = static_cast<UserActionMessage*>(msg)->getForwardMessageSize();
+        size = (msg)->getForwardMessageSize();
     else
         size = msg->getMessageSize();
 
@@ -203,8 +210,8 @@ bool ApplicationProtocol::sendFromServer(uint8_t *buffer, Message* msg, const Ad
 
     if(msg->getReliable()){
         uint8_t* tempMsg;
-        tempMsg = (uint8_t*)malloc(msg->getMessageSize() + headerSize);
-        memcpy(tempMsg, msgContents, msg->getMessageSize() + headerSize);
+        tempMsg = (uint8_t*)malloc(size + headerSize);
+        memcpy(tempMsg, msgContents, size + headerSize);
         packetsWaitingAcks.push_back(new ApplicationProtocol::ReliablePacket(reliableMsgNumber, size, tempMsg, addr));
         Simulator::Schedule(Time(MilliSeconds(retransmit)), &ApplicationProtocol::resendCheckServer, this, reliableMsgNumber, addr);
         reliableMsgNumber++;

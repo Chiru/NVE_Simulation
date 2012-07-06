@@ -44,6 +44,8 @@ void printHelpAndQuit();
 
 int main(int argc, char** argv){
 
+   // LogComponentEnable("nve_simulator", LOG_LEVEL_INFO);
+
     int runningTime;
 
     int i;

@@ -506,6 +506,16 @@ bool XMLParser::parseMessages(std::string &messagesElement, std::vector<Message*
             }
         }
 
+        if(!readValue<std::string>(messageElement, "forwardback", forwardBack, 0)){
+            PRINT_ERROR( "Error in forwardback specification." << std::endl);
+            return false;
+        }
+
+        if(!readValue<int>(messageElement, "forwardmessagesize", forwardSize, 0)){
+            PRINT_ERROR( "Error in message forwardmessagesize specification." << std::endl);
+            return false;
+        }
+
         if(size <= 0){
             PRINT_ERROR( "Message size must be more than 0." << std::endl);
             return false;
@@ -526,11 +536,6 @@ bool XMLParser::parseMessages(std::string &messagesElement, std::vector<Message*
                 return false;
             }
 
-            if(!readValue<int>(messageElement, "forwardmessagesize", forwardSize, 0)){
-                PRINT_ERROR( "Error in message forwardmessagesize specification." << std::endl);
-                return false;
-            }
-
             if(serverTimeRequirement <= 0 || clientTimeRequirement <= 0){
                 PRINT_ERROR( "TimeRequirement must be more than 0." << std::endl);
                 return false;
@@ -541,11 +546,6 @@ bool XMLParser::parseMessages(std::string &messagesElement, std::vector<Message*
                 return false;
             }
 
-            if(!readValue<std::string>(messageElement, "forwardback", forwardBack, 0)){
-                PRINT_ERROR( "Error in forwardback specification." << std::endl);
-                return false;
-            }
-
             if(clientsOfInterest < 0 || clientsOfInterest > 1){
                 PRINT_ERROR( "ClientsOfInterest must be between 0 and 1." << std::endl);
                 return false;
@@ -553,9 +553,19 @@ bool XMLParser::parseMessages(std::string &messagesElement, std::vector<Message*
 
            messages.push_back(new UserActionMessage(name, reliable.compare("no") == 0 ? false : true, timeInterval, size, clientsOfInterest, clientTimeRequirement,
                                                          serverTimeRequirement, stream_number, forwardSize, forwardBack.compare("no") == 0 ? false : true, ranvar));
-        }else if(type.compare("odt") == 0){
+        }
 
-           messages.push_back(new OtherDataMessage(name, reliable.compare("no") == 0 ? false : true, timeInterval, size, stream_number, ranvar));
+        else if(type.compare("odt") == 0){
+
+           messages.push_back(new OtherDataMessage(name, reliable.compare("no") == 0 ? false : true, timeInterval, size, stream_number, forwardSize,
+                                                   forwardBack.compare("no") == 0 ? false : true,ranvar));
+        }
+
+        else if(type.compare("mm") == 0){
+
+           messages.push_back(new MaintenanceMessage(name, reliable.compare("no") == 0 ? false : true, timeInterval, size, stream_number, forwardSize,
+                                                     forwardBack.compare("no") == 0 ? false : true,ranvar));
+
         }else{
             PRINT_ERROR("Unknown message type: " << type <<std::endl);
             return false;
