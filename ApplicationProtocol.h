@@ -78,7 +78,7 @@ private:
     void addAppProtoHeader(char* buffer, bool reliable);
     AppProtoPacketType parseAppProtoHeader(uint8_t* buffer, const Address& addr, Ptr<Socket> sock);
     bool sendAck(int* messagesToAck, uint16_t numberOfMessages, const Address& addr, Ptr<Socket> sock);
-    void createAck(char* ack, int* numbers, uint16_t numberOfMessages);
+    uint16_t createAck(char* ack, int* numbers, uint16_t numberOfMessages);
     void ackAllPackets();
 };
 
@@ -365,18 +365,18 @@ bool ApplicationProtocol::sendAck(int *messagesToAck, uint16_t numberOfMessages,
 
     char ack[ackSize * numberOfMessages];
 
-    createAck(ack, messagesToAck, numberOfMessages);
+    uint16_t ackSize = createAck(ack, messagesToAck, numberOfMessages);
 
-    if(sock->GetTxAvailable() < (uint32_t)(ackSize * numberOfMessages))
+    if(sock->GetTxAvailable() < (uint32_t)(ackSize))
         return false;
 
-    if(sock->SendTo((uint8_t*)ack, ackSize * numberOfMessages, 0, addr) == -1)
+    if(sock->SendTo((uint8_t*)ack, ackSize, 0, addr) == -1)
         return false;
 
     return true;
 }
 
-void ApplicationProtocol::createAck(char *ack, int* number, uint16_t numberOfMessages){
+uint16_t ApplicationProtocol::createAck(char *ack, int* number, uint16_t numberOfMessages){
 
     std::stringstream str;
     str << "\"ack:";
@@ -388,7 +388,16 @@ void ApplicationProtocol::createAck(char *ack, int* number, uint16_t numberOfMes
     }
     str << "\"";
 
-    strncpy(ack, str.str().c_str(), ackSize * numberOfMessages);
+    uint16_t ackSize;
+
+    if(str.str().length() <= this->ackSize)
+        ackSize = this->ackSize;
+    else
+        ackSize = str.str().length();
+
+    strncpy(ack, str.str().c_str(), ackSize);
+
+    return ackSize;
 }
 
 #endif // APPLICATION_PROTOCOL_H
