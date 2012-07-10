@@ -25,6 +25,7 @@
 #include "ns3/udp-socket-factory.h"
 #include "ns3/address.h"
 #include "ns3/inet-socket-address.h"
+#include "DataSender.h"
 #include <vector>
 
 class DataGenerator : public ns3::Application{
@@ -46,7 +47,7 @@ class DataGenerator : public ns3::Application{
 
 public:
     enum Protocol{TCP_NAGLE_DISABLED, TCP_NAGLE_ENABLED, UDP};
-    DataGenerator(){}
+    DataGenerator() :sender(appProto, gameTick){}
     DataGenerator(uint16_t streamNumber, Protocol proto, ApplicationProtocol* appProto, std::vector<Message*> messages, int gametick = 10);   //TODO: configure gametick
     virtual ~DataGenerator();
     virtual void StartApplication() = 0;
@@ -62,6 +63,7 @@ public:
     virtual std::vector<Message*> getMessages()const {return messages;}
     int getGameTick() const{return gameTick;}
     void sendBackToSender(const Message*, const Address&, const Ptr<Socket>, std::string& messageName, bool isClient);
+    bool sendImmediately() const {return immediateSend;}
 
 protected:
     enum ReadMsgNameReturnValue{READ_FAILED = 0, READ_SUCCESS, NAME_CONTINUES};
@@ -77,6 +79,8 @@ protected:
     Address peerAddr;
     uint64_t totalBytesSent;
     int gameTick;
+    DataSender sender;
+    bool immediateSend;
 };
 
 class ClientDataGenerator : public DataGenerator{
@@ -112,7 +116,7 @@ class ServerDataGenerator : public DataGenerator{
     class ClientConnection{
 
     public:
-        ClientConnection(Ptr<Socket>);
+        ClientConnection(Ptr<Socket>, DataSender&, bool);
         ~ClientConnection();
 
         void forwardUserActionMessage(std::pair<std::string, Message*>&);
@@ -124,6 +128,8 @@ class ServerDataGenerator : public DataGenerator{
         bool nameLeft;
         std::string  messageNamePart;
         std::string fullMessageName;
+        DataSender& sender;
+        bool immediateSend;
 
     };
 
@@ -159,8 +165,12 @@ private:
 //Class DataGenerator function definitions
 
 DataGenerator::DataGenerator(uint16_t streamNumber, Protocol proto, ApplicationProtocol* appProto, std::vector<Message*> messages, int tick)
-    : streamNumber(streamNumber), proto(proto), appProto(appProto), messages(messages), running(false), totalBytesSent(0), gameTick(tick){
+    : streamNumber(streamNumber), proto(proto), appProto(appProto), messages(messages), running(false), totalBytesSent(0), gameTick(tick), sender(DataSender(appProto, tick)){
 
+    if(tick == 0)
+        immediateSend = true;
+    else
+        immediateSend = false;
 
 }
 
@@ -253,33 +263,16 @@ void DataGenerator::sendBackToSender(const Message* msg, const Address& addr, co
 
     case TCP_NAGLE_DISABLED:
     case TCP_NAGLE_ENABLED:
-        if(socket->Send((uint8_t*)buffer, msg->getForwardMessageSize(), 0) == -1){
-            PRINT_ERROR("Problems with server socket buffer." << std::endl);
+        if(!sender.send(immediateSend, (uint8_t*)buffer, msg, socket, true, isClient))
             return;
-        }
+
         break;
 
     case UDP:
 
+        if(!sender.sendTo(immediateSend, (uint8_t*)buffer, msg, addr, true, isClient,socket))
+            return;
 
-        if(appProto){
-            if(isClient){
-                if(!appProto->sendFromClient(msg, (uint8_t*)buffer, socket)){
-                    PRINT_ERROR("Problems with server socket buffer." << std::endl);
-                    return;
-                }
-            }else{
-                if(!appProto->sendFromServer((uint8_t*)buffer, msg, addr, socket, true)){
-                    PRINT_ERROR("Problems with server socket buffer." << std::endl);
-                    return;
-                }
-            }
-        }else{
-            if(socket->SendTo((uint8_t*)buffer, msg->getForwardMessageSize(), 0, addr) == -1){
-                PRINT_ERROR("Problems with server socket buffer." << std::endl);
-                return;
-            }
-        }
         break;
     }
 }
@@ -309,6 +302,8 @@ ClientDataGenerator::ClientDataGenerator(const DataGenerator& stream) : bytesLef
     for(std::vector<Message*>::iterator it = messages.begin(); it != messages.end(); it++){
         this->messages.push_back((*it)->copyMessage());
     }
+
+    this->immediateSend = stream.sendImmediately();
 }
 
 ClientDataGenerator::~ClientDataGenerator(){
@@ -332,16 +327,21 @@ void ClientDataGenerator::StartApplication(){
         case TCP_NAGLE_DISABLED:
         case TCP_NAGLE_ENABLED:
             socket->Connect(peerAddr);
+            if(!immediateSend)
+                Simulator::Schedule(Time(MilliSeconds(gameTick)), &DataSender::flushTcpBuffer, &sender, true);
             socket->SetRecvCallback(MakeCallback(&ClientDataGenerator::dataReceivedTcp, this));
             break;
 
     case UDP:
             socket->Connect(peerAddr);
+            if(!immediateSend)
+                Simulator::Schedule(Time(MilliSeconds(gameTick)), &DataSender::flushUdpBuffer, &sender, socket, true);
             if(appProto){
                 socket->SetRecvCallback(MakeCallback(&ApplicationProtocol::recv, appProto));
                 appProto->configureForStream(MakeCallback(&ClientDataGenerator::readReceivedData, this));
             }else{
                 socket->SetRecvCallback(MakeCallback(&ClientDataGenerator::dataReceivedUdp, this));
+
             }
             break;
     }
@@ -355,6 +355,7 @@ void ClientDataGenerator::StartApplication(){
             (*it)->scheduleSendEvent(MakeCallback(&ClientDataGenerator::sendData, this));
         }
     }
+
 
 }
 
@@ -577,27 +578,9 @@ void ClientDataGenerator::moreBufferSpaceAvailable(Ptr<Socket> sock, uint32_t si
 
 bool ClientDataGenerator::sendData(Message *msg, uint8_t* buffer){
 
-    uint16_t bytesSent;
-
-    if(running){
-
-        if(appProto){
-            if(!appProto->sendFromClient(msg, buffer, socket))
-                return false;
-        }
-        else{
-
-            if(socket->GetTxAvailable() < msg->getMessageSize()){        //TODO: how to remember messages when buffer overflows
-                return false;
-            }
-
-            if((bytesSent = socket->Send(buffer, msg->getMessageSize(), 0)) == -1){
-                return false;
-            }
-
-            totalBytesSent += bytesSent;
-        }
-    }
+    if(running)
+        if(!sender.sendTo(immediateSend, buffer, msg, peerAddr, false, true, socket))
+            return false;
 
     return true;
 }
@@ -630,6 +613,8 @@ ServerDataGenerator::ServerDataGenerator(const DataGenerator& stream){
         this->messages.push_back((*it)->copyMessage());
 
     }
+
+    this->immediateSend = stream.sendImmediately();
 
 }
 
@@ -669,8 +654,8 @@ void ServerDataGenerator::StartApplication(){
         }
             break;
     }
-
-    Simulator::Schedule(Time(MilliSeconds(gameTick)), &ServerDataGenerator::forwardData, this);
+    if(!immediateSend)
+        Simulator::Schedule(Time(MilliSeconds(gameTick)), &ServerDataGenerator::forwardData, this);
 
     for(std::vector<Message*>::iterator it = messages.begin(); it != messages.end(); it++){
         if((*it)->getType() == OTHER_DATA)
@@ -925,7 +910,7 @@ bool ServerDataGenerator::connectionRequest(Ptr<Socket> sock, const Address &add
 void ServerDataGenerator::newConnectionCreated(Ptr<Socket> sock, const Address &addr){
 
     SERVER_INFO("Connection accepted from: " << addr << " in stream number: " << streamNumber << "   " << Simulator::Now() << std::endl);
-    clientConnections.push_back(new ServerDataGenerator::ClientConnection(sock));
+    clientConnections.push_back(new ServerDataGenerator::ClientConnection(sock, sender, immediateSend));
     sock->SetRecvCallback(MakeCallback(&ServerDataGenerator::dataReceivedTcp, this));
 }
 
@@ -949,6 +934,8 @@ void ServerDataGenerator::forwardData(){
                     }
                     (*it)->messageBuffer.clear();
                 }
+                if(immediateSend)
+                    sender.flushTcpBuffer(false);
                 break;
 
             case UDP:
@@ -964,14 +951,16 @@ void ServerDataGenerator::forwardData(){
 
                 }
                 udpMessages.clear();
-
+                if(immediateSend)
+                    sender.flushUdpBuffer(this->socket, false);
                 break;
         }
-        Simulator::Schedule(Time(MilliSeconds(gameTick)), &ServerDataGenerator::forwardData, this);
+        if(!immediateSend)
+            Simulator::Schedule(Time(MilliSeconds(gameTick)), &ServerDataGenerator::forwardData, this);
     }
 }
 
-void ServerDataGenerator::sendToRandomClients(std::pair<Ptr<Socket>, std::pair<std::string, Message*> > &msg){    //forwarding over UDP
+void ServerDataGenerator::sendToRandomClients(std::pair<Ptr<Socket>, std::pair<std::string, Message*> > &msg){    //forwarding over TCP
 
     double clientsToSend = ((UserActionMessage*)msg.second.second)->getClientsOfInterest();
 
@@ -985,7 +974,7 @@ void ServerDataGenerator::sendToRandomClients(std::pair<Ptr<Socket>, std::pair<s
     }
 }
 
-void ServerDataGenerator::sendToRandomClients(std::pair<Address, std::pair<std::string, Message*> > &msg){      //forwarding over TCP
+void ServerDataGenerator::sendToRandomClients(std::pair<Address, std::pair<std::string, Message*> > &msg){      //forwarding over UDP
 
     double clientsToSend = ((UserActionMessage*)msg.second.second)->getClientsOfInterest();
 
@@ -1005,17 +994,8 @@ void ServerDataGenerator::forwardUserActionMessage(std::pair<std::string, Messag
     int messageNumber;
     msg.second->fillMessageContents(buffer, 0, &msg.first);
 
-    if(appProto){
-        if(!appProto->sendFromServer((uint8_t*)buffer, msg.second, addr, socket, true)){
-            PRINT_ERROR("Problems with server socket buffer." << std::endl);
-        }
-
-    }else{
-        if(socket->SendTo((uint8_t*)buffer, msg.second->getMessageSize(), 0, addr) == -1){
-            PRINT_ERROR("Problems with server socket buffer." << std::endl);
-            return;
-        }
-    }
+    if(!sender.sendTo(immediateSend, (uint8_t*)buffer, msg.second, addr, true, false, socket))
+        return;
 
     msg.second->parseMessageId(msg.first, messageNumber);
 
@@ -1024,8 +1004,6 @@ void ServerDataGenerator::forwardUserActionMessage(std::pair<std::string, Messag
 
 bool ServerDataGenerator::sendData(Message *msg, uint8_t *buffer){
 
-    uint16_t bytesSent;
-
     if(running){
 
         if(this->proto == TCP_NAGLE_DISABLED || this->proto == TCP_NAGLE_ENABLED){
@@ -1033,24 +1011,15 @@ bool ServerDataGenerator::sendData(Message *msg, uint8_t *buffer){
                 if((*it)->clientSocket->GetTxAvailable() < msg->getMessageSize())
                     return false;
 
-                if((bytesSent = (*it)->clientSocket->Send(buffer, msg->getMessageSize(), 0)) == -1)
+                if(!sender.send(immediateSend, buffer, msg, (*it)->clientSocket, false, false))
                     return false;
-                totalBytesSent += bytesSent;
 
             }
         }else if(this->proto == UDP){
             for(std::vector<Address*>::iterator it = udpClients.begin(); it != udpClients.end(); it++){
 
-                if(appProto){
-                    if(!appProto->sendFromServer(buffer, msg, **it, socket)){
-                        return false;
-                    }
-                }else{
-                    if((bytesSent = socket->SendTo(buffer, msg->getMessageSize(), 0, **it)) == -1)
-                        return false;
-
-                    totalBytesSent += bytesSent;
-                }
+                if(!sender.sendTo(immediateSend, buffer, msg, **it, false, false, socket))
+                    return false;
             }
         }
     }
@@ -1061,7 +1030,8 @@ bool ServerDataGenerator::sendData(Message *msg, uint8_t *buffer){
 
 //nested class ClientConnection function definitions
 
-ServerDataGenerator::ClientConnection::ClientConnection(Ptr<Socket> sock): clientSocket(sock), dataLeft(false), nameLeft(false){
+ServerDataGenerator::ClientConnection::ClientConnection(Ptr<Socket> sock, DataSender& sender, bool immediate): clientSocket(sock), dataLeft(false), nameLeft(false), sender(sender),
+    immediateSend(immediate){
 
 }
 
@@ -1076,10 +1046,9 @@ void ServerDataGenerator::ClientConnection::forwardUserActionMessage(std::pair<s
     int messageNumber;
     msg.second->fillMessageContents(buffer, 0, &msg.first);
 
-    if(clientSocket->Send((uint8_t*)buffer, msg.second->getForwardMessageSize(), 0) == -1){
-        PRINT_ERROR("Problems with server socket buffer." << std::endl);
+    if(!sender.send(immediateSend, (uint8_t*)buffer, msg.second, clientSocket, true,false))
         return;
-    }
+
 
     msg.second->parseMessageId(msg.first, messageNumber);
 

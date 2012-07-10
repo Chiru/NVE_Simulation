@@ -3,6 +3,7 @@
 
 using namespace ns3;
 #include <string>
+#include <ns3/socket.h>
 #include "ns3/address.h"
 
 #define PRINT_RESULT(a) (std::cout << a)
@@ -11,6 +12,5 @@ using namespace ns3;
 
 #define SERVER_INFO(a) (StatisticsCollector::getServerLog() == true ? std::cout << "Server: " << a :std::cout << "")
 #define CLIENT_INFO(a) (StatisticsCollector::getClientLog() == true ? std::cout << "Client: " << a :std::cout << "")
-
 
 #endif // UTILITIES_H

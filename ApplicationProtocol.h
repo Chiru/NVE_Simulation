@@ -37,7 +37,9 @@ class ApplicationProtocol{
 public:
     ~ApplicationProtocol();
     bool sendFromClient(const Message*, uint8_t*, Ptr<Socket>, bool forward = false);
+    bool sendFromClient(const std::string& buffer, Ptr<Socket>, bool reliable);
     bool sendFromServer(uint8_t*, const Message*, const Address&, Ptr<Socket>, bool forward = false);
+    bool sendFromServer(const std::string& buffer, const Address& addr, Ptr<Socket> sock, bool reliable);
     void configureForStream(Callback<void, uint8_t*, uint16_t, Address&> memFunc);
     void recv(Ptr<Socket>);
 
@@ -146,6 +148,41 @@ bool ApplicationProtocol::sendFromClient(const Message *msg, uint8_t *buffer, Pt
     return true;
 }
 
+bool ApplicationProtocol::sendFromClient(const std::string &buffer, Ptr<Socket>, bool reliable){
+
+    if(this->socket == 0)
+        this->socket = socket;
+
+    char* msgContents = new char[buffer.length() + headerSize];
+    msgContents[0] = 0;
+
+    addAppProtoHeader(msgContents, reliable);
+    strncpy(msgContents + headerSize, buffer.c_str(), buffer.length());
+
+    if(socket->GetTxAvailable() < buffer.length() + headerSize){        //TODO: how to remember messages when buffer overflows
+        delete [] msgContents;
+        return false;
+    }
+
+    if((socket->Send((uint8_t*)msgContents, buffer.length() + headerSize, 0)) == -1){
+        delete [] msgContents;
+        return false;
+    }
+
+    if(reliable){
+        uint8_t* tempMsg;
+        tempMsg = (uint8_t*)malloc(buffer.length() + headerSize);
+        memcpy(tempMsg, msgContents, buffer.length() + headerSize);
+        packetsWaitingAcks.push_back(new ApplicationProtocol::ReliablePacket(reliableMsgNumber, buffer.length(), tempMsg));
+        Simulator::Schedule(Time(MilliSeconds(retransmit)), &ApplicationProtocol::resendCheckClient, this, reliableMsgNumber);
+        reliableMsgNumber++;
+    }
+
+    delete [] msgContents;
+
+    return true;
+}
+
 void ApplicationProtocol::recv(Ptr<Socket> socket){
 
     if(this->socket == 0)
@@ -218,6 +255,43 @@ bool ApplicationProtocol::sendFromServer(uint8_t *buffer, const Message* msg, co
     }
 
     totalBytesSent += bytesSent;
+
+    return true;
+}
+
+bool ApplicationProtocol::sendFromServer(const std::string &buffer, const Address &addr, Ptr<Socket> sock, bool reliable){
+
+    uint16_t size = buffer.length();
+
+    if(this->socket == 0)
+        this->socket = socket;
+
+    char* msgContents = new char[size + headerSize];
+    msgContents[0] = 0;
+
+    addAppProtoHeader(msgContents, reliable);
+    strncpy(msgContents + headerSize, buffer.c_str(), size);
+
+    if(socket->GetTxAvailable() < size + headerSize){        //TODO: how to remember messages when buffer overflows
+        delete [] msgContents;
+        return false;
+    }
+
+    if((socket->SendTo((uint8_t*)msgContents, size + headerSize, 0, addr)) == -1){
+        delete [] msgContents;
+        return false;
+    }
+
+    if(reliable){
+        uint8_t* tempMsg;
+        tempMsg = (uint8_t*)malloc(size + headerSize);
+        memcpy(tempMsg, msgContents, size + headerSize);
+        packetsWaitingAcks.push_back(new ApplicationProtocol::ReliablePacket(reliableMsgNumber, size, tempMsg, addr));
+        Simulator::Schedule(Time(MilliSeconds(retransmit)), &ApplicationProtocol::resendCheckServer, this, reliableMsgNumber, addr);
+        reliableMsgNumber++;
+    }
+
+    delete [] msgContents;
 
     return true;
 }
