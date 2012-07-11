@@ -117,7 +117,7 @@ bool ApplicationProtocol::sendFromClient(const Message *msg, uint8_t *buffer, Pt
     msgContents[0] = '\0';
 
     addAppProtoHeader(msgContents, msg->getReliable());
-    strncpy(msgContents + headerSize, (char*)buffer, 30);
+    memcpy(msgContents + headerSize, (char*)buffer, 30);
 
     uint16_t messageSize;
 
@@ -148,7 +148,7 @@ bool ApplicationProtocol::sendFromClient(const Message *msg, uint8_t *buffer, Pt
     return true;
 }
 
-bool ApplicationProtocol::sendFromClient(const std::string &buffer, Ptr<Socket>, bool reliable){
+bool ApplicationProtocol::sendFromClient(const std::string &buffer, Ptr<Socket> socket, bool reliable){
 
     if(this->socket == 0)
         this->socket = socket;
@@ -157,7 +157,7 @@ bool ApplicationProtocol::sendFromClient(const std::string &buffer, Ptr<Socket>,
     msgContents[0] = 0;
 
     addAppProtoHeader(msgContents, reliable);
-    strncpy(msgContents + headerSize, buffer.c_str(), buffer.length());
+    memcpy(msgContents + headerSize, buffer.c_str(), buffer.length());
 
     if(socket->GetTxAvailable() < buffer.length() + headerSize){        //TODO: how to remember messages when buffer overflows
         delete [] msgContents;
@@ -270,7 +270,7 @@ bool ApplicationProtocol::sendFromServer(const std::string &buffer, const Addres
     msgContents[0] = 0;
 
     addAppProtoHeader(msgContents, reliable);
-    strncpy(msgContents + headerSize, buffer.c_str(), size);
+    memcpy(msgContents + headerSize, buffer.c_str(), size);
 
     if(socket->GetTxAvailable() < size + headerSize){        //TODO: how to remember messages when buffer overflows
         delete [] msgContents;

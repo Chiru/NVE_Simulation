@@ -17,6 +17,7 @@ public:
     bool sendTo(bool sendNow, uint8_t* buffer, const Message* msg, const Address& addr, bool forward, bool isClient, const Ptr<Socket> sock = 0);
     bool flushUdpBuffer(Ptr<Socket>, bool isClient);
     bool flushTcpBuffer(bool isClient);
+    void setGameTick(uint16_t gameTick){this->gameTick = gameTick;}
 
 private:
 
@@ -138,9 +139,7 @@ bool DataSender::flushUdpBuffer(Ptr<Socket> sock, bool isClient){
 
     udpBuffer.clear();
 
-
     Simulator::Schedule(Time(MilliSeconds(gameTick)), &DataSender::flushUdpBuffer, this, sock, isClient);
-
     return true;
 }
 

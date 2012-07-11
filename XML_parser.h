@@ -48,7 +48,8 @@ public:
     uint16_t getNumberOfStreams()const {return numberOfStreams;}
     bool getApplicationProtocol(ApplicationProtocol*&);
     bool getClientStats(uint16_t clientIndex, uint16_t &clientNumber, int &delay, double &uplink, double &downlink, double &loss);
-    uint16_t getServerGameTick() const{return gameTick;}
+    uint16_t getServerGameTick() const{return serverGameTick;}
+    uint16_t getClientGameTick() const{return clientGameTick;}
     uint16_t getRunningTime() const{return runningTime;}
 
 private:
@@ -97,7 +98,7 @@ private:
     bool parseStream(std::string& streamElement, DataGenerator*& stream);
     bool parseMessages(std::string& messagesElement, std::vector<Message*>& messages, uint16_t stream_number);
     bool parseApplicationProtocol(std::string& file);
-    bool parseServerGameTick(std::string& xmlFile);
+    bool parseGameTick(std::string& xmlFile);
     bool parseRunningTime(std::string& file);
     uint16_t countStreams(std::string& file);
     template <class T> bool readValue(const std::string& file, const std::string& variable, T& result, size_t position = 0);
@@ -112,7 +113,8 @@ private:
     DataGenerator **streams;
     uint16_t numberOfClients;
     uint16_t numberOfStreams;
-    int gameTick;
+    int serverGameTick;
+    int clientGameTick;
     int runningTime;
 
     std::vector<struct XMLParser::Client*> clients;
@@ -148,11 +150,12 @@ XMLParser::XMLParser(std::string filename): filename(filename), correctFile(true
     if(!(correctFile = parseApplicationProtocol(xmlFile)))
         return;
 
+    if(!(correctFile = parseGameTick(xmlFile)))
+        return;
+
     if(!(correctFile = parseStreams(xmlFile)))
         return;
 
-    if(!(correctFile = parseServerGameTick(xmlFile)))
-        return;
 
     if(!(correctFile = parseRunningTime(xmlFile)))
         return;
@@ -399,7 +402,7 @@ bool XMLParser::parseStream(std::string &streamElement, DataGenerator* &stream){
         return false;
     }
 
-    stream = new ClientDataGenerator(stream_number, proto, appProto, messages);
+    stream = new ClientDataGenerator(stream_number, proto, appProto, messages, clientGameTick);
 
     return true;
 }
@@ -672,10 +675,15 @@ bool XMLParser::getClientStats(uint16_t clientIndex, uint16_t &clientNumber, int
     return true;
 }
 
-bool XMLParser::parseServerGameTick(std::string& file){
+bool XMLParser::parseGameTick(std::string& file){
 
-    if(!readValue<int>(file, "<gametick", gameTick) || gameTick <= 0){
-        PRINT_ERROR(" Incorrect gametick value." << std::endl);
+    if(!readValue<int>(file, "<servergametick", serverGameTick) || serverGameTick < 0){
+        PRINT_ERROR(" Incorrect servergametick value." << std::endl);
+        return false;
+    }
+
+    if(!readValue<int>(file, "<clientgametick", clientGameTick) || clientGameTick < 0){
+        PRINT_ERROR(" Incorrect clientgametick value." << std::endl);
         return false;
     }
 
