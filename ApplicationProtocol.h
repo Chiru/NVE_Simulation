@@ -42,7 +42,11 @@ public:
     bool sendFromServer(const std::string& buffer, const Address& addr, Ptr<Socket> sock, bool reliable);
     void configureForStream(Callback<void, uint8_t*, uint16_t, Address&> memFunc);
     void recv(Ptr<Socket>);
+    uint16_t getHeaderSize() const{return headerSize;}
 
+    //recursive function used to send all messages that fit into single datagram
+    static int sendFragment(const std::string& buffer, const size_t index, Ptr<Socket> sock, uint16_t maxDatagramSize, const Address* const addr = 0,
+                            ApplicationProtocol* appProto = 0, bool reliable = false, uint16_t headerSize = 0);
 private:
     ApplicationProtocol(uint16_t ackSize, uint16_t delayedAck, uint16_t retransmit, uint16_t headerSize);
 
@@ -73,6 +77,7 @@ private:
     uint64_t totalBytesSent;
     uint32_t reliableMsgNumber;
     Ptr<Socket> socket;
+    uint16_t maxDatagramSize;
     Callback<void, uint8_t*, uint16_t, Address&> forwardToApplication;
 
     void resendCheckClient(uint32_t reliableMsgNumber);   //resend data without an ack before the timer runs out
@@ -82,6 +87,9 @@ private:
     bool sendAck(int* messagesToAck, uint16_t numberOfMessages, const Address& addr, Ptr<Socket> sock);
     uint16_t createAck(char* ack, int* numbers, uint16_t numberOfMessages);
     void ackAllPackets();
+
+    //IP fragmentation over UDP doesn't work like a charm, so send big packets in separate datagrams
+    int sendAndFragment(Ptr<Socket> socket, uint8_t* buffer, uint16_t size, bool reliable, const Address* const addr = 0);
 };
 
 
@@ -92,8 +100,9 @@ ApplicationProtocol::ApplicationProtocol(uint16_t packetSize, uint16_t delayedAc
       delayedAck(delayedAck),
       retransmit(retransmit),
       headerSize(headerSize),
-      reliableMsgNumber(1),
-      socket(0){
+      reliableMsgNumber(0),
+      socket(0),
+      maxDatagramSize(1400){  //TODO: hard coding
 
 }
 
@@ -104,6 +113,7 @@ ApplicationProtocol::~ApplicationProtocol(){
     }
 
 }
+
 
 bool ApplicationProtocol::sendFromClient(const Message *msg, uint8_t *buffer, Ptr<Socket> socket, bool forward){
 
@@ -130,7 +140,7 @@ bool ApplicationProtocol::sendFromClient(const Message *msg, uint8_t *buffer, Pt
         return false;
     }
 
-    if((bytesSent = socket->Send((uint8_t*)msgContents, messageSize + headerSize, 0)) == -1){
+    if((bytesSent = sendAndFragment(socket, (uint8_t*)msgContents, messageSize + headerSize, msg->getReliable(), 0)) == -1){
         return false;
     }
 
@@ -140,7 +150,6 @@ bool ApplicationProtocol::sendFromClient(const Message *msg, uint8_t *buffer, Pt
         memcpy(tempMsg, msgContents, messageSize + headerSize);
         packetsWaitingAcks.push_back(new ApplicationProtocol::ReliablePacket(reliableMsgNumber, msg->getMessageSize(), tempMsg));
         Simulator::Schedule(Time(MilliSeconds(retransmit)), &ApplicationProtocol::resendCheckClient, this, reliableMsgNumber);
-        reliableMsgNumber++;
     }
 
     totalBytesSent += bytesSent;
@@ -164,7 +173,7 @@ bool ApplicationProtocol::sendFromClient(const std::string &buffer, Ptr<Socket> 
         return false;
     }
 
-    if((socket->Send((uint8_t*)msgContents, buffer.length() + headerSize, 0)) == -1){
+    if(sendAndFragment(socket, (uint8_t*)msgContents, buffer.length() + headerSize, reliable, 0) == -1){
         delete [] msgContents;
         return false;
     }
@@ -175,7 +184,6 @@ bool ApplicationProtocol::sendFromClient(const std::string &buffer, Ptr<Socket> 
         memcpy(tempMsg, msgContents, buffer.length() + headerSize);
         packetsWaitingAcks.push_back(new ApplicationProtocol::ReliablePacket(reliableMsgNumber, buffer.length(), tempMsg));
         Simulator::Schedule(Time(MilliSeconds(retransmit)), &ApplicationProtocol::resendCheckClient, this, reliableMsgNumber);
-        reliableMsgNumber++;
     }
 
     delete [] msgContents;
@@ -191,7 +199,6 @@ void ApplicationProtocol::recv(Ptr<Socket> socket){
     Address addr;
     uint8_t* buffer = 0;
     uint16_t bufferSize;
-
     bufferSize = socket->GetRxAvailable();
     buffer = (uint8_t*)calloc(bufferSize, 1);
     socket->RecvFrom(buffer, bufferSize, 0, addr);
@@ -241,7 +248,7 @@ bool ApplicationProtocol::sendFromServer(uint8_t *buffer, const Message* msg, co
         return false;
     }
 
-    if((bytesSent = socket->SendTo((uint8_t*)msgContents, size + headerSize, 0, addr)) == -1){
+    if((bytesSent =  sendAndFragment(socket,(uint8_t*)msgContents,size + headerSize, msg->getReliable(),&addr)) == -1){
         return false;
     }
 
@@ -251,7 +258,6 @@ bool ApplicationProtocol::sendFromServer(uint8_t *buffer, const Message* msg, co
         memcpy(tempMsg, msgContents, size + headerSize);
         packetsWaitingAcks.push_back(new ApplicationProtocol::ReliablePacket(reliableMsgNumber, size, tempMsg, addr));
         Simulator::Schedule(Time(MilliSeconds(retransmit)), &ApplicationProtocol::resendCheckServer, this, reliableMsgNumber, addr);
-        reliableMsgNumber++;
     }
 
     totalBytesSent += bytesSent;
@@ -264,7 +270,7 @@ bool ApplicationProtocol::sendFromServer(const std::string &buffer, const Addres
     uint16_t size = buffer.length();
 
     if(this->socket == 0)
-        this->socket = socket;
+        this->socket = sock;
 
     char* msgContents = new char[size + headerSize];
     msgContents[0] = 0;
@@ -272,12 +278,12 @@ bool ApplicationProtocol::sendFromServer(const std::string &buffer, const Addres
     addAppProtoHeader(msgContents, reliable);
     memcpy(msgContents + headerSize, buffer.c_str(), size);
 
-    if(socket->GetTxAvailable() < size + headerSize){        //TODO: how to remember messages when buffer overflows
+    if(sock->GetTxAvailable() < size + headerSize){        //TODO: how to remember messages when buffer overflows
         delete [] msgContents;
         return false;
     }
 
-    if((socket->SendTo((uint8_t*)msgContents, size + headerSize, 0, addr)) == -1){
+    if(sendAndFragment(sock,(uint8_t*)msgContents,size + headerSize, reliable, &addr) == -1){
         delete [] msgContents;
         return false;
     }
@@ -288,7 +294,6 @@ bool ApplicationProtocol::sendFromServer(const std::string &buffer, const Addres
         memcpy(tempMsg, msgContents, size + headerSize);
         packetsWaitingAcks.push_back(new ApplicationProtocol::ReliablePacket(reliableMsgNumber, size, tempMsg, addr));
         Simulator::Schedule(Time(MilliSeconds(retransmit)), &ApplicationProtocol::resendCheckServer, this, reliableMsgNumber, addr);
-        reliableMsgNumber++;
     }
 
     delete [] msgContents;
@@ -338,7 +343,7 @@ void ApplicationProtocol::addAppProtoHeader(char *buffer, bool reliable){
     str << "\"app:";
 
     if(reliable)
-        str << reliableMsgNumber;
+        str << ++reliableMsgNumber;
     else
         str << 0;
 
@@ -472,6 +477,83 @@ uint16_t ApplicationProtocol::createAck(char *ack, int* number, uint16_t numberO
     strncpy(ack, str.str().c_str(), ackSize);
 
     return ackSize;
+}
+
+int ApplicationProtocol::sendAndFragment(Ptr<Socket> socket, uint8_t *buffer, uint16_t size, bool reliable, const Address *const addr){
+
+    if(size > maxDatagramSize){
+
+        std::string tempBuffer((char*)buffer, size);
+        return sendFragment(tempBuffer, 0, socket, maxDatagramSize, addr, this, reliable, headerSize);
+
+    }else{
+
+        if(addr == 0){
+            return socket->Send(buffer, size, 0);
+        }else{
+            return socket->SendTo(buffer, size, 0, *addr);
+        }
+    }
+
+    return -1;  //we should never get here
+}
+
+int ApplicationProtocol::sendFragment(const std::string& buffer, const size_t index, Ptr<Socket> sock, uint16_t maxDatagramSize, const Address* const addr, ApplicationProtocol* appProto, bool reliable,
+                                      uint16_t headerSize){
+
+    size_t tempIndex, tempIndex2;
+    tempIndex = buffer.find('"', index);   //find first "
+    tempIndex = buffer.find('"', tempIndex + 1);  // find second "
+    if((tempIndex = buffer.find('"', tempIndex + 1)) == std::string::npos){  //see if there's third
+        if(addr == 0){
+            return sock->Send((uint8_t*)buffer.substr(0, buffer.length()).c_str(), buffer.length(), 0);
+        }
+        else{
+            return sock->SendTo((uint8_t*)buffer.substr(0, buffer.length()).c_str(), buffer.length(), 0, *addr);
+        }
+    }else{
+        if( tempIndex >= maxDatagramSize || (tempIndex2 = buffer.find('"', tempIndex)) >= maxDatagramSize){
+            int retval;
+            char header[headerSize];
+            std::string tempString;
+            if(addr == 0){
+                if(appProto){
+                    appProto->addAppProtoHeader(header, reliable);
+                    tempString.assign(header, headerSize);
+                }
+
+                tempString.append(buffer.substr(tempIndex, buffer.length()-tempIndex));
+                retval = sock->Send((uint8_t*)buffer.substr(0, tempIndex).c_str(), tempIndex, 0);
+
+                if(retval == -1){
+                    return -1;
+                }
+
+                return (sendFragment(tempString, 0, sock,maxDatagramSize,  addr, appProto, reliable, headerSize) + retval);
+            }
+            else{
+                if(appProto){
+                    appProto->addAppProtoHeader(header, reliable);
+                    tempString.assign(header, headerSize);
+                }
+
+                tempString.append(buffer.substr(tempIndex, buffer.length()-tempIndex));
+                retval = sock->SendTo((uint8_t*)buffer.substr(0, tempIndex).c_str(), tempIndex, 0, *addr);
+
+                if(retval == -1){
+                    return -1;
+                }
+
+                return (sendFragment(tempString, 0, sock, maxDatagramSize, addr, appProto, reliable, headerSize) + retval);
+
+            }
+        }else{
+            return sendFragment(buffer, tempIndex, sock, maxDatagramSize, addr, appProto, reliable, headerSize);
+        }
+
+    }
+
+    return -1; //we should never get here
 }
 
 #endif // APPLICATION_PROTOCOL_H
