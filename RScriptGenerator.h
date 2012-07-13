@@ -64,23 +64,27 @@ bool RScriptGenerator::generateScriptForStream(const std::list<int64_t>* transmi
         stream.str("");
 
         stream << "\n#Vector for server receive times on stream number: " << count +1 << std::endl;
-        stream << server << count;
-        stream << " = c(";
-        for(std::list<int64_t>::const_iterator it = transmitTimesToServer[count].begin(); it != transmitTimesToServer[count].end();){
-            stream << *it;
+            if(!transmitTimesToServer[count].empty()){
+                stream << server << count;
+                stream << " = c(";
+                for(std::list<int64_t>::const_iterator it = transmitTimesToServer[count].begin(); it != transmitTimesToServer[count].end();){
+                    stream << *it;
 
-            if(++it == transmitTimesToServer[count].end()){
-                stream << ")\n";
-                break;
-            }
-            else
-                stream << ", ";
-        }
+                    if(++it == transmitTimesToServer[count].end()){
+                        stream << ")\n";
+                        break;
+                    }
+                    else
+                        stream << ", ";
+                }
+            }else
+                stream << server << count << " = c(0)" << std::endl;
 
         stream << "\n#Step function for stream number: " << count +1 << "\n";
         stream << serverFunc << count << " = ecdf(" << server << count << ")\n";
 
         stream << "\n#Vector for client receive times on stream number: " << count +1 << std::endl;
+
         if(!transmitTimesToClients[count].empty()){
             stream << client << count;
             stream << " = c(";

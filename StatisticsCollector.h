@@ -379,7 +379,6 @@ void StatisticsCollector::getMessageStats(uint16_t streamNumber){
     std::pair<std::pair<std::string, int>, std::list<int> > messageRecvTimesForServer[uamCount];
     std::list<int> messageSendIntervals[uamCount];
 
-
         for(std::vector<MessageStats*>::iterator it = messageLog[streamNumber].begin(); it != messageLog[streamNumber].end(); it++){
             messageRecvTimesForServer[(*it)->messageNameIndex].first.first =  fnptr((*it)->messageNameIndex);
             messageRecvTimesForClient[(*it)->messageNameIndex].first.first =  fnptr((*it)->messageNameIndex);

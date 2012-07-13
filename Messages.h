@@ -330,7 +330,7 @@ void UserActionMessage::sendData(){
     StatisticsCollector::logMessagesSendFromClient(messageNumber, sentTime, streamNumber, clientTimeRequirement, serverTimeRequirement, Message::getMessageNameIndex(name), messageID);
 
     if(!sendFunction(this, (uint8_t*)buffer))
-        PRINT_ERROR("Problems with socket buffer" << std::endl);   //TODO: socket buffer    
+        PRINT_ERROR("Problems with socket buffer" << std::endl);   //TODO: socket buffer
 
     if(ranvar != 0){
         interval = ranvar->GetInteger();

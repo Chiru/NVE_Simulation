@@ -216,6 +216,7 @@ bool DataGenerator::setupStream(Ptr<Node> node, Address addr, uint16_t gameTick)
         case UDP:
             socket = Socket::CreateSocket(node, UdpSocketFactory::GetTypeId());
             break;
+
     }
 
     node->AddApplication(this);
@@ -414,7 +415,8 @@ void ClientDataGenerator::dataReceivedTcp(Ptr<Socket> sock){
                             break;
                         }
                     }
-                    message->messageReceivedClient(fullMessageName);
+
+                   message->messageReceivedClient(fullMessageName);
                 }
 
                 if(bytesRead >= bufferSize){
@@ -457,7 +459,9 @@ void ClientDataGenerator::dataReceivedTcp(Ptr<Socket> sock){
                              }
 
                              nameLeft = false;
+
                              message->messageReceivedClient(messageName);
+
                              dataLeft = false;
                              bytesLeftToRead = 0;
                              messageNamePart.assign("");
@@ -538,10 +542,9 @@ void ClientDataGenerator::dataReceivedUdp(Ptr<Socket> sock){
     uint16_t bufferSize = 0;
 
     bufferSize = sock->GetRxAvailable();
+
     buffer = (uint8_t*)calloc(bufferSize, sizeof(uint8_t));
-
     sock->RecvFrom(buffer, bufferSize, 0, addr);
-
     readReceivedData(buffer, bufferSize, addr);
 
     free(buffer);
@@ -559,6 +562,7 @@ void ClientDataGenerator::readReceivedData(uint8_t* buffer, uint16_t bufferSize,
         while(bytesRead < bufferSize){
 
             if((retVal = readMessageName(messageName, buffer + bytesRead, bufferSize-bytesRead)) == READ_SUCCESS){
+
                 for(std::vector<Message*>::iterator it = messages.begin(); it != messages.end(); it++){
                     if(messageName.compare(0, (*it)->getName().length(), (*it)->getName()) == 0 && messageName[(*it)->getName().length()] == ':'){
                         message = (*it);
@@ -580,8 +584,8 @@ void ClientDataGenerator::readReceivedData(uint8_t* buffer, uint16_t bufferSize,
 
                 messageName.assign("");
             }
-            else if(retVal == NAME_CONTINUES){std::cout << messageName << std::endl;
-                PRINT_ERROR("This should never happen!" << std::endl);sleep(10);
+            else if(retVal == NAME_CONTINUES){
+                PRINT_ERROR("This should never happen!" << std::endl);
             }
             else if(retVal == READ_FAILED){
                 PRINT_ERROR("This should never happen, check message names!" << std::endl);
@@ -597,9 +601,18 @@ void ClientDataGenerator::moreBufferSpaceAvailable(Ptr<Socket> sock, uint32_t si
 
 bool ClientDataGenerator::sendData(Message *msg, uint8_t* buffer){
 
-    if(running)
-        if(!sender.sendTo(immediateSend, buffer, msg, peerAddr, false, true, socket))
-            return false;
+    if(running){
+
+        if(this->proto == TCP_NAGLE_DISABLED || this->proto == TCP_NAGLE_ENABLED){
+                if(!sender.send(immediateSend, buffer, msg, socket, false, true))
+                    return false;
+
+        }else if(this->proto == UDP){
+            if(!sender.sendTo(immediateSend, buffer, msg, peerAddr, false, true, socket))
+                return false;
+            }
+    }
+
 
     return true;
 }
@@ -856,8 +869,9 @@ void ServerDataGenerator::dataReceivedTcp(Ptr<Socket> sock){
                     client->bytesLeftToRead = 0;
                     bytesRead = bufferSize;
                 }
-                else if(retVal == READ_FAILED)
+                else if(retVal == READ_FAILED){
                     PRINT_ERROR("This should never happen, check message names!" << std::endl);
+                }
             }
         }
     }
@@ -927,6 +941,7 @@ void ServerDataGenerator::readReceivedData(uint8_t *buffer, uint16_t bufferSize,
                 }
 
                 udpMessages.push_back(std::make_pair<Address, std::pair<std::string, Message*> >(Address(clientAddr), std::make_pair<std::string, Message*>(messageName, message)));
+
                 message->messageReceivedServer(messageName);
 
                 messageName.assign("");
