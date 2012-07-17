@@ -43,6 +43,7 @@ class StatisticsCollector{
         uint32_t serverTimeRequirement;
         uint16_t numberOfClientsForwarded;
         uint16_t messageNameIndex;
+
     };
 
 public:

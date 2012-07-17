@@ -564,12 +564,7 @@ bool XMLParser::parseMessages(std::string &messagesElement, std::vector<Message*
                                                    forwardBack.compare("no") == 0 ? false : true,ranvar));
         }
 
-        else if(type.compare("mm") == 0){
-
-           messages.push_back(new MaintenanceMessage(name, reliable.compare("no") == 0 ? false : true, timeInterval, size, stream_number, forwardSize,
-                                                     forwardBack.compare("no") == 0 ? false : true,ranvar));
-
-        }else{
+        else{
             PRINT_ERROR("Unknown message type: " << type <<std::endl);
             return false;
         }

@@ -359,7 +359,7 @@ void ClientDataGenerator::StartApplication(){
     socket->SetSendCallback(MakeCallback(&ClientDataGenerator::moreBufferSpaceAvailable, this));
 
     for(std::vector<Message*>::iterator it = messages.begin(); it != messages.end(); it++){
-        if((*it)->getType() == USER_ACTION || (*it)->getType() == MAINTENANCE){
+        if((*it)->getType() == USER_ACTION){
             (*it)->scheduleSendEvent(MakeCallback(&ClientDataGenerator::sendData, this));
         }
     }
@@ -989,10 +989,6 @@ void ServerDataGenerator::forwardData(){
                         if((*messages).second.second->getType() == USER_ACTION){
                             sendToRandomClients(*messages);
                         }
-                        else if((*messages).second.second->getType() == MAINTENANCE && (*messages).second.second->doForwardBack()){
-                            sendBackToSender(messages->second.second, this->peerAddr/*this is not needed over TCP*/, (*it)->clientSocket,  messages->second.first, false);
-                        }
-
                     }
                     (*it)->messageBuffer.clear();
                 }
@@ -1005,11 +1001,6 @@ void ServerDataGenerator::forwardData(){
                     if((*it).second.second->getType() == USER_ACTION){
                         sendToRandomClients(*it);
                     }
-                    else if((*it).second.second->getType() == MAINTENANCE && (*it).second.second->doForwardBack()){
-                        sendBackToSender(it->second.second, it->first, this->socket,  it->second.first, false);
-
-                    }
-
                 }
                 udpMessages.clear();
 

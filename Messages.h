@@ -25,7 +25,7 @@
 
 class DataGenerator;
 
-enum MessageType{USER_ACTION, OTHER_DATA, MAINTENANCE};
+enum MessageType{USER_ACTION, OTHER_DATA};
 
 class Message{
 
@@ -133,7 +133,6 @@ private:
     void sendData();
     void printStats(std::ostream& out, const Message& msg) const;
 
-    static uint32_t messageInstanceCounter;  //holds the count of messages sent into wire
 };
 
 class OtherDataMessage : public Message{
@@ -158,26 +157,6 @@ private:
 };
 
 
-class MaintenanceMessage : public Message{
-
-    friend class XMLParser;
-
-public:
-    ~MaintenanceMessage();
-    void scheduleSendEvent(Callback<bool, Message*, uint8_t*>);
-    Message* copyMessage();
-    void messageReceivedServer(std::string& messageName);
-    void messageReceivedClient(std::string& messageName);
-
-private:
-    MaintenanceMessage(std::string name, bool reliable, int timeInterval, uint16_t messageSize, uint16_t streamNumber, uint16_t forwardSize, bool forwardBack, RandomVariable* ranvar = 0);
-
-    void sendData();
-    void printStats(std::ostream& out, const Message& msg)const;
-
-};
-
-
 //Class Message function definitions
 
 uint16_t Message::messagesCreated = 0;
@@ -186,6 +165,12 @@ std::map< std::string, uint16_t, Message::StringComparator> Message::messageName
 Message::Message(std::string name, bool reliable, int timeInterval, uint16_t size, uint16_t streamNumber, uint16_t forwardSize, bool forwardBack, RandomVariable* ranvar)
     : name(name), reliable(reliable), timeInterval(timeInterval), messageSize(size), streamNumber(streamNumber), ranvar(ranvar), forwardSize(forwardSize), forwardBack(forwardBack){
 
+    StatisticsCollector::fnptr = &getMessageIndexName; //this has to be done to avoid problems with includes when static functions are called from both files
+
+    if(messageNameMap.find(name) == messageNameMap.end()){
+        messageNameMap.insert(std::make_pair<std::string, uint16_t>(name, messageNameMap.size()));   //every message name has an unique index
+        StatisticsCollector::uamCount++;
+    }
 }
 
 Message::Message(const Message &msg): name(msg.getName()), reliable(msg.getReliable()), timeInterval(msg.getTimeInterval()), messageSize(msg.getMessageSize()),
@@ -220,10 +205,9 @@ void Message::fillMessageContents(char *buffer, int number, std::string* msgName
         strcat(buffer, name.c_str());
         strcat(buffer, ":");
 
-        if(this->type == USER_ACTION){
-            str << number;
-            strcat(buffer, str.str().c_str());
-        }
+        str << number;
+        strcat(buffer, str.str().c_str());
+
     }else{
         strcat(buffer, msgName->c_str());
     }
@@ -274,22 +258,12 @@ int Message::newMessageNumber(uint16_t streamnumber){
 
 //Class UserActionMessage function definitions
 
-uint32_t UserActionMessage::messageInstanceCounter = 0;
-
 UserActionMessage::UserActionMessage(std::string name, bool reliable, int timeInterval, uint16_t messageSize, double clientsOfInterest,
                                      uint32_t clientRequirement,  uint32_t serverRequirement, uint16_t streamNumber, uint16_t forwardSize, bool forwardBack, RandomVariable* ranvar)
     :Message(name, reliable, timeInterval, messageSize, streamNumber, forwardSize, forwardBack, ranvar), clientsOfInterest(clientsOfInterest),
       clientTimeRequirement(clientRequirement), serverTimeRequirement(serverRequirement){
 
     type = USER_ACTION;
-
-    StatisticsCollector::fnptr = &getMessageIndexName; //this has to be done to avoid problems with includes when static functions are called from both files
-
-    if(messageNameMap.find(name) == messageNameMap.end()){
-        messageNameMap.insert(std::make_pair<std::string, uint16_t>(name, messageNameMap.size()));   //every message name has an unique index
-        StatisticsCollector::uamCount++;
-    }
-
 }
 
 UserActionMessage::~UserActionMessage(){
@@ -453,87 +427,6 @@ void OtherDataMessage::messageReceivedServer(std::string& messageName){
 }
 
 void OtherDataMessage::messageReceivedClient(std::string& messageName){
-
-}
-
-
-//Class MaintenanceMessage function definitions
-
-
-MaintenanceMessage::MaintenanceMessage(std::string name, bool reliable, int timeInterval, uint16_t messageSize, uint16_t streamNumber, uint16_t forwardSize, bool forwardBack, RandomVariable* ranvar)
-    : Message(name, reliable, timeInterval, messageSize, streamNumber, forwardSize, forwardBack, ranvar){
-
-    type = MAINTENANCE;
-
-}
-
-MaintenanceMessage::~MaintenanceMessage(){
-
-
-}
-
-void MaintenanceMessage::scheduleSendEvent(Callback<bool, Message*, uint8_t*> function){
-
-    int interval = 0;
-
-    this->sendFunction = function;
-    running = true;
-
-    if(ranvar != 0){
-        interval = ranvar->GetInteger();
-        if(interval <= 0)
-            interval = 1;
-    }
-
-    if(ranvar == 0)
-        sendEvent = Simulator::Schedule(Time(MilliSeconds(timeInterval)), &MaintenanceMessage::sendData, this);
-    else
-        sendEvent = Simulator::Schedule(Time(MilliSeconds(interval)), &MaintenanceMessage::sendData, this);
-}
-
-void MaintenanceMessage::sendData(){
-
-    char buffer[30] = "";
-    static int interval = 0;
-    fillMessageContents(buffer);
-
-    if(ranvar != 0){
-        interval = ranvar->GetInteger();
-        if(interval <= 0)
-            interval = 1;
-    }
-
-    if(!sendFunction(this, (uint8_t*)buffer))
-        PRINT_ERROR("Problems with socket buffer" << std::endl);   //TODO: socket buffer
-
-    if(running){
-        if(ranvar == 0)
-            sendEvent = Simulator::Schedule(Time(MilliSeconds(timeInterval)), &MaintenanceMessage::sendData, this);
-        else
-            sendEvent = Simulator::Schedule(Time(MilliSeconds(interval)), &MaintenanceMessage::sendData, this);
-    }
-
-}
-
-Message* MaintenanceMessage::copyMessage(){
-
-    Message *msg;
-    msg = new MaintenanceMessage(*this);
-    return msg;
-}
-
-void MaintenanceMessage::printStats(std::ostream &out, const Message &msg) const{
-
-    out << "MaintenanceMessage  " << "  ID:" << messageID << "  Name: " << name << "  Reliable: " << (reliable == true ? "yes" : "no")
-        << "  Size: " << messageSize << " TimeInterval: " <<  timeInterval;
-
-}
-
-void MaintenanceMessage::messageReceivedServer(std::string& messageName){
-
-}
-
-void MaintenanceMessage::messageReceivedClient(std::string& messageName){
 
 }
 
