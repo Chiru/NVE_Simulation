@@ -528,12 +528,15 @@ bool XMLParser::parseMessages(std::string &messagesElement, std::vector<Message*
             PRINT_ERROR( "TimeInterval value must be either more than 0 or distribution must be specified." << std::endl);
             return false;
         }
+
+        if(!readValue<int>(messageElement, "timerequirementclient", clientTimeRequirement, 0)){
+            PRINT_ERROR( "Error in message timerequirementclient specification." << std::endl);
+            return false;
+        }
+
         if(type.compare("uam") == 0){
 
-            if(!readValue<int>(messageElement, "timerequirementclient", clientTimeRequirement, 0)){
-                PRINT_ERROR( "Error in message timerequirementclient specification." << std::endl);
-                return false;
-            }
+
             if(!readValue<int>(messageElement, "timerequirementserver", serverTimeRequirement, 0)){
                 PRINT_ERROR( "Error in message timerequirementserver specification." << std::endl);
                 return false;
@@ -560,8 +563,13 @@ bool XMLParser::parseMessages(std::string &messagesElement, std::vector<Message*
 
         else if(type.compare("odt") == 0){
 
+            if(clientTimeRequirement <= 0){
+                PRINT_ERROR( "TimeRequirement must be more than 0." << std::endl);
+                return false;
+            }
+
            messages.push_back(new OtherDataMessage(name, reliable.compare("no") == 0 ? false : true, timeInterval, size, stream_number, forwardSize,
-                                                   forwardBack.compare("no") == 0 ? false : true,ranvar));
+                                                   forwardBack.compare("no") == 0 ? false : true, clientTimeRequirement, ranvar));
         }
 
         else{

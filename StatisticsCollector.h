@@ -55,18 +55,21 @@ public:
     static bool getServerLog() {return serverLog;}
     void addFlowMonitor(Ptr<FlowMonitor> flowMon, FlowMonitorHelper& helper);
     static StatisticsCollector* createStatisticsCollector(bool, bool, bool, uint16_t, int);
-    static void logMessagesSendFromClient(int messageNumber, Time, uint16_t streamNumber, uint32_t clientTimeRequirement, uint32_t serverTimeRequirement,
+    static void logMessagesSentFromClient(int messageNumber, Time, uint16_t streamNumber, uint32_t clientTimeRequirement, uint32_t serverTimeRequirement,
                                           uint16_t messageNameIndex, uint16_t messageId);//log times when user action messages are sent
-    static void logMessageReceivedByServer(int messageNumber, Time, uint16_t streamNumber);    //log times when user action messages are received by the server
-    static void logMessageReceivedByClient(int messageNumber, Time, uint16_t streamNumber);    //log times when user action messages are finally forwarded to other clients
+    static void logUserActionMessageReceivedByServer(int messageNumber, Time, uint16_t streamNumber);    //log times when user action messages are received by the server
+    static void logUserActionMessageReceivedByClient(int messageNumber, Time, uint16_t streamNumber);    //log times when user action messages are finally forwarded to other clients
+    static void logServerMessageReceivedByClient(int messageNumber, Time, uint16_t streamNumber);        //log times when server messages reach client
     static void logMessageForwardedByServer(int messageNumber, uint16_t streamNumber); //counts the messages forwarded to clients
+    static void logMessagesSentFromServer(int messageNumber, Time, uint16_t streamNumber, uint32_t clientTimeRequirement, uint16_t messageNameIndex, uint16_t messageId);
     static uint16_t uamCount;
 
 private:
     StatisticsCollector(bool, bool, bool, uint16_t, int);
-    void getStreamResults(std::vector<StatisticsCollector::MessageStats*>& stats, uint16_t streamNumber, Time& clientTimeResult, Time& serverTimeResult, uint32_t& clientMsgCount,
-                          uint32_t& serverMsgCount, uint32_t& totalMessagesFromServer, uint32_t& toServerInTime, uint32_t& toClientInTime, std::list<int64_t>& clientToServerTimes,
-                          std::list<int64_t>& clientToClientTimes);
+    void getStreamResults(std::vector<StatisticsCollector::MessageStats*>& clientStats, std::vector<StatisticsCollector::MessageStats*>& serverStats, uint16_t streamNumber, Time& clientToClientTimeResult,
+                          Time& clientToServerTimeResult, Time& serverToClientTimeResult, uint32_t& clientToClientMsgCount,
+                          uint32_t& serverMsgCount, uint32_t& fromServerToClientCount, uint32_t& forwardedCount, uint32_t& toServerInTime, uint32_t& formClientToClientInTime, uint32_t& fromServerToClientInTime,
+                          std::list<int64_t>& clientToServerTimes,  std::list<int64_t>& clientToClientTimes, std::list<int64_t>& serverToClientTimes);
     void getBandwidthResults();
     void getMessageStats(uint16_t streamNumber);
 
@@ -82,7 +85,8 @@ private:
     static bool clientLog;
     static bool serverLog;
     static bool collectorCreated;
-    static std::vector<MessageStats*> *messageLog;
+    static std::vector<MessageStats*> *userActionMessageLog;
+    static std::vector<MessageStats*> *serverMessageLog;
 
 };
 
@@ -93,7 +97,8 @@ bool StatisticsCollector::collectorCreated = false;
 bool StatisticsCollector::verbose = false;
 bool StatisticsCollector::clientLog = false;
 bool StatisticsCollector::serverLog = false;
-std::vector<StatisticsCollector::MessageStats*>* StatisticsCollector::messageLog;
+std::vector<StatisticsCollector::MessageStats*>* StatisticsCollector::userActionMessageLog;
+std::vector <StatisticsCollector::MessageStats*>* StatisticsCollector::serverMessageLog;
 std::string&(*StatisticsCollector::fnptr)(uint16_t) = 0;
 uint16_t StatisticsCollector::uamCount = 0;
 
@@ -115,15 +120,17 @@ StatisticsCollector::StatisticsCollector(bool verbose, bool clientLog, bool serv
     StatisticsCollector::clientLog = clientLog;
     StatisticsCollector::serverLog = serverLog;
 
-    messageLog = new std::vector<StatisticsCollector::MessageStats*>[numberOfStreams];
+    userActionMessageLog = new std::vector<StatisticsCollector::MessageStats*>[numberOfStreams];
+    serverMessageLog = new std::vector<StatisticsCollector::MessageStats*>[numberOfStreams];
+
     scriptGen = new RScriptGenerator(scriptSourceFile, scriptResultFile);
 
 }
 
 StatisticsCollector::~StatisticsCollector(){
 
-    uint32_t clientMsgCount = 0, serverMsgCount = 0;
-    uint32_t toServerInTime = 0, toClientInTime = 0;
+    uint32_t clientToClientMsgCount = 0, serverMsgCount = 0, serverToClientMsgCount = 0;
+    uint32_t toServerInTime = 0, fromClientToClientInTime = 0, fromServerToClientInTime = 0;
     double averageServerInTime = 0, averageClientInTime = 0;
     uint64_t timeInMilliseconds = 0;
     uint32_t totalMessagesFromServer = 0;
@@ -131,12 +138,14 @@ StatisticsCollector::~StatisticsCollector(){
     Time averageClientToClient("0ms");
     Time singleStreamClientToServer("0ms");
     Time singleStreamClientToClient("0ms");
+    Time singleStreamServerToClient("0ms");
     std::list<int64_t> clientToClientTimes[streamCount];
     std::list<int64_t> clientToServerTimes[streamCount];
+    std::list<int64_t> serverToClientTimes[streamCount];
 
     for(int h = 0; h < streamCount; h++){
-        getStreamResults(messageLog[h], h+1, singleStreamClientToClient, singleStreamClientToServer, clientMsgCount, serverMsgCount, totalMessagesFromServer, toServerInTime, toClientInTime,
-                         clientToServerTimes[h], clientToClientTimes[h]);//TODO: remove 2 last parameters?
+        getStreamResults(userActionMessageLog[h], serverMessageLog[h], h+1, singleStreamClientToClient, singleStreamClientToServer,singleStreamServerToClient, clientToClientMsgCount, serverMsgCount,
+                         serverToClientMsgCount, totalMessagesFromServer, toServerInTime, fromClientToClientInTime, fromServerToClientInTime, clientToServerTimes[h], clientToClientTimes[h], serverToClientTimes[h]);
         averageClientToServer += singleStreamClientToServer;
         if(!singleStreamClientToServer.IsZero()){
                singleStreamClientToServer = Time::FromInteger(0, Time::MS);
@@ -159,19 +168,24 @@ StatisticsCollector::~StatisticsCollector(){
     }else
         averageClientToServer = Time::FromInteger(0, Time::MS);
 
-    if(clientMsgCount != 0){
+    if(clientToClientMsgCount != 0){
         timeInMilliseconds = averageClientToClient.ToInteger(Time::MS);
-        timeInMilliseconds /= clientMsgCount;
+        timeInMilliseconds /= clientToClientMsgCount;
         averageClientToClient = Time::FromInteger(timeInMilliseconds, Time::MS);
-        averageClientInTime = static_cast<double>(toClientInTime)/static_cast<double>(totalMessagesFromServer);
+        averageClientInTime = static_cast<double>(fromClientToClientInTime)/static_cast<double>(totalMessagesFromServer);
     }else
         averageClientToClient = Time::FromInteger(0, Time::MS);
 
     for(int h = 0; h < streamCount; h++){
-        for(std::vector<MessageStats*>::iterator it = messageLog[h].begin(); it != messageLog[h].end(); it++){
+        for(std::vector<MessageStats*>::iterator it = userActionMessageLog[h].begin(); it != userActionMessageLog[h].end(); it++){
+            delete *it;
+        }
+
+        for(std::vector<MessageStats*>::iterator it = serverMessageLog[h].begin(); it != serverMessageLog[h].end(); it++){
             delete *it;
         }
     }
+
 
     PRINT_RESULT("Overall stats: "  <<"\n\tAverage transmit times   clientToServer: " <<  averageClientToServer.GetMilliSeconds() << "   clientToClient: "
                  << averageClientToClient.GetMilliSeconds() << "  (in milliseconds)" <<  "\n\tAverage percentage of messages to reach server in time:" <<  averageServerInTime
@@ -184,131 +198,187 @@ StatisticsCollector::~StatisticsCollector(){
     else
         PRINT_RESULT(std::endl << "Could not generate a result file for graphs." << std::endl);
 
-    delete[] messageLog;
+    delete[] userActionMessageLog;
+    delete[] serverMessageLog;
     delete scriptGen;
 
 }
 
-void StatisticsCollector::logMessageReceivedByClient(int messageNumber, Time recvTime, uint16_t streamNumber){
-    messageLog[streamNumber-1].at(messageNumber)->clientRecvTimes.push_back(recvTime);
+void StatisticsCollector::logUserActionMessageReceivedByClient(int messageNumber, Time recvTime, uint16_t streamNumber){
+    userActionMessageLog[streamNumber-1].at(messageNumber)->clientRecvTimes.push_back(recvTime);
 }
 
-void StatisticsCollector::logMessageReceivedByServer(int messageNumber, Time recvTime, uint16_t streamNumber){
-    messageLog[streamNumber-1].at(messageNumber)->serverRecvTime = recvTime;
+void StatisticsCollector::logServerMessageReceivedByClient(int messageNumber, Time recvTime, uint16_t streamNumber){
+    serverMessageLog[streamNumber - 1].at(messageNumber)->clientRecvTimes.push_back(recvTime);
 }
 
-void StatisticsCollector::logMessagesSendFromClient(int messageNumber, Time sendTime, uint16_t streamNumber, uint32_t clientTimeRequirement, uint32_t serverTimeRequirement, uint16_t nameIndex,
+void StatisticsCollector::logUserActionMessageReceivedByServer(int messageNumber, Time recvTime, uint16_t streamNumber){
+    userActionMessageLog[streamNumber-1].at(messageNumber)->serverRecvTime = recvTime;
+}
+
+void StatisticsCollector::logMessagesSentFromClient(int messageNumber, Time sendTime, uint16_t streamNumber, uint32_t clientTimeRequirement, uint32_t serverTimeRequirement, uint16_t nameIndex,
                                                     uint16_t messageId){
 
     static std::map<int, Time> lastTimes;
 
-    messageLog[streamNumber-1].push_back(new MessageStats(messageNumber, sendTime, clientTimeRequirement, serverTimeRequirement, nameIndex));
+    userActionMessageLog[streamNumber-1].push_back(new MessageStats(messageNumber, sendTime, clientTimeRequirement, serverTimeRequirement, nameIndex));
                                                 //messageNumber is the same as the index of MessageStats in messageLog because they are sent in order
 
     if(!lastTimes.count(messageId)){
-        messageLog[streamNumber-1].back()->sendTimeInterval = sendTime;
+        userActionMessageLog[streamNumber-1].back()->sendTimeInterval = sendTime;
         lastTimes.insert(std::make_pair<int, Time>(messageId, sendTime));
     }
     else{
-        messageLog[streamNumber-1].back()->sendTimeInterval = sendTime - lastTimes[messageId];
+        userActionMessageLog[streamNumber-1].back()->sendTimeInterval = sendTime - lastTimes[messageId];
         lastTimes[messageId] = sendTime;
     }
 }
 
-void StatisticsCollector::logMessageForwardedByServer(int messageNumber, uint16_t streamNumber){
-    messageLog[streamNumber-1].at(messageNumber)->numberOfClientsForwarded++;
+void StatisticsCollector::logMessagesSentFromServer(int messageNumber, Time sendTime, uint16_t streamNumber, uint32_t clientTimeRequirement, uint16_t messageNameIndex, uint16_t messageId){
+
+    static std::map<int, Time> lastTimes;
+
+    serverMessageLog[streamNumber - 1].push_back(new MessageStats(messageNumber, sendTime, clientTimeRequirement, 0, messageNameIndex));
+
+    if(!lastTimes.count(messageId)){
+        serverMessageLog[streamNumber - 1].back()->sendTimeInterval = sendTime;
+        lastTimes.insert(std::make_pair<int, Time>(messageId, sendTime));
+    }
+    else{
+        serverMessageLog[streamNumber-1].back()->sendTimeInterval = sendTime - lastTimes[messageId];
+        lastTimes[messageId] = sendTime;
+    }
 }
 
-void StatisticsCollector::getStreamResults(std::vector<StatisticsCollector::MessageStats*>& stats, uint16_t streamnumber, Time& clientTimeResult, Time& serverTimeResult,
-                                           uint32_t& clientMsgCount, uint32_t& serverMsgCount, uint32_t& totalMessagesFromServer, uint32_t& toServerInTime, uint32_t& toClientInTime,
-                                           std::list<int64_t>& clientToServerTimes, std::list<int64_t>& clientToClientTimes){
 
-    uint32_t tempClientMsgCount = 0, tempServerMsgCount = 0;
-    uint32_t tempServerInTime = 0, tempClientInTime = 0;
+void StatisticsCollector::logMessageForwardedByServer(int messageNumber, uint16_t streamNumber){
+    userActionMessageLog[streamNumber-1].at(messageNumber)->numberOfClientsForwarded++;
+}
+
+void StatisticsCollector::getStreamResults(std::vector<StatisticsCollector::MessageStats*>& clientStats, std::vector<StatisticsCollector::MessageStats*>& serverStats,
+                                           uint16_t streamnumber, Time& clientToClientTimeResult, Time& clientToServerTimeResult, Time& serverToClientTimeResult, uint32_t& clientToClientMsgCount,
+                                           uint32_t& serverMsgCount, uint32_t& serverToClientMsgCount, uint32_t& forwardedCount, uint32_t& toServerInTime, uint32_t& fromClientToClientInTime,
+                                           uint32_t& fromServerToClientInTime,std::list<int64_t>& clientToServerTimes, std::list<int64_t>& clientToClientTimes, std::list<int64_t>& serverToClientTimes){
+
+    uint32_t tempClientToClientMsgCount = 0, tempServerMsgCount = 0, tempServerToClientMsgCount = 0;
+    uint32_t tempServerInTime = 0, tempClientToClientInTime = 0, tempServerToClientInTime = 0;
     uint64_t timeInMilliseconds = 0;
-    uint32_t messagesSentFromClient = stats.size();
-    uint32_t messagesSentFromServer = 0;
-    double clientPercentage = 0, serverPercentage = 0;
+    uint32_t messagesSentFromClient = clientStats.size();
+    uint32_t messagesSentFromServer = serverStats.size();
+    uint32_t messagesForwardedFromServer = 0;
+    double clientToClientPercentage = 0, clientToServerPercentage = 0, serverToClientPercentage = 0;
     std::list<Time>::const_iterator timeIter;
-    Time clientStreamTime("0ms");
+    Time clientToClientStreamTime("0ms");
     Time serverStreamTime("0ms");
+    Time serverToClientStreamTime("0ms");
 
-    for(std::vector<StatisticsCollector::MessageStats*>::iterator it = stats.begin(); it != stats.end(); it++){
+    for(std::vector<StatisticsCollector::MessageStats*>::iterator it = clientStats.begin(); it != clientStats.end(); it++){
         for(timeIter = (*it)->clientRecvTimes.begin(); timeIter != (*it)->clientRecvTimes.end(); timeIter++){
             if(!(*timeIter).IsZero()){
-                clientTimeResult += ((*timeIter) - (*it)->sendTime);
+                clientToClientTimeResult += ((*timeIter) - (*it)->sendTime);
                 clientToClientTimes.push_back(((*timeIter) - (*it)->sendTime).GetMilliSeconds());
                 if(((*timeIter) - (*it)->sendTime).GetMilliSeconds() <= (*it)->clientTimeRequirement)
-                    tempClientInTime++;
+                    tempClientToClientInTime++;
 
-                tempClientMsgCount++;
+                tempClientToClientMsgCount++;
             }
         }
         tempServerMsgCount++;
         if(!(*it)->serverRecvTime.IsZero()){     
-            serverTimeResult += ((*it)->serverRecvTime - (*it)->sendTime);
+            clientToServerTimeResult += ((*it)->serverRecvTime - (*it)->sendTime);
             clientToServerTimes.push_back(((*it)->serverRecvTime - (*it)->sendTime).GetMilliSeconds());
             if(((*it)->serverRecvTime - (*it)->sendTime).GetMilliSeconds() <= (*it)->serverTimeRequirement)
                 tempServerInTime++;
         }
 
-        messagesSentFromServer += (*it)->numberOfClientsForwarded;
+        messagesForwardedFromServer += (*it)->numberOfClientsForwarded;
     }
 
-    if(tempClientMsgCount != 0){
-        timeInMilliseconds = clientTimeResult.ToInteger(Time::MS);
-        timeInMilliseconds /= tempClientMsgCount;
-        clientStreamTime = Time::FromInteger(timeInMilliseconds, Time::MS);
+    for(std::vector<StatisticsCollector::MessageStats*>::iterator it = serverStats.begin(); it != serverStats.end(); it++, tempServerToClientMsgCount++){
+        if(!((*it)->clientRecvTimes.front().IsZero())){
+            serverToClientTimeResult += ((*it)->clientRecvTimes.front() - (*it)->sendTime);
+            serverToClientTimes.push_back(((*it)->clientRecvTimes.front() - (*it)->sendTime).GetMilliSeconds());
+            if(((*it)->sendTime).GetMilliSeconds() <= (*it)->clientTimeRequirement)
+                tempServerToClientInTime++;
+        }
+
+        messagesSentFromServer++;
+
+    }
+
+    if(tempClientToClientMsgCount != 0){
+        timeInMilliseconds = clientToClientTimeResult.ToInteger(Time::MS);
+        timeInMilliseconds /= tempClientToClientMsgCount;
+        clientToClientStreamTime = Time::FromInteger(timeInMilliseconds, Time::MS);
     }else
-        clientStreamTime =  Time::FromInteger(0, Time::MS);
+        clientToClientStreamTime =  Time::FromInteger(0, Time::MS);
 
     if(tempServerMsgCount != 0){
-        timeInMilliseconds = serverTimeResult.ToInteger(Time::MS);
+        timeInMilliseconds = clientToServerTimeResult.ToInteger(Time::MS);
         timeInMilliseconds /= tempServerMsgCount;
         serverStreamTime = Time::FromInteger(timeInMilliseconds, Time::MS);
     }else
         serverStreamTime = Time::FromInteger(0, Time::MS);
 
-    clientMsgCount += tempClientMsgCount;
-    serverMsgCount += tempServerMsgCount;
-    toServerInTime += tempServerInTime;
-    toClientInTime += tempClientInTime;
-    totalMessagesFromServer += messagesSentFromServer;
+    if(tempServerToClientMsgCount != 0){
+        timeInMilliseconds = serverToClientTimeResult.ToInteger((Time::MS));
+        timeInMilliseconds /= tempServerToClientMsgCount;
+        serverToClientStreamTime = Time::FromInteger(timeInMilliseconds, Time::MS);
+    }else
+        serverToClientStreamTime = Time::FromInteger(0, Time::MS);
 
-    if(messagesSentFromServer != 0)
-        clientPercentage = static_cast<double>(tempClientInTime) / static_cast<double>(messagesSentFromServer);
+    clientToClientMsgCount += tempClientToClientMsgCount;
+    serverMsgCount += tempServerMsgCount;
+    serverToClientMsgCount += tempServerMsgCount;
+    toServerInTime += tempServerInTime;
+    fromClientToClientInTime += tempClientToClientInTime;
+    fromServerToClientInTime += tempServerToClientInTime;
+    forwardedCount += messagesForwardedFromServer;
+
+
+    if(messagesForwardedFromServer != 0)
+        clientToClientPercentage = static_cast<double>(tempClientToClientInTime) / static_cast<double>(messagesForwardedFromServer);
     else
-        clientPercentage = -1;
+        clientToClientPercentage = -1;
 
     if(messagesSentFromClient != 0)
-        serverPercentage = static_cast<double>(tempServerInTime) / static_cast<double>(messagesSentFromClient);
+        clientToServerPercentage = static_cast<double>(tempServerInTime) / static_cast<double>(messagesSentFromClient);
     else
-        serverPercentage = -1;
+        clientToServerPercentage = -1;
+
+    if(messagesSentFromServer != 0)
+        serverToClientPercentage = static_cast<double>(fromServerToClientInTime) / static_cast<double>(messagesSentFromServer);
 
     PRINT_RESULT("Average transmit times for stream number: " << streamnumber << std::endl);
     PRINT_RESULT("\tclientToServer: ");
-    if(serverPercentage == -1)
+    if(clientToServerPercentage == -1)
         PRINT_RESULT("N/A" << std::endl);
     else
         PRINT_RESULT(serverStreamTime.GetMilliSeconds() << std::endl);
 
     PRINT_RESULT("\tclientToClient: ");
-    if(clientPercentage == -1)
+    if(clientToClientPercentage == -1)
         PRINT_RESULT("N/A" << std::endl);
     else
-        PRINT_RESULT(clientStreamTime.GetMilliSeconds() << std::endl);
+        PRINT_RESULT(clientToClientStreamTime.GetMilliSeconds() << std::endl);
+
+    PRINT_RESULT("\tserverToClient: ");
+    if(serverToClientPercentage == -1)
+        PRINT_RESULT("N/A" << std::endl);
+    else
+        PRINT_RESULT(serverToClientStreamTime.GetMilliSeconds() << std::endl);
 
     PRINT_RESULT("\tPercentage of packets to reach server in time: ");
-    if(serverPercentage == -1)
+    if(clientToServerPercentage == -1)
         PRINT_RESULT("N/A" << std::endl);
     else
-        PRINT_RESULT(serverPercentage << std::endl);
+        PRINT_RESULT(clientToServerPercentage << std::endl);
 
     PRINT_RESULT("\tPercentage of packets to reach client in time: ");
-    if(clientPercentage == -1)
+    if(clientToClientPercentage == -1)
         PRINT_RESULT("N/A" << std::endl);
     else
-        PRINT_RESULT(clientPercentage << std::endl);
+        PRINT_RESULT(clientToClientPercentage << std::endl);
 }
 
 void StatisticsCollector::addFlowMonitor(Ptr<FlowMonitor> flowMon, FlowMonitorHelper& helper){
@@ -380,7 +450,7 @@ void StatisticsCollector::getMessageStats(uint16_t streamNumber){
     std::pair<std::pair<std::string, int>, std::list<int> > messageRecvTimesForServer[uamCount];
     std::list<int> messageSendIntervals[uamCount];
 
-        for(std::vector<MessageStats*>::iterator it = messageLog[streamNumber].begin(); it != messageLog[streamNumber].end(); it++){
+        for(std::vector<MessageStats*>::iterator it = userActionMessageLog[streamNumber].begin(); it != userActionMessageLog[streamNumber].end(); it++){
             messageRecvTimesForServer[(*it)->messageNameIndex].first.first =  fnptr((*it)->messageNameIndex);
             messageRecvTimesForClient[(*it)->messageNameIndex].first.first =  fnptr((*it)->messageNameIndex);
             messageRecvTimesForServer[(*it)->messageNameIndex].first.second = (*it)->serverTimeRequirement;

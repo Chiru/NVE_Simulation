@@ -282,6 +282,14 @@ void DataGenerator::sendBackToSender(const Message* msg, const Address& addr, co
 
         break;
     }
+
+    if(!isClient){
+        int messageId;
+        std::string name = msg->getName();
+        msg->parseMessageId(name, messageId);
+        StatisticsCollector::logMessageForwardedByServer(messageId, streamNumber);
+    }
+
 }
 
 
@@ -462,6 +470,9 @@ void ClientDataGenerator::dataReceivedTcp(Ptr<Socket> sock){
 
                              message->messageReceivedClient(messageName);
 
+                             if(message->getType() == OTHER_DATA && message->doForwardBack())
+                                 sendBackToSender(message, peerAddr, socket, messageName, true);
+
                              dataLeft = false;
                              bytesLeftToRead = 0;
                              messageNamePart.assign("");
@@ -512,6 +523,10 @@ void ClientDataGenerator::dataReceivedTcp(Ptr<Socket> sock){
                     }else{  //if we get here, the whole message has been read
                         bytesRead += messageSize;
                         message->messageReceivedClient(messageName);
+
+                        if(message->getType() == OTHER_DATA && message->doForwardBack())
+                            sendBackToSender(message, peerAddr, socket, messageName, true);
+
                         dataLeft = false;
                         bytesLeftToRead = 0;
                     }
@@ -986,9 +1001,10 @@ void ServerDataGenerator::forwardData(){
 
                 for(std::vector<ClientConnection*>::iterator it = clientConnections.begin(); it != clientConnections.end(); it++){
                     for(std::vector<std::pair<Ptr<Socket>, std::pair<std::string, Message*> > >::iterator messages = (*it)->messageBuffer.begin(); messages != (*it)->messageBuffer.end(); messages++){
-                        if((*messages).second.second->getType() == USER_ACTION){
-                            sendToRandomClients(*messages);
-                        }
+                        if(messages->second.second->doForwardBack() && messages->second.second->getType() == USER_ACTION)
+                            sendBackToSender(messages->second.second, peerAddr /*this is not really neede over TCP*/, messages->first, messages->second.first, false);
+
+                        sendToRandomClients(*messages);
                     }
                     (*it)->messageBuffer.clear();
                 }
@@ -998,9 +1014,11 @@ void ServerDataGenerator::forwardData(){
             case UDP:
 
                 for(std::vector<std::pair<Address, std::pair<std::string, Message*> > >::iterator it = udpMessages.begin(); it != udpMessages.end(); it++){
-                    if((*it).second.second->getType() == USER_ACTION){
-                        sendToRandomClients(*it);
-                    }
+                    if(it->second.second->doForwardBack() && it->second.second->getType() == USER_ACTION)
+                        sendBackToSender(it->second.second, it->first, socket, it->second.first, false);
+
+                    sendToRandomClients(*it);
+
                 }
                 udpMessages.clear();
 
@@ -1014,7 +1032,7 @@ void ServerDataGenerator::sendToRandomClients(std::pair<Ptr<Socket>, std::pair<s
     double clientsToSend = ((UserActionMessage*)msg.second.second)->getClientsOfInterest();
 
     for(std::vector<ClientConnection*>::iterator it = clientConnections.begin(); it != clientConnections.end(); it++){
-        if(msg.first == (*it)->clientSocket && !(msg.second.second->doForwardBack()))
+        if(msg.first == (*it)->clientSocket)
             continue;
 
         if(clientsToSend >= probability.GetValue()){
@@ -1028,7 +1046,7 @@ void ServerDataGenerator::sendToRandomClients(std::pair<Address, std::pair<std::
     double clientsToSend = ((UserActionMessage*)msg.second.second)->getClientsOfInterest();
 
     for(std::vector<Address*>::iterator it = udpClients.begin(); it != udpClients.end(); it++){
-        if((**it) == msg.first && !(msg.second.second->doForwardBack()))
+        if((**it) == msg.first)
             continue;
 
         if(clientsToSend >= probability.GetValue()){

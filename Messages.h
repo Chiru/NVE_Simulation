@@ -63,7 +63,7 @@ public:
     void fillMessageContents(char* buffer, int number = 0, std::string* msgName = NULL) const;
     virtual void messageReceivedServer(std::string& messageName) = 0;
     virtual void messageReceivedClient(std::string& messageName) = 0;
-    bool parseMessageId(std::string& messageName, int& resultId) const;
+    bool parseMessageId(const std::string& messageName, int& resultId) const;
     bool doForwardBack() const {return forwardBack;}
     uint16_t getForwardMessageSize() const {return forwardSize;}
 
@@ -104,7 +104,6 @@ public:
     bool forwardBack;
 
     static uint16_t messagesCreated;
-    static int newMessageNumber(uint16_t streamNumber);
 
 };
 
@@ -132,6 +131,7 @@ private:
     uint32_t serverTimeRequirement;  //time requirement for messages to reach server
     void sendData();
     void printStats(std::ostream& out, const Message& msg) const;
+    static int newMessageNumber(uint16_t streamNumber);
 
 };
 
@@ -149,10 +149,13 @@ public:
 
 
 private:
-    OtherDataMessage(std::string name, bool reliable, int timeInterval, uint16_t messageSize, uint16_t streamNumber, uint16_t forwardSize, bool forwardBack, RandomVariable* ranvar = 0);
+    OtherDataMessage(std::string name, bool reliable, int timeInterval, uint16_t messageSize, uint16_t streamNumber, uint16_t forwardSize, bool forwardBack, uint16_t timeReq, RandomVariable* ranvar = 0);
+
+    uint16_t clientTimeRequirement;
 
     void sendData();
     void printStats(std::ostream& out, const Message& msg)const;
+    static int newMessageNumber(uint16_t streamNumber);
 
 };
 
@@ -215,7 +218,7 @@ void Message::fillMessageContents(char *buffer, int number, std::string* msgName
     strcat(buffer, "\"");
 }
 
-bool Message::parseMessageId (std::string &messageName, int &resultId)const{
+bool Message::parseMessageId (const std::string &messageName, int &resultId)const{
 
     std::stringstream str;
 
@@ -228,7 +231,22 @@ bool Message::parseMessageId (std::string &messageName, int &resultId)const{
     return true;
 }
 
-int Message::newMessageNumber(uint16_t streamnumber){
+
+//Class UserActionMessage function definitions
+
+UserActionMessage::UserActionMessage(std::string name, bool reliable, int timeInterval, uint16_t messageSize, double clientsOfInterest,
+                                     uint32_t clientRequirement,  uint32_t serverRequirement, uint16_t streamNumber, uint16_t forwardSize, bool forwardBack, RandomVariable* ranvar)
+    :Message(name, reliable, timeInterval, messageSize, streamNumber, forwardSize, forwardBack, ranvar), clientsOfInterest(clientsOfInterest),
+      clientTimeRequirement(clientRequirement), serverTimeRequirement(serverRequirement){
+
+    type = USER_ACTION;
+}
+
+UserActionMessage::~UserActionMessage(){
+
+}
+
+int UserActionMessage::newMessageNumber(uint16_t streamnumber){
 
     static std::vector<std::pair<int, int> > messageNumbersForStreams;          //every stream has separate message numbers
     static std::vector<std::pair<int, int> >::iterator it;
@@ -253,21 +271,6 @@ int Message::newMessageNumber(uint16_t streamnumber){
     }
 
     return retVal;
-}
-
-
-//Class UserActionMessage function definitions
-
-UserActionMessage::UserActionMessage(std::string name, bool reliable, int timeInterval, uint16_t messageSize, double clientsOfInterest,
-                                     uint32_t clientRequirement,  uint32_t serverRequirement, uint16_t streamNumber, uint16_t forwardSize, bool forwardBack, RandomVariable* ranvar)
-    :Message(name, reliable, timeInterval, messageSize, streamNumber, forwardSize, forwardBack, ranvar), clientsOfInterest(clientsOfInterest),
-      clientTimeRequirement(clientRequirement), serverTimeRequirement(serverRequirement){
-
-    type = USER_ACTION;
-}
-
-UserActionMessage::~UserActionMessage(){
-
 }
 
 void UserActionMessage::scheduleSendEvent(Callback<bool, Message*, uint8_t*> sendFunction){
@@ -295,13 +298,13 @@ void UserActionMessage::sendData(){
     static Time sentTime;
     static int interval = 0;
 
-    int messageNumber = Message::newMessageNumber(streamNumber);
+    int messageNumber = UserActionMessage::newMessageNumber(streamNumber);
 
     fillMessageContents(buffer, messageNumber);
 
     sentTime = Simulator::Now();
 
-    StatisticsCollector::logMessagesSendFromClient(messageNumber, sentTime, streamNumber, clientTimeRequirement, serverTimeRequirement, Message::getMessageNameIndex(name), messageID);
+    StatisticsCollector::logMessagesSentFromClient(messageNumber, sentTime, streamNumber, clientTimeRequirement, serverTimeRequirement, Message::getMessageNameIndex(name), messageID);
 
     if(!sendFunction(this, (uint8_t*)buffer))
         PRINT_ERROR("Problems with socket buffer" << std::endl);   //TODO: socket buffer
@@ -342,7 +345,7 @@ void UserActionMessage::messageReceivedServer(std::string& messageName){
 
     int id = 0;
     parseMessageId(messageName, id);
-    StatisticsCollector::logMessageReceivedByServer(id, Simulator::Now(), streamNumber);
+    StatisticsCollector::logUserActionMessageReceivedByServer(id, Simulator::Now(), streamNumber);
 }
 
 void UserActionMessage::messageReceivedClient(std::string& messageName){
@@ -350,14 +353,15 @@ void UserActionMessage::messageReceivedClient(std::string& messageName){
     int id = 0;
     parseMessageId(messageName, id);
 
-    StatisticsCollector::logMessageReceivedByClient(id, Simulator::Now(), streamNumber);
+    StatisticsCollector::logUserActionMessageReceivedByClient(id, Simulator::Now(), streamNumber);
 }
 
 //Class OtherDataMessage function definitions
 
 
-OtherDataMessage::OtherDataMessage(std::string name, bool reliable, int timeInterval, uint16_t messageSize, uint16_t streamNumber, uint16_t forwardSize, bool forwardBack, RandomVariable* ranvar)
-    : Message(name, reliable, timeInterval, messageSize, streamNumber, forwardSize, forwardBack, ranvar){
+OtherDataMessage::OtherDataMessage(std::string name, bool reliable, int timeInterval, uint16_t messageSize, uint16_t streamNumber, uint16_t forwardSize,
+                                   bool forwardBack, uint16_t req, RandomVariable* ranvar)
+    : Message(name, reliable, timeInterval, messageSize, streamNumber, forwardSize, forwardBack, ranvar), clientTimeRequirement(req){
     type = OTHER_DATA;
 
 }
@@ -367,20 +371,55 @@ OtherDataMessage::~OtherDataMessage(){
 
 }
 
+int OtherDataMessage::newMessageNumber(uint16_t streamnumber){
+
+    static std::vector<std::pair<int, int> > messageNumbersForStreams;          //every stream has separate message numbers
+    static std::vector<std::pair<int, int> >::iterator it;
+    static std::pair<int, int>* temp;
+    bool exists = false;
+    int retVal;
+
+    for(it = messageNumbersForStreams.begin(); it != messageNumbersForStreams.end(); it++){
+        if(it->first == streamnumber){
+            exists = true;
+            temp = &(*it);
+            break;
+        }
+    }
+
+    if(!exists){
+        messageNumbersForStreams.push_back(std::make_pair<int, int>(streamnumber, 0));
+        retVal = 0;
+    }else{
+        temp->second++;
+        retVal = temp->second;
+    }
+
+    return retVal;
+}
+
 void OtherDataMessage::sendData(){
 
     char buffer[30] = "";
-    fillMessageContents(buffer);
+    static Time sentTime;
     static int interval = 0;
+
+    int messageNumber = OtherDataMessage::newMessageNumber(streamNumber);
+
+    fillMessageContents(buffer, messageNumber);
+
+    sentTime = Simulator::Now();
+
+    StatisticsCollector::logMessagesSentFromServer(messageNumber, sentTime, streamNumber, clientTimeRequirement, Message::getMessageNameIndex(name), messageID);
+
+    if(!sendFunction(this, (uint8_t*)buffer))
+        PRINT_ERROR("Problems with socket buffer" << std::endl);   //TODO: socket buffer
 
     if(ranvar != 0){
         interval = ranvar->GetInteger();
         if(interval <= 0)
             interval = 1;
     }
-
-    if(!sendFunction(this, (uint8_t*)buffer))
-        PRINT_ERROR("Problems with server socket sending buffer." << std::endl);
 
     if(running){
         if(ranvar == 0)
@@ -423,7 +462,7 @@ void OtherDataMessage::scheduleSendEvent(Callback<bool, Message*, uint8_t*> send
 }
 
 void OtherDataMessage::messageReceivedServer(std::string& messageName){
-
+    //do nothing, this is only forwarded back
 }
 
 void OtherDataMessage::messageReceivedClient(std::string& messageName){
