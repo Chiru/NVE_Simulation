@@ -16,8 +16,10 @@ class RScriptGenerator{
 public:
     RScriptGenerator(const std::string& filename, const std::string& resultFile);
     ~RScriptGenerator();
-    bool generateScriptForStream(const std::list<int64_t>* transmitTimesToClients,  const std::list<int64_t>* transmitTimesToServer, uint16_t maxStreams);
-    bool generateScriptForMessage(std::list<int> clientRecvTimes, std::list<int> serverRecvTimes, std::list<int> sendIntervals, const std::string& name, int serverTimeReq, int clientTimeReq);
+    bool generateScriptForStream(const std::list<int64_t>* transmitTimesToClients,  const std::list<int64_t>* transmitTimesToServer, const std::list<int64_t>* transmitTimesFromServer,
+                                 uint16_t maxStreams);
+    bool generateScriptForClientMessage(std::list<int> clientRecvTimes, std::list<int> serverRecvTimes, std::list<int> sendIntervals, const std::string& name, int serverTimeReq, int clientTimeReq);
+    bool generateScriptForServerMessage(std::list<int> clientRecvTimes, std::list<int> sendIntervals, const std::string& name, int clientTimeReq);
     bool writeAndExecuteResultScript();
     bool generateBandwidthHistogram(double clientDownlink, double clientUplink, double serverDownlink, double serverUplink);
 
@@ -49,13 +51,17 @@ RScriptGenerator::~RScriptGenerator(){
     delete filestream;
 }
 
-bool RScriptGenerator::generateScriptForStream(const std::list<int64_t>* transmitTimesToClients, const std::list<int64_t>* transmitTimesToServer, uint16_t maxStreams){
+bool RScriptGenerator::generateScriptForStream(const std::list<int64_t>* transmitTimesToClients, const std::list<int64_t>* transmitTimesToServer, const std::list<int64_t>* transmitTimesFromServer,
+                                               uint16_t maxStreams){
 
     int count = 0;
     std::string server("serverstream_");
     std::string client("clientstream_");
+    std::string serverToClient("servertoclientstream_");
     std::string serverFunc("serverfunc_");
     std::string clientFunc("clientfunc_");
+    std::string serverToClientFunc("servertoclientfunc_");
+
     std::string colors[] = {"\"green\"", "\"blue\"", "\"cyan\"", "\"yellow\"", "\"grey\""};
     std::stringstream stream;
 
@@ -83,7 +89,7 @@ bool RScriptGenerator::generateScriptForStream(const std::list<int64_t>* transmi
         stream << "\n#Step function for stream number: " << count +1 << "\n";
         stream << serverFunc << count << " = ecdf(" << server << count << ")\n";
 
-        stream << "\n#Vector for client receive times on stream number: " << count +1 << std::endl;
+        stream << "\n#Vector for client to client receive times on stream number: " << count +1 << std::endl;
 
         if(!transmitTimesToClients[count].empty()){
             stream << client << count;
@@ -105,6 +111,28 @@ bool RScriptGenerator::generateScriptForStream(const std::list<int64_t>* transmi
 
         stream << "\n#Step function for stream number: " << count +1 << "\n";
         stream << clientFunc << count << " = ecdf(" << client << count << ")\n";
+
+        stream << "\n#Vector for server to client receive time for stream number: " << count + 1 << std::endl;
+
+        if(!transmitTimesFromServer[count].empty()){
+            stream << serverToClient << count;
+            stream << " = c(";
+
+            for(std::list<int64_t>::const_iterator it = transmitTimesFromServer[count].begin(); it != transmitTimesFromServer[count].end();){
+                stream << *it;
+
+                if(++it == transmitTimesFromServer[count].end()){
+                    stream << ")\n";
+                    break;
+                }
+                else
+                    stream << ", ";
+            }
+        }else
+            stream << serverToClient << count << " = c(0)" << std::endl;
+
+        stream << "\n#Step function for stream number: " << count +1 << "\n";
+        stream << serverToClientFunc << count << " = ecdf(" << serverToClient << count << ")\n";
 
        streamScript.append(stream.str());
 
@@ -132,6 +160,17 @@ bool RScriptGenerator::generateScriptForStream(const std::list<int64_t>* transmi
         else
             stream << ", ";
     }
+
+    stream << serverToClient << "max = max(c(";
+
+    for(int i = 0; i < maxStreams; i++){
+        stream << serverToClient << i;
+        if(i+1 == maxStreams)
+            stream << "))\n";
+        else
+            stream << ", ";
+    }
+
 
     stream << "\n#Plotting for streams\n";
 
@@ -200,12 +239,44 @@ bool RScriptGenerator::generateScriptForStream(const std::list<int64_t>* transmi
         }
     }
 
+    for(int count = 0; count < maxStreams; count++){
+        if(count == 0)  { //then this is the first plot to draw from server to client
+            stream << "plot(" << serverToClientFunc << count << ", do.points=FALSE, verticals=TRUE, main=\"Average stream transmit times from server to client\", col=" << colors[count] <<
+                      ", xlab=\"Time(ms)\", ylab=\"Frequency\", xlim=(c(0," << serverToClient << "max))" << ")\n";
+            stream << "abline(h=0.1*0:10,  col=\"lightgray\")\n";
+        }
+        else
+           stream << "plot(" << serverToClientFunc << count << ", do.points=FALSE, add=TRUE, verticals=TRUE, col=" << colors[count] << ")\n";
+
+        if(count +1 == maxStreams){
+            stream << "#Legend\n";
+            stream << "legend(\"bottomright\", c(";
+            for(int i = 0; i <= count; i++){
+                stream << "\"stream " << i+1 << "\"";
+                if(i != count)
+                    stream << ", ";
+                else
+                    stream << ")";
+            }
+            stream << ", cex=0.8, col=c(";
+            for(int i = 0; i <= count; i++){
+                stream << "col=" << colors[i];
+                if(i != count)
+                    stream << ", ";
+                else
+                    stream << ")";
+            }
+
+            stream << ", lty=1, inset=.05)" << std::endl;
+        }
+    }
+
     streamScript.append(stream.str());
 
    return true;
 }
 
-bool RScriptGenerator::generateScriptForMessage(std::list<int> clientRecvTimes, std::list<int> serverRecvTimes, std::list<int> sendIntervals, const std::string &name, int serverTimeReq,
+bool RScriptGenerator::generateScriptForClientMessage(std::list<int> clientRecvTimes, std::list<int> serverRecvTimes, std::list<int> sendIntervals, const std::string &name, int serverTimeReq,
                                                 int clientTimeReq){
 
     static std::string color[2] = {"\"green\"", "\"blue\""};
@@ -270,7 +341,6 @@ bool RScriptGenerator::generateScriptForMessage(std::list<int> clientRecvTimes, 
     stream << "\n#Plotting for message: " << name << std::endl;
     stream << "plot(" << serverFunc << name << ", do.points=FALSE, verticals=TRUE, main=\"message: " << name << "\", col=" << color[0] << ", xlim=(c(0," << name << "_max" << ")), xlab=\"Time(ms)\","
            << " ylab=\"Frequency\")" << std::endl;
-    stream << "abline(h=0.1*0:10,  col=\"lightgray\")\n";
     stream << "plot(" << clientFunc << name << ", do.points=FALSE, verticals=TRUE, add=TRUE, col=" << color[1] <<  ")" << std::endl;
 
     stream << "#Requirement lines to message: " << name << std::endl;
@@ -278,6 +348,67 @@ bool RScriptGenerator::generateScriptForMessage(std::list<int> clientRecvTimes, 
     stream << "lines(" << "c(" << clientTimeReq << "," << clientTimeReq << "), c(0,1), lty=2, col=" << color[1] << ")\n";
     stream << "#Legend\n";
     stream << "legend(\"bottomright\", c(\"client to server\", \"client to client\", \"client to server requirement\", \"client to client requirement\"), cex=0.8, col=c("
+           << color[0] << ", " << color[1] << ", " << color[0] << ", " << color[1] << "), lty=c(1,1,2,2), inset=.05)" << std::endl;
+
+    stream << "#Message interarrival times for " << name;
+    stream << "\nplot(tabulate(sendtimes_" << name << "), type=\"h\", xlab=\"Time(ms)\", ylab =\"Message count\", main=\"Interarrival times for: " <<  name <<"\")" << std::endl;
+
+    messageScript.append(stream.str());
+
+    return true;
+}
+
+bool RScriptGenerator::generateScriptForServerMessage(std::list<int> clientRecvTimes, std::list<int> sendIntervals, const std::string &name, int clientTimeReq){
+
+    static std::string color[2] = {"\"green\"", "\"blue\""};
+    static std::string client("servertoclientmsg_");
+    static std::string clientFunc("servertoclientmsgfunc_");
+    std::stringstream stream;
+
+    stream << "\n#Vector of server to client receive times for message: " << name << std::endl;
+    if(!clientRecvTimes.empty()){
+        stream << client << name;
+        stream << " = c(";
+
+        for(std::list<int>::const_iterator it = clientRecvTimes.begin(); it != clientRecvTimes.end();){
+            stream << *it;
+            if(++it == clientRecvTimes.end()){
+                stream << ")\n";
+                break;
+            }
+            else
+                stream << ", ";
+        }
+    }
+    else
+        stream << client << name << " = c(0)" << std::endl;
+
+    stream << "\n#Vector for message send time intervals for server message " << name;
+    stream << "\nsendtimes_" << name << " = c(";
+    for(std::list<int>::const_iterator it = sendIntervals.begin(); it != sendIntervals.end();){
+        stream << *it;
+        if(++it == sendIntervals.end()){
+            stream << ")\n";
+            break;
+        }
+        else
+            stream << ", ";
+    }
+
+    stream << "\n#Server to client step function for message: " << name << std::endl;
+    stream << clientFunc << name << " = ecdf(" << client << name << ");\n";
+
+    stream << "\n#Setting max x value\n";
+    stream <<  name << "_max = max(" << client << name << ", " << clientTimeReq << ")\n";
+
+    stream << "\n#Plotting for message: " << name << std::endl;
+    stream << "plot(" << clientFunc << name << ", do.points=FALSE, verticals=TRUE, main=\"message: " << name << "\", col=" << color[0] << ", xlim=(c(0," << name << "_max" << ")), xlab=\"Time(ms)\","
+           << " ylab=\"Frequency\")" << std::endl;
+
+    stream << "#Requirement lines to message: " << name << std::endl;
+    stream << "lines(" << "c(" << clientTimeReq << "," << clientTimeReq << "), c(0,1), lty=2, col=" << color[1] << ")\n";
+    stream << "#Legend\n";
+    stream << "legend(\"bottomright\", c(\"server to client\", \"server to client requirement\"), cex=0.8, col=c("
            << color[0] << ", " << color[1] << ", " << color[0] << ", " << color[1] << "), lty=c(1,1,2,2), inset=.05)" << std::endl;
 
     stream << "#Message interarrival times for " << name;

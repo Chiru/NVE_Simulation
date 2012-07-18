@@ -67,23 +67,6 @@ public:
     bool doForwardBack() const {return forwardBack;}
     uint16_t getForwardMessageSize() const {return forwardSize;}
 
-    static std::map<std::string ,uint16_t, StringComparator> messageNameMap;
-
-    static inline uint16_t getMessageNameIndex(const std::string& name){
-       return Message::messageNameMap.find(name)->second;
-    }
-    static std::string& getMessageIndexName(uint16_t index){
-        static std::map<std::string, uint16_t, StringComparator>::iterator it;
-        static std::string failReturn("This should never happen!");
-
-        for(it = Message::messageNameMap.begin(); it != Message::messageNameMap.end(); it++){
-            if(it->second == index){
-                return const_cast<std::string&>(it->first);
-            }
-        }
-        return failReturn;
-    }
-
 
   protected:
     Message(const Message&);
@@ -122,6 +105,23 @@ public:
     void messageReceivedServer(std::string& messageName);
     void messageReceivedClient(std::string& messageName);
 
+    static std::map<std::string ,uint16_t, StringComparator> userActionMessageNameMap;
+
+    static inline uint16_t getUAMNameIndex(const std::string& name){
+       return UserActionMessage::userActionMessageNameMap.find(name)->second;
+    }
+    static std::string& getUAMIndexName(uint16_t index){
+        static std::map<std::string, uint16_t, StringComparator>::iterator it;
+        static std::string failReturn("This should never happen!");
+
+        for(it = UserActionMessage::userActionMessageNameMap.begin(); it != UserActionMessage::userActionMessageNameMap.end(); it++){
+            if(it->second == index){
+                return const_cast<std::string&>(it->first);
+            }
+        }
+        return failReturn;
+    }
+
 private:
     UserActionMessage(std::string name, bool reliable, int timeInterval, uint16_t messageSize, double clientsOfInterest, uint32_t clientRequirement, uint32_t serverRequirement,
                       uint16_t streamNumber, uint16_t forwardSize, bool forwardBack, RandomVariable* ranvar = 0);
@@ -147,6 +147,22 @@ public:
     void messageReceivedServer(std::string& messageName);
     void messageReceivedClient(std::string& messageName);
 
+    static std::map<std::string ,uint16_t, StringComparator> otherDataMessageNameMap;
+
+    static inline uint16_t getODMNameIndex(const std::string& name){
+       return OtherDataMessage::otherDataMessageNameMap.find(name)->second;
+    }
+    static std::string& getODMIndexName(uint16_t index){
+        static std::map<std::string, uint16_t, StringComparator>::iterator it;
+        static std::string failReturn("This should never happen!");
+
+        for(it = OtherDataMessage::otherDataMessageNameMap.begin(); it != OtherDataMessage::otherDataMessageNameMap.end(); it++){
+            if(it->second == index){
+                return const_cast<std::string&>(it->first);
+            }
+        }
+        return failReturn;
+    }
 
 private:
     OtherDataMessage(std::string name, bool reliable, int timeInterval, uint16_t messageSize, uint16_t streamNumber, uint16_t forwardSize, bool forwardBack, uint16_t timeReq, RandomVariable* ranvar = 0);
@@ -163,17 +179,10 @@ private:
 //Class Message function definitions
 
 uint16_t Message::messagesCreated = 0;
-std::map< std::string, uint16_t, Message::StringComparator> Message::messageNameMap = std::map<std::string, uint16_t, Message::StringComparator>();
 
 Message::Message(std::string name, bool reliable, int timeInterval, uint16_t size, uint16_t streamNumber, uint16_t forwardSize, bool forwardBack, RandomVariable* ranvar)
     : name(name), reliable(reliable), timeInterval(timeInterval), messageSize(size), streamNumber(streamNumber), ranvar(ranvar), forwardSize(forwardSize), forwardBack(forwardBack){
 
-    StatisticsCollector::fnptr = &getMessageIndexName; //this has to be done to avoid problems with includes when static functions are called from both files
-
-    if(messageNameMap.find(name) == messageNameMap.end()){
-        messageNameMap.insert(std::make_pair<std::string, uint16_t>(name, messageNameMap.size()));   //every message name has an unique index
-        StatisticsCollector::uamCount++;
-    }
 }
 
 Message::Message(const Message &msg): name(msg.getName()), reliable(msg.getReliable()), timeInterval(msg.getTimeInterval()), messageSize(msg.getMessageSize()),
@@ -234,12 +243,22 @@ bool Message::parseMessageId (const std::string &messageName, int &resultId)cons
 
 //Class UserActionMessage function definitions
 
+
+std::map< std::string, uint16_t, Message::StringComparator> UserActionMessage::userActionMessageNameMap = std::map<std::string, uint16_t, Message::StringComparator>();
+
 UserActionMessage::UserActionMessage(std::string name, bool reliable, int timeInterval, uint16_t messageSize, double clientsOfInterest,
                                      uint32_t clientRequirement,  uint32_t serverRequirement, uint16_t streamNumber, uint16_t forwardSize, bool forwardBack, RandomVariable* ranvar)
     :Message(name, reliable, timeInterval, messageSize, streamNumber, forwardSize, forwardBack, ranvar), clientsOfInterest(clientsOfInterest),
       clientTimeRequirement(clientRequirement), serverTimeRequirement(serverRequirement){
 
+    if(userActionMessageNameMap.find(name) == userActionMessageNameMap.end()){
+        userActionMessageNameMap.insert(std::make_pair<std::string, uint16_t>(name, userActionMessageNameMap.size()));   //every message name has an unique index
+    }
+
+    StatisticsCollector::uam_fnptr = &getUAMIndexName; //this has to be done to avoid problems with includes when static functions are called from both files
+
     type = USER_ACTION;
+    StatisticsCollector::userActionmessageCount++;
 }
 
 UserActionMessage::~UserActionMessage(){
@@ -304,7 +323,7 @@ void UserActionMessage::sendData(){
 
     sentTime = Simulator::Now();
 
-    StatisticsCollector::logMessagesSentFromClient(messageNumber, sentTime, streamNumber, clientTimeRequirement, serverTimeRequirement, Message::getMessageNameIndex(name), messageID);
+    StatisticsCollector::logMessagesSentFromClient(messageNumber, sentTime, streamNumber, clientTimeRequirement, serverTimeRequirement, UserActionMessage::getUAMNameIndex(name), messageID);
 
     if(!sendFunction(this, (uint8_t*)buffer))
         PRINT_ERROR("Problems with socket buffer" << std::endl);   //TODO: socket buffer
@@ -358,11 +377,21 @@ void UserActionMessage::messageReceivedClient(std::string& messageName){
 
 //Class OtherDataMessage function definitions
 
+std::map< std::string, uint16_t, Message::StringComparator> OtherDataMessage::otherDataMessageNameMap = std::map<std::string, uint16_t, Message::StringComparator>();
+
 
 OtherDataMessage::OtherDataMessage(std::string name, bool reliable, int timeInterval, uint16_t messageSize, uint16_t streamNumber, uint16_t forwardSize,
                                    bool forwardBack, uint16_t req, RandomVariable* ranvar)
     : Message(name, reliable, timeInterval, messageSize, streamNumber, forwardSize, forwardBack, ranvar), clientTimeRequirement(req){
+
+    if(otherDataMessageNameMap.find(name) == otherDataMessageNameMap.end()){
+        otherDataMessageNameMap.insert(std::make_pair<std::string, uint16_t>(name, otherDataMessageNameMap.size()));   //every message name has an unique index
+    }
+
+    StatisticsCollector::odm_fnptr = &getODMIndexName; //this has to be done to avoid problems with includes when static functions are called from both files
+
     type = OTHER_DATA;
+    StatisticsCollector::otherDataMessageCount++;
 
 }
 
@@ -410,7 +439,7 @@ void OtherDataMessage::sendData(){
 
     sentTime = Simulator::Now();
 
-    StatisticsCollector::logMessagesSentFromServer(messageNumber, sentTime, streamNumber, clientTimeRequirement, Message::getMessageNameIndex(name), messageID);
+    StatisticsCollector::logMessagesSentFromServer(messageNumber, sentTime, streamNumber, clientTimeRequirement, OtherDataMessage::getODMNameIndex(name), messageID);
 
     if(!sendFunction(this, (uint8_t*)buffer))
         PRINT_ERROR("Problems with socket buffer" << std::endl);   //TODO: socket buffer
@@ -466,6 +495,11 @@ void OtherDataMessage::messageReceivedServer(std::string& messageName){
 }
 
 void OtherDataMessage::messageReceivedClient(std::string& messageName){
+
+    int id = 0;
+    parseMessageId(messageName, id);
+
+    StatisticsCollector::logServerMessageReceivedByClient(id, Simulator::Now(), streamNumber);
 
 }
 

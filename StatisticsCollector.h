@@ -47,7 +47,8 @@ class StatisticsCollector{
     };
 
 public:
-    static std::string&(*fnptr)(uint16_t);
+    static std::string&(*uam_fnptr)(uint16_t);
+    static std::string&(*odm_fnptr)(uint16_t);
 
     ~StatisticsCollector();
     static bool getVerbose() {return verbose;}
@@ -62,7 +63,8 @@ public:
     static void logServerMessageReceivedByClient(int messageNumber, Time, uint16_t streamNumber);        //log times when server messages reach client
     static void logMessageForwardedByServer(int messageNumber, uint16_t streamNumber); //counts the messages forwarded to clients
     static void logMessagesSentFromServer(int messageNumber, Time, uint16_t streamNumber, uint32_t clientTimeRequirement, uint16_t messageNameIndex, uint16_t messageId);
-    static uint16_t uamCount;
+    static uint16_t userActionmessageCount;
+    static uint16_t otherDataMessageCount;
 
 private:
     StatisticsCollector(bool, bool, bool, uint16_t, int);
@@ -99,8 +101,10 @@ bool StatisticsCollector::clientLog = false;
 bool StatisticsCollector::serverLog = false;
 std::vector<StatisticsCollector::MessageStats*>* StatisticsCollector::userActionMessageLog;
 std::vector <StatisticsCollector::MessageStats*>* StatisticsCollector::serverMessageLog;
-std::string&(*StatisticsCollector::fnptr)(uint16_t) = 0;
-uint16_t StatisticsCollector::uamCount = 0;
+std::string&(*StatisticsCollector::uam_fnptr)(uint16_t) = 0;
+std::string&(*StatisticsCollector::odm_fnptr)(uint16_t) = 0;
+uint16_t StatisticsCollector::userActionmessageCount = 0;
+uint16_t StatisticsCollector::otherDataMessageCount = 0;
 
 StatisticsCollector* StatisticsCollector::createStatisticsCollector(bool verbose, bool clientLog, bool serverLog, uint16_t streamCount, int runningTime){
 
@@ -158,7 +162,7 @@ StatisticsCollector::~StatisticsCollector(){
         getMessageStats(h);
     }
 
-    scriptGen->generateScriptForStream(clientToClientTimes, clientToServerTimes, streamCount);
+    scriptGen->generateScriptForStream(clientToClientTimes, clientToServerTimes, serverToClientTimes, streamCount);
 
     if(serverMsgCount != 0){
         timeInMilliseconds = averageClientToServer.ToInteger(Time::MS);
@@ -295,15 +299,14 @@ void StatisticsCollector::getStreamResults(std::vector<StatisticsCollector::Mess
     }
 
     for(std::vector<StatisticsCollector::MessageStats*>::iterator it = serverStats.begin(); it != serverStats.end(); it++, tempServerToClientMsgCount++){
-        if(!((*it)->clientRecvTimes.front().IsZero())){
-            serverToClientTimeResult += ((*it)->clientRecvTimes.front() - (*it)->sendTime);
-            serverToClientTimes.push_back(((*it)->clientRecvTimes.front() - (*it)->sendTime).GetMilliSeconds());
+        for(timeIter = (*it)->clientRecvTimes.begin(); timeIter != (*it)->clientRecvTimes.end(); timeIter++){
+            serverToClientTimeResult += ((*timeIter) - (*it)->sendTime);
+            serverToClientTimes.push_back(((*timeIter) - (*it)->sendTime).GetMilliSeconds());
             if(((*it)->sendTime).GetMilliSeconds() <= (*it)->clientTimeRequirement)
                 tempServerToClientInTime++;
+
+            messagesSentFromServer++;
         }
-
-        messagesSentFromServer++;
-
     }
 
     if(tempClientToClientMsgCount != 0){
@@ -446,31 +449,54 @@ void StatisticsCollector::getBandwidthResults(){
 
 void StatisticsCollector::getMessageStats(uint16_t streamNumber){
 
-    std::pair<std::pair<std::string, int>, std::list<int> > messageRecvTimesForClient[uamCount];
-    std::pair<std::pair<std::string, int>, std::list<int> > messageRecvTimesForServer[uamCount];
-    std::list<int> messageSendIntervals[uamCount];
+    std::pair<std::pair<std::string, int>, std::list<int> > messageRecvTimesForClientToClient[userActionmessageCount];
+    std::pair<std::pair<std::string, int>, std::list<int> > messageRecvTimesForServer[userActionmessageCount];
+    std::pair<std::pair<std::string, int>, std::list<int> > messageRecvTimesFromServerToClient[otherDataMessageCount];
+    std::list<int> messageSendIntervalsFromClient[userActionmessageCount];
+    std::list<int> messagesSendIntervalFromServer[otherDataMessageCount];
 
         for(std::vector<MessageStats*>::iterator it = userActionMessageLog[streamNumber].begin(); it != userActionMessageLog[streamNumber].end(); it++){
-            messageRecvTimesForServer[(*it)->messageNameIndex].first.first =  fnptr((*it)->messageNameIndex);
-            messageRecvTimesForClient[(*it)->messageNameIndex].first.first =  fnptr((*it)->messageNameIndex);
+            messageRecvTimesForServer[(*it)->messageNameIndex].first.first =  uam_fnptr((*it)->messageNameIndex);
+            messageRecvTimesForClientToClient[(*it)->messageNameIndex].first.first =  uam_fnptr((*it)->messageNameIndex);
             messageRecvTimesForServer[(*it)->messageNameIndex].first.second = (*it)->serverTimeRequirement;
-            messageRecvTimesForClient[(*it)->messageNameIndex].first.second = (*it)->clientTimeRequirement;
-            messageSendIntervals[(*it)->messageNameIndex].push_back((*it)->sendTimeInterval.GetMilliSeconds());
+            messageRecvTimesForClientToClient[(*it)->messageNameIndex].first.second = (*it)->clientTimeRequirement;
+            messageSendIntervalsFromClient[(*it)->messageNameIndex].push_back((*it)->sendTimeInterval.GetMilliSeconds());
             if(!(*it)->serverRecvTime.IsZero())
                 messageRecvTimesForServer[(*it)->messageNameIndex].second.push_back(((*it)->serverRecvTime - (*it)->sendTime).GetMilliSeconds());
             for(std::list<Time>::iterator ctit = (*it)->clientRecvTimes.begin(); ctit != (*it)->clientRecvTimes.end(); ctit++){
                 if(!(*ctit).IsZero()){
-                    messageRecvTimesForClient[(*it)->messageNameIndex].second.push_back(((*ctit) - (*it)->sendTime).GetMilliSeconds());
+                    messageRecvTimesForClientToClient[(*it)->messageNameIndex].second.push_back(((*ctit) - (*it)->sendTime).GetMilliSeconds());
                 }
             }
-        }//TODO: packet losses (in UDP)
+        }
 
-        for(int h = 0; h < uamCount; h++){
+        for(std::vector<MessageStats*>::iterator it = serverMessageLog[streamNumber].begin(); it != serverMessageLog[streamNumber].end(); it++){
+            messageRecvTimesFromServerToClient[(*it)->messageNameIndex].first.first = odm_fnptr((*it)->messageNameIndex);
+            messageRecvTimesFromServerToClient[(*it)->messageNameIndex].first.second = (*it)->clientTimeRequirement;
+            messagesSendIntervalFromServer[(*it)->messageNameIndex].push_back((*it)->sendTimeInterval.GetMilliSeconds());
+            for(std::list<Time>::iterator ctit = (*it)->clientRecvTimes.begin(); ctit != (*it)->clientRecvTimes.end(); ctit++){
+                if(!(*ctit).IsZero()){
+                    messageRecvTimesFromServerToClient[(*it)->messageNameIndex].second.push_back(((*ctit) - (*it)->sendTime).GetMilliSeconds());
+                }
+            }
+
+        }
+
+        for(int h = 0; h < userActionmessageCount; h++){
             if(messageRecvTimesForServer[h].first.first.compare("") != 0){
-                scriptGen->generateScriptForMessage(messageRecvTimesForClient[h].second, messageRecvTimesForServer[h].second, messageSendIntervals[h], messageRecvTimesForServer[h].first.first,
-                                                    messageRecvTimesForServer[h].first.second, messageRecvTimesForClient[h].first.second);
+                scriptGen->generateScriptForClientMessage(messageRecvTimesForClientToClient[h].second, messageRecvTimesForServer[h].second, messageSendIntervalsFromClient[h],
+                                                          messageRecvTimesForServer[h].first.first, messageRecvTimesForServer[h].first.second, messageRecvTimesForClientToClient[h].first.second);
             }
         }
+
+        for(int h = 0; h < otherDataMessageCount; h++){
+            if(messageRecvTimesFromServerToClient[h].first.first.compare("") != 0){
+                scriptGen->generateScriptForServerMessage(messageRecvTimesFromServerToClient[h].second, messagesSendIntervalFromServer[h], messageRecvTimesFromServerToClient[h].first.first,
+                                                          messageRecvTimesFromServerToClient[h].first.second);
+            }
+
+        }
+
 }
 
 #endif // STATISTICSCOLLECTOR_H
