@@ -602,8 +602,8 @@ void ClientDataGenerator::readReceivedData(uint8_t* buffer, uint16_t bufferSize,
             else if(retVal == NAME_CONTINUES){
                 PRINT_ERROR("This should never happen!" << std::endl);
             }
-            else if(retVal == READ_FAILED){
-                PRINT_ERROR("This should never happen, check message names!" << std::endl);
+            else if(retVal == READ_FAILED){ //this can happen if only second part of IP fragmented packet arrives
+                return;
             }
         }
     }
@@ -964,8 +964,8 @@ void ServerDataGenerator::readReceivedData(uint8_t *buffer, uint16_t bufferSize,
             else if(retVal == NAME_CONTINUES){
                 PRINT_ERROR("This should never happen!" << std::endl);
             }
-            else if(retVal == READ_FAILED){
-                PRINT_ERROR("This should never happen, check message names!" << std::endl);
+            else if(retVal == READ_FAILED){ //this can happen if only second part of IP fragmented packet arrives
+                return;
             }
         }
     }
@@ -1081,12 +1081,23 @@ bool ServerDataGenerator::sendData(Message *msg, uint8_t *buffer){
                 if(!sender.send(immediateSend, buffer, msg, (*it)->clientSocket, false, false))
                     return false;
 
+                if(msg->getType() == OTHER_DATA){      //count clients who should get this message
+                    int messageNumber;
+                    msg->parseMessageId(std::string((char*)buffer), messageNumber);
+                    StatisticsCollector::countMessagesSentFromServer(messageNumber, streamNumber);
+                }
             }
         }else if(this->proto == UDP){
             for(std::vector<Address*>::iterator it = udpClients.begin(); it != udpClients.end(); it++){
 
                 if(!sender.sendTo(immediateSend, buffer, msg, **it, false, false, socket))
                     return false;
+
+                if(msg->getType() == OTHER_DATA){      //count clients who should get this message
+                    int messageNumber;
+                    msg->parseMessageId(std::string((char*)buffer), messageNumber);
+                    StatisticsCollector::countMessagesSentFromServer(messageNumber, streamNumber);
+                }
             }
         }
     }
