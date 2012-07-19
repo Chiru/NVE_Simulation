@@ -210,9 +210,13 @@ int main(int argc, char** argv){
 
     Ipv4GlobalRoutingHelper::PopulateRoutingTables();
 
-    for(i = 0; i <= numberOfClients; i++){
+   //for(i = 0; i <= numberOfClients; i++){
         pointToPoint[i].EnablePcapAll("results/results.txt");
-    }
+    //}
+
+    //pointToPoint[numberOfClients].EnablePcapAll("results/simulated");
+   // pointToPoint[numberOfClients].EnablePcap("results/simulated", routerServerDevices);
+    //pointToPoint[0].EnablePcap("results/simulated", clientRouterDevices[0]);
 
     stats->addFlowMonitor(flowMonHelper.InstallAll(), flowMonHelper);   //TODO: something leaks memory in flow monitoring (ns-3 bug?)
 

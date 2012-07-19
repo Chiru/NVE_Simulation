@@ -152,7 +152,7 @@ int DataSender::sendAndFragment(Ptr<Socket> socket, uint8_t *buffer, uint16_t si
     if(size > maxDatagramSize){
 
         std::string tempBuffer((char*)buffer, size);
-        uint16_t headerSize;
+        uint16_t headerSize = 0;
         if(appProto == 0)
             headerSize = 0;
         else

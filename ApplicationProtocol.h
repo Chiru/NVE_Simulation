@@ -315,7 +315,9 @@ void ApplicationProtocol::resendCheckClient(uint32_t reliableMsgNumber){
                 Simulator::Schedule(Time(MilliSeconds(retransmit)), &ApplicationProtocol::resendCheckClient, this, reliableMsgNumber);
                 return;
             }
-            socket->Send((**it).buffer, (**it).msgSize + headerSize, 0);
+            std::cout <<  reliableMsgNumber << std::endl;
+            sendAndFragment(socket, (**it).buffer, maxDatagramSize, true);
+           // socket->Send((**it).buffer, (**it).msgSize + headerSize, 0);
             Simulator::Schedule(Time(MilliSeconds(retransmit)), &ApplicationProtocol::resendCheckClient, this, reliableMsgNumber);
             break;
         }
@@ -330,7 +332,8 @@ void ApplicationProtocol::resendCheckServer(uint32_t reliableMsgNumber, Address 
                 Simulator::Schedule(Time(MilliSeconds(retransmit)), &ApplicationProtocol::resendCheckClient, this, reliableMsgNumber);
                 return;
             }
-            socket->SendTo((**it).buffer, (**it).msgSize + headerSize, 0, (**it).addr);
+            sendAndFragment(socket, (**it).buffer, maxDatagramSize, true, &(**it).addr);
+           // socket->SendTo((**it).buffer, (**it).msgSize + headerSize, 0, (**it).addr);
             Simulator::Schedule(Time(MilliSeconds(retransmit)), &ApplicationProtocol::resendCheckServer, this, reliableMsgNumber, addr);
             break;
         }
@@ -501,7 +504,7 @@ int ApplicationProtocol::sendAndFragment(Ptr<Socket> socket, uint8_t *buffer, ui
 int ApplicationProtocol::sendFragment(const std::string& buffer, const size_t index, Ptr<Socket> sock, uint16_t maxDatagramSize, const Address* const addr, ApplicationProtocol* appProto, bool reliable,
                                       uint16_t headerSize){
 
-    size_t tempIndex, tempIndex2;
+    size_t tempIndex = 0, tempIndex2 = 0;
     tempIndex = buffer.find('"', index);   //find first "
     tempIndex = buffer.find('"', tempIndex + 1);  // find second "
     if((tempIndex = buffer.find('"', tempIndex + 1)) == std::string::npos){  //see if there's third
@@ -512,8 +515,8 @@ int ApplicationProtocol::sendFragment(const std::string& buffer, const size_t in
             return sock->SendTo((uint8_t*)buffer.substr(0, buffer.length()).c_str(), buffer.length(), 0, *addr);
         }
     }else{
-        if( tempIndex >= maxDatagramSize || (tempIndex2 = buffer.find('"', tempIndex)) >= maxDatagramSize){
-            int retval;
+        if( tempIndex >= maxDatagramSize || (tempIndex2 = buffer.find('"', tempIndex + 1)) >= maxDatagramSize){
+            int retval = 0;
             char header[headerSize];
             std::string tempString;
             if(addr == 0){

@@ -284,7 +284,7 @@ void DataGenerator::sendBackToSender(const Message* msg, const Address& addr, co
     }
 
     if(!isClient){
-        int messageId;
+        int messageId = 0;
         std::string name = msg->getName();
         msg->parseMessageId(name, messageId);
         StatisticsCollector::logMessageForwardedByServer(messageId, streamNumber);
@@ -600,7 +600,7 @@ void ClientDataGenerator::readReceivedData(uint8_t* buffer, uint16_t bufferSize,
                 messageName.assign("");
             }
             else if(retVal == NAME_CONTINUES){
-                PRINT_ERROR("This should never happen!" << std::endl);
+                PRINT_ERROR("This should never happen!" << std::endl);sleep(1);
             }
             else if(retVal == READ_FAILED){ //this can happen if only second part of IP fragmented packet arrives
                 return;
@@ -962,7 +962,7 @@ void ServerDataGenerator::readReceivedData(uint8_t *buffer, uint16_t bufferSize,
                 messageName.assign("");
             }
             else if(retVal == NAME_CONTINUES){
-                PRINT_ERROR("This should never happen!" << std::endl);
+                PRINT_ERROR("This should never happen!" << std::endl);sleep(1);
             }
             else if(retVal == READ_FAILED){ //this can happen if only second part of IP fragmented packet arrives
                 return;
@@ -1058,7 +1058,7 @@ void ServerDataGenerator::sendToRandomClients(std::pair<Address, std::pair<std::
 void ServerDataGenerator::forwardUserActionMessage(std::pair<std::string, Message*> msg, Address& addr){    //forwarding over UDP
 
     char buffer[30] = "";
-    int messageNumber;
+    int messageNumber = 0;
     msg.second->fillMessageContents(buffer, 0, &msg.first);
 
     if(!sender.sendTo(immediateSend, (uint8_t*)buffer, msg.second, addr, true, false, socket))
@@ -1121,7 +1121,7 @@ ServerDataGenerator::ClientConnection::~ClientConnection(){
 void ServerDataGenerator::ClientConnection::forwardUserActionMessage(std::pair<std::string, Message*>& msg){           //forwarding over TCP
 
     char buffer[30] = "";
-    int messageNumber;
+    int messageNumber = 0;
     msg.second->fillMessageContents(buffer, 0, &msg.first);
 
     if(!sender.send(immediateSend, (uint8_t*)buffer, msg.second, clientSocket, true,false))
