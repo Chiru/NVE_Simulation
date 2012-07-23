@@ -290,7 +290,7 @@ void DataGenerator::sendBackToSender(const Message* msg, const Address& addr, co
     if(!isClient){
         int messageId = 0;
         std::string name = msg->getName();
-        msg->parseMessageId(name, messageId);
+        msg->parseMessageId(messageName, messageId);
         StatisticsCollector::logMessageForwardedByServer(messageId, streamNumber);
     }
 
@@ -1068,7 +1068,7 @@ void ServerDataGenerator::forwardUserActionMessage(std::pair<std::string, Messag
     if(!sender.sendTo(immediateSend, (uint8_t*)buffer, msg.second, addr, true, false, socket))
         return;
 
-    msg.second->parseMessageId(msg.first, messageNumber);
+    msg.second->parseMessageId(msg.second->getName(), messageNumber);
 
     StatisticsCollector::logMessageForwardedByServer(messageNumber, streamNumber);
 }
@@ -1087,7 +1087,7 @@ bool ServerDataGenerator::sendData(Message *msg, uint8_t *buffer){
 
                 if(msg->getType() == OTHER_DATA){      //count clients who should get this message
                     int messageNumber;
-                    msg->parseMessageId(std::string((char*)buffer), messageNumber);
+                    msg->parseMessageId(std::string((char*)buffer+1), messageNumber);
                     StatisticsCollector::countMessagesSentFromServer(messageNumber, streamNumber);
                 }
             }
@@ -1099,7 +1099,7 @@ bool ServerDataGenerator::sendData(Message *msg, uint8_t *buffer){
 
                 if(msg->getType() == OTHER_DATA){      //count clients who should get this message
                     int messageNumber;
-                    msg->parseMessageId(std::string((char*)buffer), messageNumber);
+                    msg->parseMessageId(std::string((char*)buffer+1), messageNumber);
                     StatisticsCollector::countMessagesSentFromServer(messageNumber, streamNumber);
                 }
             }
@@ -1132,7 +1132,7 @@ void ServerDataGenerator::ClientConnection::forwardUserActionMessage(std::pair<s
         return;
 
 
-    msg.second->parseMessageId(msg.first, messageNumber);
+    msg.second->parseMessageId(msg.second->getName(), messageNumber);
 
     StatisticsCollector::logMessageForwardedByServer(messageNumber, msg.second->getStreamNumber());
 }

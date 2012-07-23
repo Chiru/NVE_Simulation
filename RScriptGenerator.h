@@ -358,7 +358,6 @@ bool RScriptGenerator::generateScriptForClientMessage(std::list<int> clientRecvT
 
     stream << "#Lost packets\n";
     stream << client << name << "_lost = c(";
-
     if(numberOfClientsForwarded - clientRecvTimes.size() != 0){
         for(uint h = 0; h <  numberOfClientsForwarded - clientRecvTimes.size();){
             stream << name << "_max*2";

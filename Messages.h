@@ -231,7 +231,7 @@ bool Message::parseMessageId (const std::string &messageName, int &resultId)cons
 
     std::stringstream str;
 
-    for(unsigned int i = this->getName().length() + 1; i < messageName.length();  i++) {
+    for(unsigned int i = this->getName().length() + 1; i < messageName.length() ;  i++) {
         str << messageName[i];
     }
 

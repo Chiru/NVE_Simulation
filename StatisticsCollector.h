@@ -528,6 +528,7 @@ void StatisticsCollector::getMessageStats(uint16_t streamNumber){
             }
         }
 
+
         for(std::vector<MessageStats*>::iterator it = serverMessageLog[streamNumber].begin(); it != serverMessageLog[streamNumber].end(); it++){
             messageRecvTimesFromServerToClient[(*it)->messageNameIndex].first.first = odm_fnptr((*it)->messageNameIndex);
             messageRecvTimesFromServerToClient[(*it)->messageNameIndex].first.second = (*it)->clientTimeRequirement;
