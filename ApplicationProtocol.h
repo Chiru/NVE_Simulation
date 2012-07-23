@@ -315,7 +315,6 @@ void ApplicationProtocol::resendCheckClient(uint32_t reliableMsgNumber){
                 Simulator::Schedule(Time(MilliSeconds(retransmit)), &ApplicationProtocol::resendCheckClient, this, reliableMsgNumber);
                 return;
             }
-            std::cout <<  reliableMsgNumber << std::endl;
             sendAndFragment(socket, (**it).buffer, maxDatagramSize, true);
            // socket->Send((**it).buffer, (**it).msgSize + headerSize, 0);
             Simulator::Schedule(Time(MilliSeconds(retransmit)), &ApplicationProtocol::resendCheckClient, this, reliableMsgNumber);

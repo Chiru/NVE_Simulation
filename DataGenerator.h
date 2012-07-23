@@ -205,12 +205,16 @@ bool DataGenerator::setupStream(Ptr<Node> node, Address addr, uint16_t gameTick)
             socket = Socket::CreateSocket(node, TcpSocketFactory::GetTypeId());
             socket->SetAttribute("TcpNoDelay", BooleanValue(true));
             socket->SetAttribute("SegmentSize", UintegerValue(1400));
+           // socket->SetAttribute("DelAckCount", UintegerValue(100));
+           // socket->SetAttribute("DelAckTimeout", TimeValue(Time("47ms")));
             break;
 
         case TCP_NAGLE_ENABLED:
             socket = Socket::CreateSocket(node, TcpSocketFactory::GetTypeId());
             socket->SetAttribute("TcpNoDelay", BooleanValue(false));
             socket->SetAttribute("SegmentSize", UintegerValue(1400));
+            //socket->SetAttribute("DelAckCount", UintegerValue(100));
+          //  socket->SetAttribute("DelAckTimeout", TimeValue(Time("45ms")));
             break;
 
         case UDP:

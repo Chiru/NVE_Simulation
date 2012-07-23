@@ -444,7 +444,8 @@ void StatisticsCollector::getBandwidthResults(){
 
     std::map<FlowId, FlowMonitor::FlowStats> flowStats;
     Ipv4FlowClassifier::FiveTuple flowId;
-    std::map<Ipv4Address, std::pair<uint64_t, uint64_t> >nodesAndBandwidths;
+    std::map<Ipv4Address, std::pair<uint64_t, uint64_t> >nodesAndBandwidths;   //received and sent data for each address
+    std::map<Ipv4Address, std::pair<uint32_t, uint32_t> >nodesAndPackets;      //received and sent packets for each address
     std::map<Ipv4Address, std::pair<uint64_t, uint64_t> >::iterator addrIt;
     std::map<Ipv4Address, std::pair<uint64_t, uint64_t> >::const_reverse_iterator revAddrIt;
     double averageClientUplink = 0, averageClientDownlink = 0, serverUplink = 0, serverDownlink = 0;
@@ -456,18 +457,25 @@ void StatisticsCollector::getBandwidthResults(){
     for(std::map<FlowId, FlowMonitor::FlowStats>::const_iterator it = flowStats.begin(); it != flowStats.end(); it++){
         flowId = classifier->FindFlow(it->first);
 
-        if(nodesAndBandwidths.find(flowId.sourceAddress) == nodesAndBandwidths.end())
+        if(nodesAndBandwidths.find(flowId.sourceAddress) == nodesAndBandwidths.end()){
             nodesAndBandwidths.insert(std::make_pair<Ipv4Address, std::pair<uint64_t, uint64_t> >(flowId.sourceAddress, std::make_pair<uint64_t, uint64_t>(0, 0)));
+            nodesAndPackets.insert(std::make_pair<Ipv4Address, std::pair<uint64_t, uint64_t> >(flowId.sourceAddress, std::make_pair<uint32_t, uint32_t>(0,0)));
+        }
 
-        if(nodesAndBandwidths.find(flowId.destinationAddress) == nodesAndBandwidths.end())
+        if(nodesAndBandwidths.find(flowId.destinationAddress) == nodesAndBandwidths.end()){
             nodesAndBandwidths.insert(std::make_pair<Ipv4Address, std::pair<uint64_t, uint64_t> >(flowId.destinationAddress, std::make_pair<uint64_t, uint64_t>(0, 0)));
+            nodesAndPackets.insert(std::make_pair<Ipv4Address, std::pair<uint64_t, uint64_t> >(flowId.destinationAddress, std::make_pair<uint32_t, uint32_t>(0,0)));
+        }
 
         for(addrIt = nodesAndBandwidths.begin(); addrIt != nodesAndBandwidths.end(); addrIt++){
             if(addrIt->first.IsEqual(flowId.sourceAddress)){
                 addrIt->second.first += it->second.txBytes;
+                nodesAndPackets[addrIt->first].first = it->second.txPackets;
             }
             if(addrIt->first.IsEqual(flowId.destinationAddress)){
                 addrIt->second.second += it->second.rxBytes;
+                nodesAndPackets[addrIt->first].second = it->second.rxPackets;;
+
             }
         }
     }
@@ -477,17 +485,17 @@ void StatisticsCollector::getBandwidthResults(){
     for(addrIt = nodesAndBandwidths.begin(), counter = 0; addrIt != nodesAndBandwidths.end(); addrIt++){ //NOTE: network headers are not calculated into this average
 
         if(addrIt->first != revAddrIt->first){
-            averageClientUplink +=  addrIt->second.first *8.0/ runningTime / 1024 /1024;
-            averageClientDownlink += addrIt->second.second *8.0 / runningTime /1024 /1024;
+            averageClientUplink +=  (addrIt->second.first + (nodesAndPackets[addrIt->first].first * 14))*8.0/ runningTime / 1024 /1024;
+            averageClientDownlink += (addrIt->second.second + (nodesAndPackets[addrIt->first].second * 14))*8.0 / runningTime /1024 /1024;
             counter++;
         }
         else{
-            serverUplink +=  addrIt->second.first *8.0/ runningTime / 1024 /1024;
-            serverDownlink += addrIt->second.second *8.0 / runningTime /1024 /1024;
+            serverUplink +=  (addrIt->second.first + (nodesAndPackets[addrIt->first].first * 14))*8.0/ runningTime / 1024 /1024;
+            serverDownlink += (addrIt->second.second + (nodesAndPackets[addrIt->first].second * 14))*8.0 / runningTime /1024 /1024;
         }
 
-        PRINT_RESULT("Average throughput for client " << addrIt->first << " downlink: "  << addrIt->second.second *8.0 / runningTime /1024 /1024 << "Mbps  "
-                    << "uplink: " << addrIt->second.first *8.0/ runningTime / 1024 /1024 << "Mbps" << std::endl);
+        PRINT_RESULT("Average throughput for client " << addrIt->first << " downlink: "  << (addrIt->second.second + (nodesAndPackets[addrIt->first].second * 14)) *8.0 / runningTime /1024 /1024
+                     << "Mbps  " << "uplink: " << (addrIt->second.first + (nodesAndPackets[addrIt->first].first * 14)) *8.0/ runningTime / 1024 /1024 << "Mbps" << std::endl);
     }
 
     scriptGen->generateBandwidthHistogram(averageClientDownlink / counter, averageClientUplink / counter, serverDownlink, serverUplink);
@@ -501,12 +509,15 @@ void StatisticsCollector::getMessageStats(uint16_t streamNumber){
     std::pair<std::pair<std::string, int>, std::list<int> > messageRecvTimesFromServerToClient[otherDataMessageCount];
     std::list<int> messageSendIntervalsFromClient[userActionmessageCount];
     std::list<int> messagesSendIntervalFromServer[otherDataMessageCount];
+    uint32_t* messagesForwardedFromServer = (uint32_t*)calloc(userActionmessageCount, sizeof(uint32_t));
+    uint32_t* messagesSentFromServer =(uint32_t*)calloc(otherDataMessageCount, sizeof(uint32_t));
 
         for(std::vector<MessageStats*>::iterator it = userActionMessageLog[streamNumber].begin(); it != userActionMessageLog[streamNumber].end(); it++){
             messageRecvTimesForServer[(*it)->messageNameIndex].first.first =  uam_fnptr((*it)->messageNameIndex);
             messageRecvTimesForClientToClient[(*it)->messageNameIndex].first.first =  uam_fnptr((*it)->messageNameIndex);
             messageRecvTimesForServer[(*it)->messageNameIndex].first.second = (*it)->serverTimeRequirement;
             messageRecvTimesForClientToClient[(*it)->messageNameIndex].first.second = (*it)->clientTimeRequirement;
+            messagesForwardedFromServer[(*it)->messageNameIndex] += (*it)->numberOfClientsForwarded;
             messageSendIntervalsFromClient[(*it)->messageNameIndex].push_back((*it)->sendTimeInterval.GetMilliSeconds());
             if(!(*it)->serverRecvTime.IsZero())
                 messageRecvTimesForServer[(*it)->messageNameIndex].second.push_back(((*it)->serverRecvTime - (*it)->sendTime).GetMilliSeconds());
@@ -521,6 +532,7 @@ void StatisticsCollector::getMessageStats(uint16_t streamNumber){
             messageRecvTimesFromServerToClient[(*it)->messageNameIndex].first.first = odm_fnptr((*it)->messageNameIndex);
             messageRecvTimesFromServerToClient[(*it)->messageNameIndex].first.second = (*it)->clientTimeRequirement;
             messagesSendIntervalFromServer[(*it)->messageNameIndex].push_back((*it)->sendTimeInterval.GetMilliSeconds());
+            messagesSentFromServer[(*it)->messageNameIndex] += (*it)->numberOfClientsForwarded;
             for(std::list<Time>::iterator ctit = (*it)->clientRecvTimes.begin(); ctit != (*it)->clientRecvTimes.end(); ctit++){
                 if(!(*ctit).IsZero()){
                     messageRecvTimesFromServerToClient[(*it)->messageNameIndex].second.push_back(((*ctit) - (*it)->sendTime).GetMilliSeconds());
@@ -532,17 +544,21 @@ void StatisticsCollector::getMessageStats(uint16_t streamNumber){
         for(int h = 0; h < userActionmessageCount; h++){
             if(messageRecvTimesForServer[h].first.first.compare("") != 0){
                 scriptGen->generateScriptForClientMessage(messageRecvTimesForClientToClient[h].second, messageRecvTimesForServer[h].second, messageSendIntervalsFromClient[h],
-                                                          messageRecvTimesForServer[h].first.first, messageRecvTimesForServer[h].first.second, messageRecvTimesForClientToClient[h].first.second);
+                                                          messageRecvTimesForServer[h].first.first, messageRecvTimesForServer[h].first.second, messageRecvTimesForClientToClient[h].first.second,
+                                                          messagesForwardedFromServer[h]);
             }
         }
 
         for(int h = 0; h < otherDataMessageCount; h++){
             if(messageRecvTimesFromServerToClient[h].first.first.compare("") != 0){
                 scriptGen->generateScriptForServerMessage(messageRecvTimesFromServerToClient[h].second, messagesSendIntervalFromServer[h], messageRecvTimesFromServerToClient[h].first.first,
-                                                          messageRecvTimesFromServerToClient[h].first.second);
+                                                          messageRecvTimesFromServerToClient[h].first.second, messagesSentFromServer[h]);
             }
 
         }
+
+        free(messagesForwardedFromServer);
+        free(messagesSentFromServer);
 
 }
 

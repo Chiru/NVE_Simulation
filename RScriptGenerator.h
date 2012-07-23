@@ -18,8 +18,9 @@ public:
     ~RScriptGenerator();
     bool generateScriptForStream(const std::list<int64_t>* transmitTimesToClients,  const std::list<int64_t>* transmitTimesToServer, const std::list<int64_t>* transmitTimesFromServer,
                                  uint16_t maxStreams);
-    bool generateScriptForClientMessage(std::list<int> clientRecvTimes, std::list<int> serverRecvTimes, std::list<int> sendIntervals, const std::string& name, int serverTimeReq, int clientTimeReq);
-    bool generateScriptForServerMessage(std::list<int> clientRecvTimes, std::list<int> sendIntervals, const std::string& name, int clientTimeReq);
+    bool generateScriptForClientMessage(std::list<int> clientRecvTimes, std::list<int> serverRecvTimes, std::list<int> sendIntervals, const std::string& name, int serverTimeReq,
+                                        int clientTimeReq, uint16_t numberOfClientsForwarded);
+    bool generateScriptForServerMessage(std::list<int> clientRecvTimes, std::list<int> sendIntervals, const std::string& name, int clientTimeReq, uint16_t numberOfClientsForwarded);
     bool writeAndExecuteResultScript();
     bool generateBandwidthHistogram(double clientDownlink, double clientUplink, double serverDownlink, double serverUplink);
 
@@ -277,7 +278,8 @@ bool RScriptGenerator::generateScriptForStream(const std::list<int64_t>* transmi
 }
 
 bool RScriptGenerator::generateScriptForClientMessage(std::list<int> clientRecvTimes, std::list<int> serverRecvTimes, std::list<int> sendIntervals, const std::string &name, int serverTimeReq,
-                                                int clientTimeReq){
+                                                int clientTimeReq, uint16_t numberOfClientsForwarded){
+
 
     static std::string color[2] = {"\"green\"", "\"blue\""};
     static std::string server("servermsg_");
@@ -290,6 +292,7 @@ bool RScriptGenerator::generateScriptForClientMessage(std::list<int> clientRecvT
     stream << server << name;
     stream << " = c(";
 
+
     for(std::list<int>::const_iterator it = serverRecvTimes.begin(); it != serverRecvTimes.end();){
         stream << *it;
         if(++it == serverRecvTimes.end()){
@@ -299,8 +302,7 @@ bool RScriptGenerator::generateScriptForClientMessage(std::list<int> clientRecvT
         else
             stream << ", ";
     }
-    stream << "\n#Server step function for message: " << name << std::endl;
-    stream << serverFunc << name << " = ecdf(" << server << name << ");\n";
+
 
     stream << "\n#Vector of client receive times for message: " << name << std::endl;
     if(!clientRecvTimes.empty()){
@@ -320,6 +322,8 @@ bool RScriptGenerator::generateScriptForClientMessage(std::list<int> clientRecvT
     else
         stream << client << name << " = c(0)" << std::endl;
 
+
+
     stream << "\n#Vector for message send time intervals for message " << name;
     stream << "\nsendtimes_" << name << " = c(";
     for(std::list<int>::const_iterator it = sendIntervals.begin(); it != sendIntervals.end();){
@@ -332,11 +336,48 @@ bool RScriptGenerator::generateScriptForClientMessage(std::list<int> clientRecvT
             stream << ", ";
     }
 
-    stream << "\n#Client step function for message: " << name << std::endl;
-    stream << clientFunc << name << " = ecdf(" << client << name << ");\n";
 
     stream << "\n#Setting max x value\n";
     stream <<  name << "_max = max(" << server << name << ", " << client << name << ", " << serverTimeReq << ", " << clientTimeReq << ")\n";
+
+    stream << "#Lost packets\n";
+    stream << server << name << "_lost = c(";
+
+    if(sendIntervals.size() - serverRecvTimes.size() != 0){
+        for(uint h = 0; h <  sendIntervals.size() - serverRecvTimes.size();){
+            stream << name << "_max*2";
+            if(++h == sendIntervals.size() - serverRecvTimes.size()){
+                stream << ")\n";
+                break;
+            }
+            else
+                stream << ", ";
+        }
+    }else
+        stream << ")\n";
+
+    stream << "#Lost packets\n";
+    stream << client << name << "_lost = c(";
+
+    if(numberOfClientsForwarded - clientRecvTimes.size() != 0){
+        for(uint h = 0; h <  numberOfClientsForwarded - clientRecvTimes.size();){
+            stream << name << "_max*2";
+            if(++h == numberOfClientsForwarded - clientRecvTimes.size()){
+                stream << ")\n";
+                break;
+            }
+            else
+                stream << ", ";
+        }
+    }else
+        stream << ")\n";
+
+
+    stream << "\n#Server step function for message: " << name << std::endl;
+    stream << serverFunc << name << " = ecdf(c(" << server << name << ", " << server << name << "_lost)" << ");\n";
+
+    stream << "\n#Client step function for message: " << name << std::endl;
+    stream << clientFunc << name << " = ecdf(c(" << client << name << ", " << client << name << "_lost)" << ");\n";
 
     stream << "\n#Plotting for message: " << name << std::endl;
     stream << "plot(" << serverFunc << name << ", do.points=FALSE, verticals=TRUE, main=\"message: " << name << "\", col=" << color[0] << ", xlim=(c(0," << name << "_max" << ")), xlab=\"Time(ms)\","
@@ -358,7 +399,7 @@ bool RScriptGenerator::generateScriptForClientMessage(std::list<int> clientRecvT
     return true;
 }
 
-bool RScriptGenerator::generateScriptForServerMessage(std::list<int> clientRecvTimes, std::list<int> sendIntervals, const std::string &name, int clientTimeReq){
+bool RScriptGenerator::generateScriptForServerMessage(std::list<int> clientRecvTimes, std::list<int> sendIntervals, const std::string &name, int clientTimeReq, uint16_t numberOfClientsForwarded){
 
     static std::string color[2] = {"\"green\"", "\"blue\""};
     static std::string client("servertoclientmsg_");
@@ -383,6 +424,25 @@ bool RScriptGenerator::generateScriptForServerMessage(std::list<int> clientRecvT
     else
         stream << client << name << " = c(0)" << std::endl;
 
+    stream << "\n#Setting max x value\n";
+    stream <<  name << "_max = max(" << client << name << ", " << clientTimeReq << ")\n";
+
+    stream << "#Lost packets\n";
+    stream << client << name << "_lost = c(";
+
+    if(numberOfClientsForwarded - clientRecvTimes.size() != 0){
+        for(uint h = 0; h < numberOfClientsForwarded - clientRecvTimes.size();){
+            stream << name << "_max*2";
+            if(++h == numberOfClientsForwarded - clientRecvTimes.size()){
+                stream << ")\n";
+                break;
+            }
+            else
+                stream << ", ";
+        }
+    }else
+        stream << ")\n";
+
     stream << "\n#Vector for message send time intervals for server message " << name;
     stream << "\nsendtimes_" << name << " = c(";
     for(std::list<int>::const_iterator it = sendIntervals.begin(); it != sendIntervals.end();){
@@ -396,10 +456,8 @@ bool RScriptGenerator::generateScriptForServerMessage(std::list<int> clientRecvT
     }
 
     stream << "\n#Server to client step function for message: " << name << std::endl;
-    stream << clientFunc << name << " = ecdf(" << client << name << ");\n";
+    stream << clientFunc << name << " = ecdf(c(" << client << name << ", " << client << name << "_lost)" << ");\n";
 
-    stream << "\n#Setting max x value\n";
-    stream <<  name << "_max = max(" << client << name << ", " << clientTimeReq << ")\n";
 
     stream << "\n#Plotting for message: " << name << std::endl;
     stream << "plot(" << clientFunc << name << ", do.points=FALSE, verticals=TRUE, main=\"message: " << name << "\", col=" << color[0] << ", xlim=(c(0," << name << "_max" << ")), xlab=\"Time(ms)\","
@@ -428,7 +486,7 @@ bool RScriptGenerator::generateBandwidthHistogram(double clientDownlink, double 
     stream << "maxbandwidth = max(" << serverDownlink << ", " << serverUplink << ")";
     stream << "\nbarplot(c(" << clientDownlink <<  ", " << clientUplink << ", " << serverDownlink << ", " << serverUplink << "), names.arg=c(\"avg. client dl\","
                                                      << " \"avg. client ul\", \"server downlink\", \"server uplink\"), col=c(" << color[0] << ", " << color[1]
-                                                     << "), ylim=c(0, maxbandwidth))" << std::endl;
+                                                     << "), ylim=c(0, maxbandwidth * 1.2))" << std::endl;
     stream << "title(main=\"Throughputs\",  ylab=\"Bandwidth (Mbps)\")" << std::endl;
     stream << "abline(h=seq(from=0, to=maxbandwidth, by = (signif(maxbandwidth, 1)/(signif(maxbandwidth, 1)*10))/2), col =\"lightgrey\")";
 

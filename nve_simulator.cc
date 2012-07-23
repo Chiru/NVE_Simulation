@@ -24,6 +24,7 @@
 #include "ns3/ipv4-interface-container.h"
 #include "ns3/ipv4-global-routing-helper.h"
 #include "ns3/inet-socket-address.h"
+#include "ns3/csma-helper.h"
 #include "ns3/drop-tail-queue.h"
 #include "ns3/error-model.h"
 #include "ns3/channel.h"
@@ -142,15 +143,22 @@ int main(int argc, char** argv){
 
     NodeContainer routerServerNodes = NodeContainer(allNodes.Get(numberOfClients), allNodes.Get(numberOfClients+1));
 
-    PointToPointHelper pointToPoint[numberOfClients + 1];    //point-to-point connection for each client-router connection and one for router-server connection
+    PointToPointHelper csma[numberOfClients + 1];    //point-to-point connection for each client-router connection and one for router-server connection
+
+    //for(int i = 0; i<numberOfClients; i++)
+      //  csma[i].SetChannelAttribute("DataRate", StringValue("5Mbps"));
+
+    //csma[numberOfClients].SetChannelAttribute("DataRate", StringValue("1Gbps"));
+    //csma[numberOfClients + 1].SetChannelAttribute("DataRate", StringValue("1Gbps"));
+
 
     NetDeviceContainer clientRouterDevices[numberOfClients];
 
     for(i = 0; i < numberOfClients; i++){
-        clientRouterDevices[i] = pointToPoint[i].Install(clientRouterNodes[i]);
+        clientRouterDevices[i] = csma[i].Install(clientRouterNodes[i]);
     }
 
-    NetDeviceContainer routerServerDevices = pointToPoint[numberOfClients].Install(routerServerNodes);
+    NetDeviceContainer routerServerDevices = csma[numberOfClients].Install(routerServerNodes);
 
     InternetStackHelper stack;
     stack.Install(allNodes);
@@ -211,7 +219,7 @@ int main(int argc, char** argv){
     Ipv4GlobalRoutingHelper::PopulateRoutingTables();
 
    //for(i = 0; i <= numberOfClients; i++){
-        pointToPoint[i].EnablePcapAll("results/results.txt");
+        csma[i].EnablePcapAll("results/");
     //}
 
     //pointToPoint[numberOfClients].EnablePcapAll("results/simulated");
