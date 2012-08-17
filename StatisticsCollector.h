@@ -43,7 +43,8 @@ class StatisticsCollector{
         uint32_t serverTimeRequirement;
         uint16_t numberOfClientsForwarded;
         uint16_t messageNameIndex;
-
+        uint16_t messageSize;
+        uint16_t forwardMessageSize;
     };
 
 public:
@@ -57,12 +58,12 @@ public:
     void addFlowMonitor(Ptr<FlowMonitor> flowMon, FlowMonitorHelper& helper);
     static StatisticsCollector* createStatisticsCollector(bool, bool, bool, uint16_t, int);
     static void logMessagesSentFromClient(int messageNumber, Time, uint16_t streamNumber, uint32_t clientTimeRequirement, uint32_t serverTimeRequirement,
-                                          uint16_t messageNameIndex, uint16_t messageId);//log times when user action messages are sent
+                                          uint16_t messageNameIndex, uint16_t messageId, uint16_t size);//log times when user action messages are sent
     static void logUserActionMessageReceivedByServer(int messageNumber, Time, uint16_t streamNumber);    //log times when user action messages are received by the server
     static void logUserActionMessageReceivedByClient(int messageNumber, Time, uint16_t streamNumber);    //log times when user action messages are finally forwarded to other clients
     static void logServerMessageReceivedByClient(int messageNumber, Time, uint16_t streamNumber);        //log times when server messages reach client
-    static void logMessageForwardedByServer(int messageNumber, uint16_t streamNumber); //counts the messages forwarded to clients
-    static void logMessagesSentFromServer(int messageNumber, Time, uint16_t streamNumber, uint32_t clientTimeRequirement, uint16_t messageNameIndex, uint16_t messageId);
+    static void logMessageForwardedByServer(int messageNumber, uint16_t streamNumber, uint16_t size); //counts the messages forwarded to clients
+    static void logMessagesSentFromServer(int messageNumber, Time, uint16_t streamNumber, uint32_t clientTimeRequirement, uint16_t messageNameIndex, uint16_t messageId, uint16_t size);
     static void countMessagesSentFromServer(int messageNumber, uint16_t streamNumber);
     static uint16_t userActionmessageCount;
     static uint16_t otherDataMessageCount;
@@ -250,7 +251,7 @@ void StatisticsCollector::logUserActionMessageReceivedByServer(int messageNumber
 }
 
 void StatisticsCollector::logMessagesSentFromClient(int messageNumber, Time sendTime, uint16_t streamNumber, uint32_t clientTimeRequirement, uint32_t serverTimeRequirement, uint16_t nameIndex,
-                                                    uint16_t messageId){
+                                                    uint16_t messageId, uint16_t size){
 
     static std::map<int, Time> lastTimes;
 
@@ -265,9 +266,12 @@ void StatisticsCollector::logMessagesSentFromClient(int messageNumber, Time send
         userActionMessageLog[streamNumber-1].back()->sendTimeInterval = sendTime - lastTimes[messageId];
         lastTimes[messageId] = sendTime;
     }
+
+    userActionMessageLog[streamNumber-1].back()->messageSize = size;
+
 }
 
-void StatisticsCollector::logMessagesSentFromServer(int messageNumber, Time sendTime, uint16_t streamNumber, uint32_t clientTimeRequirement, uint16_t messageNameIndex, uint16_t messageId){
+void StatisticsCollector::logMessagesSentFromServer(int messageNumber, Time sendTime, uint16_t streamNumber, uint32_t clientTimeRequirement, uint16_t messageNameIndex, uint16_t messageId, uint16_t size){
 
     static std::map<int, Time> lastTimes;
 
@@ -281,14 +285,17 @@ void StatisticsCollector::logMessagesSentFromServer(int messageNumber, Time send
         serverMessageLog[streamNumber-1].back()->sendTimeInterval = sendTime - lastTimes[messageId];
         lastTimes[messageId] = sendTime;
     }
+
+    serverMessageLog[streamNumber-1].back()->messageSize = size;
 }
 
 void StatisticsCollector::countMessagesSentFromServer(int messageNumber, uint16_t streamNumber){
     serverMessageLog[streamNumber - 1].at(messageNumber)->numberOfClientsForwarded++;
 }
 
-void StatisticsCollector::logMessageForwardedByServer(int messageNumber, uint16_t streamNumber){
+void StatisticsCollector::logMessageForwardedByServer(int messageNumber, uint16_t streamNumber, uint16_t forwardMessageSize){
     userActionMessageLog[streamNumber-1].at(messageNumber)->numberOfClientsForwarded++;
+    userActionMessageLog[streamNumber-1].at(messageNumber)->forwardMessageSize = forwardMessageSize;
 }
 
 void StatisticsCollector::getStreamResults(std::vector<StatisticsCollector::MessageStats*>& clientStats, std::vector<StatisticsCollector::MessageStats*>& serverStats,
@@ -485,7 +492,7 @@ void StatisticsCollector::getBandwidthResults(){
     for(addrIt = nodesAndBandwidths.begin(), counter = 0; addrIt != nodesAndBandwidths.end(); addrIt++){ //NOTE: network headers are not calculated into this average
 
         if(addrIt->first != revAddrIt->first){
-            averageClientUplink +=  (addrIt->second.first + (nodesAndPackets[addrIt->first].first * 14))*8.0/ runningTime / 1024 /1024;
+            averageClientUplink +=  (addrIt->second.first + (nodesAndPackets[addrIt->first].first * 14))*8.0/ runningTime / 1024 /1024;    //add ethernet header sizes
             averageClientDownlink += (addrIt->second.second + (nodesAndPackets[addrIt->first].second * 14))*8.0 / runningTime /1024 /1024;
             counter++;
         }
@@ -507,6 +514,8 @@ void StatisticsCollector::getMessageStats(uint16_t streamNumber){
     std::pair<std::pair<std::string, int>, std::list<int> > messageRecvTimesForClientToClient[userActionmessageCount];
     std::pair<std::pair<std::string, int>, std::list<int> > messageRecvTimesForServer[userActionmessageCount];
     std::pair<std::pair<std::string, int>, std::list<int> > messageRecvTimesFromServerToClient[otherDataMessageCount];
+    std::pair<std::string, std::list<uint16_t> > uamSizes[userActionmessageCount];
+    std::pair<std::string, std::list<uint16_t> >odmSizes[otherDataMessageCount];
     std::list<int> messageSendIntervalsFromClient[userActionmessageCount];
     std::list<int> messagesSendIntervalFromServer[otherDataMessageCount];
     uint32_t* messagesForwardedFromServer = (uint32_t*)calloc(userActionmessageCount, sizeof(uint32_t));
@@ -515,12 +524,17 @@ void StatisticsCollector::getMessageStats(uint16_t streamNumber){
         for(std::vector<MessageStats*>::iterator it = userActionMessageLog[streamNumber].begin(); it != userActionMessageLog[streamNumber].end(); it++){
             messageRecvTimesForServer[(*it)->messageNameIndex].first.first =  uam_fnptr((*it)->messageNameIndex);
             messageRecvTimesForClientToClient[(*it)->messageNameIndex].first.first =  uam_fnptr((*it)->messageNameIndex);
+            uamSizes[(*it)->messageNameIndex].first = uam_fnptr((*it)->messageNameIndex);
+
             messageRecvTimesForServer[(*it)->messageNameIndex].first.second = (*it)->serverTimeRequirement;
             messageRecvTimesForClientToClient[(*it)->messageNameIndex].first.second = (*it)->clientTimeRequirement;
             messagesForwardedFromServer[(*it)->messageNameIndex] += (*it)->numberOfClientsForwarded;
             messageSendIntervalsFromClient[(*it)->messageNameIndex].push_back((*it)->sendTimeInterval.GetMilliSeconds());
+            uamSizes[(*it)->messageNameIndex].second.push_back((*it)->messageSize);
+
             if(!(*it)->serverRecvTime.IsZero())
                 messageRecvTimesForServer[(*it)->messageNameIndex].second.push_back(((*it)->serverRecvTime - (*it)->sendTime).GetMilliSeconds());
+
             for(std::list<Time>::iterator ctit = (*it)->clientRecvTimes.begin(); ctit != (*it)->clientRecvTimes.end(); ctit++){
                 if(!(*ctit).IsZero()){
                     messageRecvTimesForClientToClient[(*it)->messageNameIndex].second.push_back(((*ctit) - (*it)->sendTime).GetMilliSeconds());
@@ -531,9 +545,13 @@ void StatisticsCollector::getMessageStats(uint16_t streamNumber){
 
         for(std::vector<MessageStats*>::iterator it = serverMessageLog[streamNumber].begin(); it != serverMessageLog[streamNumber].end(); it++){
             messageRecvTimesFromServerToClient[(*it)->messageNameIndex].first.first = odm_fnptr((*it)->messageNameIndex);
+            odmSizes[(*it)->messageNameIndex].first = odm_fnptr((*it)->messageNameIndex);
+
             messageRecvTimesFromServerToClient[(*it)->messageNameIndex].first.second = (*it)->clientTimeRequirement;
             messagesSendIntervalFromServer[(*it)->messageNameIndex].push_back((*it)->sendTimeInterval.GetMilliSeconds());
             messagesSentFromServer[(*it)->messageNameIndex] += (*it)->numberOfClientsForwarded;
+            odmSizes[(*it)->messageNameIndex].second.push_back((*it)->messageSize);
+
             for(std::list<Time>::iterator ctit = (*it)->clientRecvTimes.begin(); ctit != (*it)->clientRecvTimes.end(); ctit++){
                 if(!(*ctit).IsZero()){
                     messageRecvTimesFromServerToClient[(*it)->messageNameIndex].second.push_back(((*ctit) - (*it)->sendTime).GetMilliSeconds());
@@ -546,14 +564,14 @@ void StatisticsCollector::getMessageStats(uint16_t streamNumber){
             if(messageRecvTimesForServer[h].first.first.compare("") != 0){
                 scriptGen->generateScriptForClientMessage(messageRecvTimesForClientToClient[h].second, messageRecvTimesForServer[h].second, messageSendIntervalsFromClient[h],
                                                           messageRecvTimesForServer[h].first.first, messageRecvTimesForServer[h].first.second, messageRecvTimesForClientToClient[h].first.second,
-                                                          messagesForwardedFromServer[h]);
+                                                          messagesForwardedFromServer[h], uamSizes[h].second);
             }
         }
 
         for(int h = 0; h < otherDataMessageCount; h++){
             if(messageRecvTimesFromServerToClient[h].first.first.compare("") != 0){
                 scriptGen->generateScriptForServerMessage(messageRecvTimesFromServerToClient[h].second, messagesSendIntervalFromServer[h], messageRecvTimesFromServerToClient[h].first.first,
-                                                          messageRecvTimesFromServerToClient[h].first.second, messagesSentFromServer[h]);
+                                                          messageRecvTimesFromServerToClient[h].first.second, messagesSentFromServer[h], odmSizes[h].second);
             }
 
         }

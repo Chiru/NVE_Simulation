@@ -55,7 +55,7 @@ public:
     virtual void dataReceivedTcp(Ptr<Socket>) = 0;
     virtual void dataReceivedUdp(Ptr<Socket>) = 0;
     virtual void moreBufferSpaceAvailable(Ptr<Socket>, uint32_t) = 0;
-    bool setupStream(Ptr<Node> node, Address addr, uint16_t gameTick);
+    bool setupStream(Ptr<Node> node, Address addr);
     uint64_t getBytesSent() const{return totalBytesSent;}
     uint16_t getStreamNumber() const{return streamNumber;}
     Protocol getProtocol() const{return proto;}
@@ -181,17 +181,15 @@ DataGenerator::~DataGenerator(){
     }
 
     for(std::vector<Message*>::iterator it = messages.begin(); it != messages.end(); it++){
-        delete *it;
+            delete *it;
     }
-
 }
 
 
-bool DataGenerator::setupStream(Ptr<Node> node, Address addr, uint16_t gameTick){
+bool DataGenerator::setupStream(Ptr<Node> node, Address addr){
 
     peerAddr = addr;
 
-    this->gameTick = gameTick;
     sender.setGameTick(gameTick);
 
     if(gameTick == 0)
@@ -214,7 +212,7 @@ bool DataGenerator::setupStream(Ptr<Node> node, Address addr, uint16_t gameTick)
             socket->SetAttribute("TcpNoDelay", BooleanValue(false));
             socket->SetAttribute("SegmentSize", UintegerValue(1400));
             //socket->SetAttribute("DelAckCount", UintegerValue(100));
-          //  socket->SetAttribute("DelAckTimeout", TimeValue(Time("45ms")));
+            //socket->SetAttribute("DelAckTimeout", TimeValue(Time("45ms")));
             break;
 
         case UDP:
@@ -230,6 +228,7 @@ bool DataGenerator::setupStream(Ptr<Node> node, Address addr, uint16_t gameTick)
 }
 
 DataGenerator::ReadMsgNameReturnValue DataGenerator::readMessageName(std::string &name, uint8_t *buffer, uint16_t charLeft, bool nameContinues){
+
 
     if(charLeft <= 1){
         return NAME_CONTINUES;      //read only "-character
@@ -291,7 +290,7 @@ void DataGenerator::sendBackToSender(const Message* msg, const Address& addr, co
         int messageId = 0;
         std::string name = msg->getName();
         msg->parseMessageId(messageName, messageId);
-        StatisticsCollector::logMessageForwardedByServer(messageId, streamNumber);
+        StatisticsCollector::logMessageForwardedByServer(messageId, streamNumber, msg->getForwardMessageSize(messageId));
     }
 
 }
@@ -301,7 +300,6 @@ void DataGenerator::sendBackToSender(const Message* msg, const Address& addr, co
 
 ClientDataGenerator::ClientDataGenerator(uint16_t streamNumber, Protocol proto, ApplicationProtocol* appProto, std::vector<Message*> messages, int tick)
     : DataGenerator(streamNumber, proto, appProto, messages, tick), ownerClient(0), bytesLeftToRead(0), dataLeft(false), nameLeft(false){
-
 }
 
 ClientDataGenerator::ClientDataGenerator(const DataGenerator& stream) : bytesLeftToRead(0), dataLeft(false), nameLeft(false){
@@ -446,10 +444,13 @@ void ClientDataGenerator::dataReceivedTcp(Ptr<Socket> sock){
                             }
                         }
 
+                        int msgId;
+                        message->parseMessageId(messageName, msgId);
+
                         if(message->getType() != OTHER_DATA)
-                            messageSize = message->getForwardMessageSize();
+                            messageSize = message->getForwardMessageSize(msgId);
                         else
-                            messageSize = message->getMessageSize();
+                            messageSize = message->getMessageSize(msgId);
 
                          if((bufferSize - bytesRead) <  messageSize - messageNamePart.length() - (nameLeft ==true ? 1 : 0)){   // -1 because of the "-character in the beginning of the name
 
@@ -498,7 +499,7 @@ void ClientDataGenerator::dataReceivedTcp(Ptr<Socket> sock){
                         bytesRead = bufferSize;
                     }
                     else if(retVal == READ_FAILED)
-                        PRINT_ERROR("This should never happen, check message names!" <<std::endl);
+                        PRINT_ERROR("This should never happen, check message names! 1" <<std::endl);
 
                 }
             }
@@ -513,10 +514,13 @@ void ClientDataGenerator::dataReceivedTcp(Ptr<Socket> sock){
                         }
                     }
 
+                    int msgId;
+                    message->parseMessageId(messageName, msgId);
+
                     if(message->getType() != OTHER_DATA)
-                        messageSize = message->getForwardMessageSize();
+                        messageSize = message->getForwardMessageSize(msgId);
                     else
-                        messageSize = message->getMessageSize();
+                        messageSize = message->getMessageSize(msgId);
 
                     if((bufferSize - bytesRead) < messageSize){   //if this is true, the message continues in the next TCP segment
                         dataLeft = true;
@@ -545,7 +549,7 @@ void ClientDataGenerator::dataReceivedTcp(Ptr<Socket> sock){
                     bytesRead = bufferSize;
                 }
                 else if(retVal == READ_FAILED)
-                    PRINT_ERROR("This should never happen, check message names!" << std::endl);
+                    PRINT_ERROR("This should never happen, check message names! 2" << std::endl);
             }
         }
     }
@@ -589,11 +593,14 @@ void ClientDataGenerator::readReceivedData(uint8_t* buffer, uint16_t bufferSize,
                     }
                 }
 
+                int msgId;
+                message->parseMessageId(messageName, msgId);
+
                 if(message->getType() != OTHER_DATA)
-                    bytesRead += message->getForwardMessageSize();
+                    bytesRead += message->getForwardMessageSize(msgId);
 
                 else
-                    bytesRead += message->getMessageSize();
+                    bytesRead += message->getMessageSize(msgId);
 
                 message->messageReceivedClient(messageName);
 
@@ -604,7 +611,7 @@ void ClientDataGenerator::readReceivedData(uint8_t* buffer, uint16_t bufferSize,
                 messageName.assign("");
             }
             else if(retVal == NAME_CONTINUES){
-                PRINT_ERROR("This should never happen!" << std::endl);sleep(1);
+                PRINT_ERROR("This should never happen!1" << std::endl);sleep(1);
             }
             else if(retVal == READ_FAILED){ //this can happen if only second part of IP fragmented packet arrives
                 return;
@@ -799,10 +806,13 @@ void ServerDataGenerator::dataReceivedTcp(Ptr<Socket> sock){
                             }
                         }
 
+                        int msgId;
+                        message->parseMessageId(messageName, msgId);
+
                         if(message->getType() == OTHER_DATA)
-                            messageSize = message->getForwardMessageSize();
+                            messageSize = message->getForwardMessageSize(msgId);
                         else
-                            messageSize = message->getMessageSize();
+                            messageSize = message->getMessageSize(msgId);
 
                          if((bufferSize - bytesRead) <  messageSize -client->messageNamePart.length() - (client->nameLeft ==true ? 1 : 0)){   // -1 because of the "-character in the beginning of the name
 
@@ -846,7 +856,7 @@ void ServerDataGenerator::dataReceivedTcp(Ptr<Socket> sock){
                         bytesRead = bufferSize;
                     }
                     else if(retVal == READ_FAILED)
-                        PRINT_ERROR("This should never happen, check message names!" <<std::endl);
+                        PRINT_ERROR("This should never happen, check message names! 3" <<std::endl);
 
                 }
             }
@@ -860,10 +870,13 @@ void ServerDataGenerator::dataReceivedTcp(Ptr<Socket> sock){
                         }
                     }
 
+                    int msgId;
+                    message->parseMessageId(messageName, msgId);
+
                     if(message->getType() == OTHER_DATA)
-                        messageSize = message->getForwardMessageSize();
+                        messageSize = message->getForwardMessageSize(msgId);
                     else
-                        messageSize = message->getMessageSize();
+                        messageSize = message->getMessageSize(msgId);
 
                     if((bufferSize - bytesRead) < messageSize){   //if this is true, the message continues in the next TCP segment
                         client->dataLeft = true;
@@ -889,7 +902,7 @@ void ServerDataGenerator::dataReceivedTcp(Ptr<Socket> sock){
                     bytesRead = bufferSize;
                 }
                 else if(retVal == READ_FAILED){
-                    PRINT_ERROR("This should never happen, check message names!" << std::endl);
+                    PRINT_ERROR("This should never happen, check message names! 4" << std::endl); sleep(2);
                 }
             }
         }
@@ -952,11 +965,14 @@ void ServerDataGenerator::readReceivedData(uint8_t *buffer, uint16_t bufferSize,
                     }
                 }
 
+                int msgId;
+                message->parseMessageId(messageName, msgId);
+
                 if(message->getType() == OTHER_DATA){
-                    bytesRead += message->getForwardMessageSize();
+                    bytesRead += message->getForwardMessageSize(msgId);
                 }
                 else{
-                    bytesRead += message->getMessageSize();
+                    bytesRead += message->getMessageSize(msgId);
                 }
 
                 udpMessages.push_back(std::make_pair<Address, std::pair<std::string, Message*> >(Address(clientAddr), std::make_pair<std::string, Message*>(messageName, message)));
@@ -966,7 +982,7 @@ void ServerDataGenerator::readReceivedData(uint8_t *buffer, uint16_t bufferSize,
                 messageName.assign("");
             }
             else if(retVal == NAME_CONTINUES){
-                PRINT_ERROR("This should never happen!" << std::endl);sleep(1);
+                PRINT_ERROR("This should never happen!2" << std::endl);sleep(1);
             }
             else if(retVal == READ_FAILED){ //this can happen if only second part of IP fragmented packet arrives
                 return;
@@ -1068,9 +1084,9 @@ void ServerDataGenerator::forwardUserActionMessage(std::pair<std::string, Messag
     if(!sender.sendTo(immediateSend, (uint8_t*)buffer, msg.second, addr, true, false, socket))
         return;
 
-    msg.second->parseMessageId(msg.second->getName(), messageNumber);
+    msg.second->parseMessageId(msg.first, messageNumber);
 
-    StatisticsCollector::logMessageForwardedByServer(messageNumber, streamNumber);
+    StatisticsCollector::logMessageForwardedByServer(messageNumber, streamNumber, msg.second->getForwardMessageSize(messageNumber));
 }
 
 bool ServerDataGenerator::sendData(Message *msg, uint8_t *buffer){
@@ -1132,9 +1148,9 @@ void ServerDataGenerator::ClientConnection::forwardUserActionMessage(std::pair<s
         return;
 
 
-    msg.second->parseMessageId(msg.second->getName(), messageNumber);
+    msg.second->parseMessageId(msg.first, messageNumber);
 
-    StatisticsCollector::logMessageForwardedByServer(messageNumber, msg.second->getStreamNumber());
+    StatisticsCollector::logMessageForwardedByServer(messageNumber, msg.second->getStreamNumber(), msg.second->getForwardMessageSize(messageNumber));
 }
 
 #endif // DATAGENERATOR_H

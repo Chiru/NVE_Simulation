@@ -36,10 +36,14 @@ bool DataSender::send(bool sendNow, uint8_t* buffer, const Message* msg, const P
 
     uint16_t messageSize;
 
+    int msgId;
+    msg->parseMessageId(std::string((char*)buffer), msgId);
+
     if(forward)
-        messageSize = msg->getForwardMessageSize();
+        messageSize = msg->getForwardMessageSize(msgId);
     else
-        messageSize = msg->getMessageSize();
+        messageSize = msg->getMessageSize(msgId);
+
 
     if(sendNow){
         if(sock->Send((uint8_t*)buffer, messageSize, 0) == -1){
@@ -64,10 +68,13 @@ bool DataSender::sendTo(bool sendNow, uint8_t* buffer, const Message* msg, const
     if(msg->getReliable())
         udpBuffer[addr].second = true;
 
+    int msgId;
+    msg->parseMessageId(std::string((char*)buffer), msgId);
+
     if(forward)
-        messageSize = msg->getForwardMessageSize();
+        messageSize = msg->getForwardMessageSize(msgId);
     else
-        messageSize = msg->getMessageSize();
+        messageSize = msg->getMessageSize(msgId);
 
     if(sendNow){
         if(appProto){

@@ -47,14 +47,14 @@ public:
         }
     };
 
-    Message(std::string, bool, int, uint16_t, uint16_t, uint16_t forwardSize, bool forwardBack, RandomVariable* ranvar = 0);
+    Message(std::string, bool, int, uint16_t, uint16_t, uint16_t forwardSize, bool forwardBack, RandomVariable* ranvarTimeInterval = 0, RandomVariable* ranvarSize = 0, RandomVariable* ranvarForwardSize = 0);
     virtual ~Message();
     virtual Message* copyMessage()  = 0;
     virtual void scheduleSendEvent(Callback<bool, Message*, uint8_t*>) = 0;
     std::string getName() const{return name;}
     bool getReliable() const{return reliable;}
     int getTimeInterval() const{return timeInterval;}
-    uint16_t getMessageSize() const{return messageSize;}
+    virtual uint16_t getMessageSize(int msgNumber = -1) const = 0;
     uint16_t getmessagesCreated() const {return messagesCreated;}
     uint16_t getMessageId() const {return messageID;}
     MessageType getType() const{return type;}
@@ -65,7 +65,7 @@ public:
     virtual void messageReceivedClient(std::string& messageName) = 0;
     bool parseMessageId(const std::string& messageName, int& resultId) const;
     bool doForwardBack() const {return forwardBack;}
-    uint16_t getForwardMessageSize() const {return forwardSize;}
+    virtual uint16_t getForwardMessageSize(int msgNumber = -1) const = 0;
 
 
   protected:
@@ -82,11 +82,20 @@ public:
     EventId sendEvent;
     bool running;
     uint16_t streamNumber;
-    RandomVariable* ranvar;
+    RandomVariable* ranvarTimeInterval;
+    RandomVariable* ranvarSize;
+    RandomVariable* ranvarForwardSize;
     uint16_t forwardSize;
     bool forwardBack;
 
+    typedef struct{    //these must be remembered in order to get messagesizes when they are generated with random values
+        uint16_t number;
+        uint16_t size;
+        uint16_t forwardSize;
+    }NumbersAndSizes;
+
     static uint16_t messagesCreated;
+    static std::map<uint16_t, std::map<MessageType, std::vector<NumbersAndSizes> > >numbersAndSizes;   //map contains element for each stream, each stream has vector for each message type
 
 };
 
@@ -104,6 +113,8 @@ public:
     uint32_t getClientTimeRequirement() const{return clientTimeRequirement;}
     void messageReceivedServer(std::string& messageName);
     void messageReceivedClient(std::string& messageName);
+    virtual uint16_t getForwardMessageSize(int msgNumber = -1) const;
+    virtual uint16_t getMessageSize(int msgNumber = -1) const;
 
     static std::map<std::string ,uint16_t, StringComparator> userActionMessageNameMap;
 
@@ -124,7 +135,7 @@ public:
 
 private:
     UserActionMessage(std::string name, bool reliable, int timeInterval, uint16_t messageSize, double clientsOfInterest, uint32_t clientRequirement, uint32_t serverRequirement,
-                      uint16_t streamNumber, uint16_t forwardSize, bool forwardBack, RandomVariable* ranvar = 0);
+                      uint16_t streamNumber, uint16_t forwardSize, bool forwardBack, RandomVariable* ranvarTimeInterval = 0, RandomVariable* ranvarSize = 0, RandomVariable* ranvarForwardSize = 0);
 
     double clientsOfInterest;
     uint32_t clientTimeRequirement;  //time requirement for messages to travel from client to client
@@ -146,6 +157,8 @@ public:
     void scheduleSendEvent(Callback<bool, Message*, uint8_t*>);
     void messageReceivedServer(std::string& messageName);
     void messageReceivedClient(std::string& messageName);
+    virtual uint16_t getForwardMessageSize(int msgNumber = -1) const;
+    virtual uint16_t getMessageSize(int msgNumber = -1) const;
 
     static std::map<std::string ,uint16_t, StringComparator> otherDataMessageNameMap;
 
@@ -165,7 +178,8 @@ public:
     }
 
 private:
-    OtherDataMessage(std::string name, bool reliable, int timeInterval, uint16_t messageSize, uint16_t streamNumber, uint16_t forwardSize, bool forwardBack, uint16_t timeReq, RandomVariable* ranvar = 0);
+    OtherDataMessage(std::string name, bool reliable, int timeInterval, uint16_t messageSize, uint16_t streamNumber, uint16_t forwardSize, bool forwardBack, uint16_t timeReq,
+                     RandomVariable* ranvarTimeInterval = 0, RandomVariable* ranvarSize = 0, RandomVariable* ranvarForwardSize = 0);
 
     uint16_t clientTimeRequirement;
 
@@ -179,24 +193,41 @@ private:
 //Class Message function definitions
 
 uint16_t Message::messagesCreated = 0;
+std::map<uint16_t, std::map<MessageType, std::vector<Message::NumbersAndSizes> > >Message::numbersAndSizes;
 
-Message::Message(std::string name, bool reliable, int timeInterval, uint16_t size, uint16_t streamNumber, uint16_t forwardSize, bool forwardBack, RandomVariable* ranvar)
-    : name(name), reliable(reliable), timeInterval(timeInterval), messageSize(size), streamNumber(streamNumber), ranvar(ranvar), forwardSize(forwardSize), forwardBack(forwardBack){
+Message::Message(std::string name, bool reliable, int timeInterval, uint16_t size, uint16_t streamNumber, uint16_t forwardSize, bool forwardBack,
+                 RandomVariable* ranvarTimeInterval, RandomVariable* ranvarSize, RandomVariable* ranvarForwardSize)
+    : name(name), reliable(reliable), timeInterval(timeInterval), messageSize(size), streamNumber(streamNumber),
+      ranvarTimeInterval(ranvarTimeInterval), ranvarSize(ranvarSize), ranvarForwardSize(ranvarForwardSize), forwardSize(forwardSize), forwardBack(forwardBack){
 
 }
 
 Message::Message(const Message &msg): name(msg.getName()), reliable(msg.getReliable()), timeInterval(msg.getTimeInterval()), messageSize(msg.getMessageSize()),
     type(msg.getType()), streamNumber(msg.getStreamNumber()), forwardSize(msg.getForwardMessageSize()), forwardBack(msg.doForwardBack()){
-    if(msg.ranvar != 0)
-        this->ranvar = new RandomVariable(*msg.ranvar);
+
+    if(msg.ranvarTimeInterval != 0)
+        this->ranvarTimeInterval = new RandomVariable(*msg.ranvarTimeInterval);
     else
-        ranvar = 0;
+        ranvarTimeInterval = 0;
+
+    if(msg.ranvarSize != 0)
+        this->ranvarSize = new RandomVariable(*msg.ranvarSize);
+    else
+        ranvarSize = 0;
+
+    if(msg.ranvarForwardSize != 0)
+        this->ranvarForwardSize = new RandomVariable(*msg.ranvarForwardSize);
+    else
+        ranvarForwardSize = 0;
+
 
     this->messageID = ++messagesCreated;
 }
 
 Message::~Message(){
-    delete ranvar;
+    delete ranvarTimeInterval;
+    delete ranvarSize;
+    delete ranvarForwardSize;
 }
 
 void Message::cancelEvent(){
@@ -232,7 +263,8 @@ bool Message::parseMessageId (const std::string &messageName, int &resultId)cons
     std::stringstream str;
 
     for(unsigned int i = this->getName().length() + 1; i < messageName.length() ;  i++) {
-        str << messageName[i];
+        if(isdigit(messageName[i]))
+            str << messageName[i];
     }
 
     str >> resultId;
@@ -247,8 +279,9 @@ bool Message::parseMessageId (const std::string &messageName, int &resultId)cons
 std::map< std::string, uint16_t, Message::StringComparator> UserActionMessage::userActionMessageNameMap = std::map<std::string, uint16_t, Message::StringComparator>();
 
 UserActionMessage::UserActionMessage(std::string name, bool reliable, int timeInterval, uint16_t messageSize, double clientsOfInterest,
-                                     uint32_t clientRequirement,  uint32_t serverRequirement, uint16_t streamNumber, uint16_t forwardSize, bool forwardBack, RandomVariable* ranvar)
-    :Message(name, reliable, timeInterval, messageSize, streamNumber, forwardSize, forwardBack, ranvar), clientsOfInterest(clientsOfInterest),
+                                     uint32_t clientRequirement,  uint32_t serverRequirement, uint16_t streamNumber, uint16_t forwardSize, bool forwardBack,
+                                     RandomVariable* ranvarTimeInterval, RandomVariable* ranvarSize, RandomVariable* ranvarForwardSize)
+    :Message(name, reliable, timeInterval, messageSize, streamNumber, forwardSize, forwardBack, ranvarTimeInterval, ranvarSize, ranvarForwardSize), clientsOfInterest(clientsOfInterest),
       clientTimeRequirement(clientRequirement), serverTimeRequirement(serverRequirement){
 
     if(userActionMessageNameMap.find(name) == userActionMessageNameMap.end()){
@@ -272,6 +305,15 @@ int UserActionMessage::newMessageNumber(uint16_t streamnumber){
     static std::pair<int, int>* temp;
     bool exists = false;
     int retVal;
+
+    if(numbersAndSizes.count(streamnumber) == 0){
+        std::map<MessageType, std::vector<NumbersAndSizes> > map;
+        numbersAndSizes.insert(std::make_pair<uint16_t, std::map<MessageType, std::vector<NumbersAndSizes> > >(streamnumber, map));
+    }
+
+    if(numbersAndSizes.at(streamnumber).count(USER_ACTION) == 0){
+        numbersAndSizes.at(streamnumber).insert(std::make_pair<MessageType, std::vector<NumbersAndSizes> >(USER_ACTION, std::vector<NumbersAndSizes>()));
+    }
 
     for(it = messageNumbersForStreams.begin(); it != messageNumbersForStreams.end(); it++){
         if(it->first == streamnumber){
@@ -299,13 +341,13 @@ void UserActionMessage::scheduleSendEvent(Callback<bool, Message*, uint8_t*> sen
     this->sendFunction = sendFunction;
     running = true;
 
-    if(ranvar != 0){
-        interval = ranvar->GetInteger();
+    if(ranvarTimeInterval != 0){
+        interval = ranvarTimeInterval->GetInteger();
         if(interval <= 0)
             interval = 1;
     }
 
-    if(ranvar == 0)
+    if(ranvarTimeInterval == 0)
         sendEvent = Simulator::Schedule(Time(MilliSeconds(timeInterval)), &UserActionMessage::sendData, this);
     else
         sendEvent = Simulator::Schedule(Time(MilliSeconds(interval)), &UserActionMessage::sendData, this);
@@ -316,26 +358,45 @@ void UserActionMessage::sendData(){
     char buffer[30] = "";
     static Time sentTime;
     static int interval = 0;
+    NumbersAndSizes stats;
 
     int messageNumber = UserActionMessage::newMessageNumber(streamNumber);
 
+    stats.number = messageNumber;
+
     fillMessageContents(buffer, messageNumber);
+
+    if(ranvarSize == 0){
+        stats.size = this->getMessageSize();
+    }
+    else{
+        stats.size = ranvarSize->GetInteger();
+    }
+
+    if(ranvarForwardSize == 0){
+        stats.forwardSize = this->getForwardMessageSize();
+    }else{
+        stats.forwardSize = ranvarForwardSize->GetInteger();
+    }
+
+
+    numbersAndSizes.at(streamNumber).at(USER_ACTION).push_back(stats);
 
     sentTime = Simulator::Now();
 
-    StatisticsCollector::logMessagesSentFromClient(messageNumber, sentTime, streamNumber, clientTimeRequirement, serverTimeRequirement, UserActionMessage::getUAMNameIndex(name), messageID);
+    StatisticsCollector::logMessagesSentFromClient(messageNumber, sentTime, streamNumber, clientTimeRequirement, serverTimeRequirement, UserActionMessage::getUAMNameIndex(name), messageID, stats.size);
 
     if(!sendFunction(this, (uint8_t*)buffer))
         PRINT_ERROR("Problems with socket buffer" << std::endl);   //TODO: socket buffer
 
-    if(ranvar != 0){
-        interval = ranvar->GetInteger();
+    if(ranvarTimeInterval != 0){
+        interval = ranvarTimeInterval->GetInteger();
         if(interval <= 0)
             interval = 1;
     }
 
     if(running){
-        if(ranvar == 0)
+        if(ranvarTimeInterval == 0)
             sendEvent = Simulator::Schedule(Time(MilliSeconds(timeInterval)), &UserActionMessage::sendData, this);
         else
             sendEvent = Simulator::Schedule(Time(MilliSeconds(interval)), &UserActionMessage::sendData, this);
@@ -349,6 +410,24 @@ Message* UserActionMessage::copyMessage(){
 
     return msg;
 
+}
+
+uint16_t UserActionMessage::getMessageSize(int msgNumber) const{
+
+    if(msgNumber == -1){
+        return this->messageSize;
+    }else{
+         return numbersAndSizes.at(streamNumber).at(USER_ACTION)[msgNumber].size;
+    }
+}
+
+uint16_t UserActionMessage::getForwardMessageSize(int msgNumber) const{
+
+    if(msgNumber == -1){
+        return this->forwardSize;
+    }else{
+        return numbersAndSizes.at(streamNumber).at(USER_ACTION)[msgNumber].forwardSize;
+    }
 }
 
 void UserActionMessage::printStats(std::ostream &out, const Message &msg) const{
@@ -381,8 +460,8 @@ std::map< std::string, uint16_t, Message::StringComparator> OtherDataMessage::ot
 
 
 OtherDataMessage::OtherDataMessage(std::string name, bool reliable, int timeInterval, uint16_t messageSize, uint16_t streamNumber, uint16_t forwardSize,
-                                   bool forwardBack, uint16_t req, RandomVariable* ranvar)
-    : Message(name, reliable, timeInterval, messageSize, streamNumber, forwardSize, forwardBack, ranvar), clientTimeRequirement(req){
+                                   bool forwardBack, uint16_t req, RandomVariable* ranvarTimeInterval, RandomVariable* ranvarSize, RandomVariable* ranvarforwardSize)
+    : Message(name, reliable, timeInterval, messageSize, streamNumber, forwardSize, forwardBack, ranvarTimeInterval, ranvarSize, ranvarforwardSize), clientTimeRequirement(req){
 
     if(otherDataMessageNameMap.find(name) == otherDataMessageNameMap.end()){
         otherDataMessageNameMap.insert(std::make_pair<std::string, uint16_t>(name, otherDataMessageNameMap.size()));   //every message name has an unique index
@@ -408,6 +487,15 @@ int OtherDataMessage::newMessageNumber(uint16_t streamnumber){
     bool exists = false;
     int retVal;
 
+    if(numbersAndSizes.count(streamnumber) == 0){
+        std::map<MessageType, std::vector<NumbersAndSizes> > map;
+        numbersAndSizes.insert(std::make_pair<uint16_t, std::map<MessageType, std::vector<NumbersAndSizes> > >(streamnumber, map));
+    }
+
+    if(numbersAndSizes.at(streamnumber).count(OTHER_DATA) == 0){
+        numbersAndSizes.at(streamnumber).insert(std::make_pair<MessageType, std::vector<NumbersAndSizes> >(OTHER_DATA, std::vector<NumbersAndSizes>()));
+    }
+
     for(it = messageNumbersForStreams.begin(); it != messageNumbersForStreams.end(); it++){
         if(it->first == streamnumber){
             exists = true;
@@ -432,26 +520,44 @@ void OtherDataMessage::sendData(){
     char buffer[30] = "";
     static Time sentTime;
     static int interval = 0;
+    NumbersAndSizes stats;
 
     int messageNumber = OtherDataMessage::newMessageNumber(streamNumber);
 
+    stats.number = messageNumber;
+
     fillMessageContents(buffer, messageNumber);
+
+    if(ranvarSize == 0){
+        stats.size = this->getMessageSize();
+    }
+    else{
+        stats.size = ranvarSize->GetInteger();
+    }
+
+    if(ranvarForwardSize == 0){
+        stats.forwardSize = this->getForwardMessageSize();
+    }else{
+        stats.forwardSize = ranvarForwardSize->GetInteger();
+    }
+
+    numbersAndSizes.at(streamNumber).at(OTHER_DATA).push_back(stats);
 
     sentTime = Simulator::Now();
 
-    StatisticsCollector::logMessagesSentFromServer(messageNumber, sentTime, streamNumber, clientTimeRequirement, OtherDataMessage::getODMNameIndex(name), messageID);
+    StatisticsCollector::logMessagesSentFromServer(messageNumber, sentTime, streamNumber, clientTimeRequirement, OtherDataMessage::getODMNameIndex(name), messageID, stats.size);
 
     if(!sendFunction(this, (uint8_t*)buffer))
         PRINT_ERROR("Problems with socket buffer" << std::endl);   //TODO: socket buffer
 
-    if(ranvar != 0){
-        interval = ranvar->GetInteger();
+    if(ranvarTimeInterval != 0){
+        interval = ranvarTimeInterval->GetInteger();
         if(interval <= 0)
             interval = 1;
     }
 
     if(running){
-        if(ranvar == 0)
+        if(ranvarTimeInterval == 0)
             sendEvent = Simulator::Schedule(Time(MilliSeconds(timeInterval)), &OtherDataMessage::sendData, this);
         else
             sendEvent = Simulator::Schedule(Time(MilliSeconds(interval)), &OtherDataMessage::sendData, this);
@@ -463,6 +569,25 @@ Message* OtherDataMessage::copyMessage(){
     Message *msg;
     msg = new OtherDataMessage(*this);
     return msg;
+}
+
+uint16_t OtherDataMessage::getMessageSize(int msgNumber) const{
+
+    if(msgNumber == -1){
+        return this->messageSize;
+    }else{
+        return numbersAndSizes.at(streamNumber).at(OTHER_DATA)[msgNumber].size;
+    }
+
+}
+
+uint16_t OtherDataMessage::getForwardMessageSize(int msgNumber) const{
+
+    if(msgNumber == -1){
+        return this->forwardSize;
+    }else{
+        return numbersAndSizes.at(streamNumber).at(OTHER_DATA)[msgNumber].forwardSize;
+    }
 }
 
 void OtherDataMessage::printStats(std::ostream &out, const Message &msg) const{
@@ -478,13 +603,13 @@ void OtherDataMessage::scheduleSendEvent(Callback<bool, Message*, uint8_t*> send
 
     this->sendFunction = sendFunction;
     running = true;
-    if(ranvar != 0){
-        interval = ranvar->GetInteger();
+    if(ranvarTimeInterval != 0){
+        interval = ranvarTimeInterval->GetInteger();
         if(interval <= 0)
             interval = 1;
     }
 
-    if(ranvar == 0)
+    if(ranvarTimeInterval == 0)
         sendEvent = Simulator::Schedule(Time(MilliSeconds(timeInterval)), &OtherDataMessage::sendData, this);
     else
         sendEvent = Simulator::Schedule(Time(MilliSeconds(interval)), &OtherDataMessage::sendData, this);

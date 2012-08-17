@@ -19,8 +19,9 @@ public:
     bool generateScriptForStream(const std::list<int64_t>* transmitTimesToClients,  const std::list<int64_t>* transmitTimesToServer, const std::list<int64_t>* transmitTimesFromServer,
                                  uint16_t maxStreams);
     bool generateScriptForClientMessage(std::list<int> clientRecvTimes, std::list<int> serverRecvTimes, std::list<int> sendIntervals, const std::string& name, int serverTimeReq,
-                                        int clientTimeReq, uint16_t numberOfClientsForwarded);
-    bool generateScriptForServerMessage(std::list<int> clientRecvTimes, std::list<int> sendIntervals, const std::string& name, int clientTimeReq, uint16_t numberOfClientsForwarded);
+                                        int clientTimeReq, uint16_t numberOfClientsForwarded, std::list<uint16_t> sizes);
+    bool generateScriptForServerMessage(std::list<int> clientRecvTimes, std::list<int> sendIntervals, const std::string& name, int clientTimeReq, uint16_t numberOfClientsForwarded,
+                                        std::list<uint16_t> sizes);
     bool writeAndExecuteResultScript();
     bool generateBandwidthHistogram(double clientDownlink, double clientUplink, double serverDownlink, double serverUplink);
 
@@ -278,7 +279,7 @@ bool RScriptGenerator::generateScriptForStream(const std::list<int64_t>* transmi
 }
 
 bool RScriptGenerator::generateScriptForClientMessage(std::list<int> clientRecvTimes, std::list<int> serverRecvTimes, std::list<int> sendIntervals, const std::string &name, int serverTimeReq,
-                                                int clientTimeReq, uint16_t numberOfClientsForwarded){
+                                                int clientTimeReq, uint16_t numberOfClientsForwarded, std::list<uint16_t> sizes){
 
 
     static std::string color[2] = {"\"green\"", "\"blue\""};
@@ -393,12 +394,17 @@ bool RScriptGenerator::generateScriptForClientMessage(std::list<int> clientRecvT
     stream << "#Message interarrival times for " << name;
     stream << "\nplot(tabulate(sendtimes_" << name << "), type=\"h\", xlab=\"Time(ms)\", ylab =\"Message count\", main=\"Interarrival times for: " <<  name <<"\")" << std::endl;
 
+    stream << "\n#Packet sizes for message " << name << std::endl;
+   // stream << ""
+
+
     messageScript.append(stream.str());
 
     return true;
 }
 
-bool RScriptGenerator::generateScriptForServerMessage(std::list<int> clientRecvTimes, std::list<int> sendIntervals, const std::string &name, int clientTimeReq, uint16_t numberOfClientsForwarded){
+bool RScriptGenerator::generateScriptForServerMessage(std::list<int> clientRecvTimes, std::list<int> sendIntervals, const std::string &name, int clientTimeReq, uint16_t numberOfClientsForwarded,
+                                                      std::list<uint16_t> sizes){
 
     static std::string color[2] = {"\"green\"", "\"blue\""};
     static std::string client("servertoclientmsg_");

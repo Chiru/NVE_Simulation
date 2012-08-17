@@ -36,7 +36,6 @@ private:
     int runningTime;
     Ptr<Node> node;
     Address* address;
-    uint16_t gameTick;
 
 };
 
@@ -48,12 +47,10 @@ Server::Server(XMLParser& parser, int runningTime, Ptr<Node> node, Address* addr
     parser.getStreams(streams, false);
     numberOfStreams = parser.getNumberOfStreams();
 
-    gameTick = parser.getServerGameTick();
-
     for(int i = 0; i < numberOfStreams; i++){
         streams[i]->SetStartTime(Seconds(0));
         streams[i]->SetStopTime(Seconds(runningTime +1));
-        streams[i]->setupStream(node, address[i], gameTick);
+        streams[i]->setupStream(node, address[i]);
         node->AddApplication(streams[i]);
     }
 

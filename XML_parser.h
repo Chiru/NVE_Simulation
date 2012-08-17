@@ -48,8 +48,6 @@ public:
     uint16_t getNumberOfStreams()const {return numberOfStreams;}
     bool getApplicationProtocol(ApplicationProtocol*&);
     bool getClientStats(uint16_t clientIndex, uint16_t &clientNumber, int &delay, double &uplink, double &downlink, double &loss);
-    uint16_t getServerGameTick() const{return serverGameTick;}
-    uint16_t getClientGameTick() const{return clientGameTick;}
     uint16_t getRunningTime() const{return runningTime;}
 
 private:
@@ -95,22 +93,23 @@ private:
 
     bool parseClients(std::string& file);
     bool parseStreams(std::string& file);
-    bool parseStream(std::string& streamElement, DataGenerator*& stream);
+    bool parseStream(std::string& streamElement, DataGenerator*& clientStream, DataGenerator*& serverStream);
     bool parseMessages(std::string& messagesElement, std::vector<Message*>& messages, uint16_t stream_number);
     bool parseApplicationProtocol(std::string& file);
-    bool parseGameTick(std::string& xmlFile);
+    bool parseGameTick(std::string& streamElement, int& serverGameTick, int& clientGameTick);
     bool parseRunningTime(std::string& file);
     uint16_t countStreams(std::string& file);
     template <class T> bool readValue(const std::string& file, const std::string& variable, T& result, size_t position = 0);
     bool getRunningValue(const std::string& value, uint16_t &from, uint16_t &to);
     bool getElement(const std::string& file, size_t position,const  std::string& start, const std::string& end, std::string &result);
-    bool readRandomVariable(const std::string& element, RandomVariable*& ranvar, DistributionEnum& distribution);
+    bool readRandomVariable(const std::string& element, RandomVariable*& ranvar, DistributionEnum& distribution, const std::string& variableName);
 
     std::string filename;
     bool correctFile;
     bool appProtoExists;
     ApplicationProtocol* appProto;
-    DataGenerator **streams;
+    DataGenerator **clientStreams;
+    DataGenerator **serverStreams;
     uint16_t numberOfClients;
     uint16_t numberOfStreams;
     int serverGameTick;
@@ -125,7 +124,7 @@ private:
 
 //class XMLParser function definitions
 
-XMLParser::XMLParser(std::string filename): filename(filename), correctFile(true), appProto(0), streams(0), numberOfClients(0), numberOfStreams(0), clients(0){
+XMLParser::XMLParser(std::string filename): filename(filename), correctFile(true), appProto(0), clientStreams(0),serverStreams(0), numberOfClients(0), numberOfStreams(0), clients(0){
 
     std::ifstream filestream(filename.c_str());
     std::string xmlFile;
@@ -150,9 +149,6 @@ XMLParser::XMLParser(std::string filename): filename(filename), correctFile(true
     if(!(correctFile = parseApplicationProtocol(xmlFile)))
         return;
 
-    if(!(correctFile = parseGameTick(xmlFile)))
-        return;
-
     if(!(correctFile = parseStreams(xmlFile)))
         return;
 
@@ -170,16 +166,15 @@ XMLParser::~XMLParser(){
     }
 
     for(int i = 0; i < numberOfStreams; i++){
-        if(streams[i] != 0)
-            delete streams[i];
+        delete clientStreams[i];
+      //  delete serverStreams[i];
     }
 
-    if(streams != 0)
-         delete[] streams;
+    delete[] serverStreams;
+    delete[] clientStreams;
 
-    if(appProto != 0){
-        delete appProto;
-    }
+    delete appProto;
+
 }
 
 bool XMLParser::getElement(const std::string &file, size_t position, const std::string &start, const std::string &end, std::string &result){
@@ -342,7 +337,7 @@ uint16_t XMLParser::countStreams(std::string &file){
 
 }
 
-bool XMLParser::parseStream(std::string &streamElement, DataGenerator* &stream){
+bool XMLParser::parseStream(std::string &streamElement, DataGenerator* &clientStream, DataGenerator* &serverStream){
 
     static uint16_t stream_number = 0;
     DataGenerator::Protocol proto = DataGenerator::UDP;
@@ -353,6 +348,7 @@ bool XMLParser::parseStream(std::string &streamElement, DataGenerator* &stream){
     std::string useAppProto("");
     std::string messagesElement("");
     std::vector<Message*> messages;
+    int serverGameTick = 0, clientGameTick = 0;
 
     stream_number++;
 
@@ -380,6 +376,12 @@ bool XMLParser::parseStream(std::string &streamElement, DataGenerator* &stream){
         }
     }else appProto = 0;
 
+
+    if(!parseGameTick(streamElement, serverGameTick, clientGameTick)){
+        delete appProto;
+        return false;
+    }
+
     if((position = streamElement.find("<messages>")) == std::string::npos){
         PRINT_ERROR( "No messages specified in stream number " << stream_number << std::endl);
         delete appProto;
@@ -402,7 +404,8 @@ bool XMLParser::parseStream(std::string &streamElement, DataGenerator* &stream){
         return false;
     }
 
-    stream = new ClientDataGenerator(stream_number, proto, appProto, messages, clientGameTick);
+    clientStream = new ClientDataGenerator(stream_number, proto, appProto, messages, clientGameTick);
+    serverStream = new ServerDataGenerator(stream_number, proto, appProto, messages, serverGameTick);
 
     return true;
 }
@@ -425,10 +428,12 @@ bool XMLParser::parseStreams(std::string &file){
     }
 
     numberOfStreams = countStreams(streams);
-    this->streams = new DataGenerator*[numberOfStreams];
+    this->clientStreams = new DataGenerator*[numberOfStreams];
+    this->serverStreams = new DataGenerator*[numberOfStreams];
 
     for(int i = 0; i < numberOfStreams; i++){
-        this->streams[i] = 0;
+        this->clientStreams[i] = 0;
+        this->serverStreams[i] = 0;
     }
 
     latest_token = 0;
@@ -440,7 +445,7 @@ bool XMLParser::parseStreams(std::string &file){
             return false;
         }
 
-        if(!parseStream(streamElement, this->streams[count])){
+        if(!parseStream(streamElement, this->clientStreams[count], this->serverStreams[count])){
             PRINT_ERROR( "Incorrect format in stream specification." << std::endl);
             return false;
         }
@@ -470,7 +475,9 @@ bool XMLParser::parseMessages(std::string &messagesElement, std::vector<Message*
     std::string type, reliable, name, forwardBack;
     int size = 0, timeInterval = 0, clientTimeRequirement = 0, serverTimeRequirement = 0, forwardSize = 0;
     double clientsOfInterest;
-    RandomVariable* ranvar = 0;
+    RandomVariable* ranvarTimeInterval = 0;
+    RandomVariable* ranvarSize = 0;
+    RandomVariable* ranvarForwardSize = 0;
     DistributionEnum distribution;
 
     if((latest_token = messagesElement.find("<message>")) == std::string::npos){
@@ -480,7 +487,7 @@ bool XMLParser::parseMessages(std::string &messagesElement, std::vector<Message*
 
     while(getElement(messagesElement, latest_token, "<message>", "</message>", messageElement)){
 
-        ranvar = 0;
+        ranvarTimeInterval = ranvarSize = ranvarForwardSize = 0;
 
         if(!readValue<std::string>(messageElement, "type", type, 0)){
             PRINT_ERROR( "Error in message type specification." << std::endl);
@@ -497,12 +504,14 @@ bool XMLParser::parseMessages(std::string &messagesElement, std::vector<Message*
             return false;
         }
 
-        if(!readValue<int>(messageElement, "size", size, 0)){
-            PRINT_ERROR( "Error in message size specification." << std::endl);
-            return false;
-        }
+        if(!readRandomVariable(messageElement, ranvarSize, distribution, "size")){                  //if no distribution is specified, read simple timeinterval
+            if(!readValue<int>(messageElement, "size", size, 0)){
+                PRINT_ERROR( "Error in message size specification." << std::endl);
+                return false;
+            }
+       }
 
-        if(!readRandomVariable(messageElement, ranvar, distribution)){          //if no distribution is specified, read simple timeinterval
+        if(!readRandomVariable(messageElement, ranvarTimeInterval, distribution, "timeinterval")){          //if no distribution is specified, read simple timeinterval
             if(!readValue<int>(messageElement, "timeinterval", timeInterval, 0)){
                 PRINT_ERROR( "Error in message timeinterval specification." << std::endl);
                 return false;
@@ -514,17 +523,20 @@ bool XMLParser::parseMessages(std::string &messagesElement, std::vector<Message*
             return false;
         }
 
-        if(!readValue<int>(messageElement, "forwardmessagesize", forwardSize, 0)){
-            PRINT_ERROR( "Error in message forwardmessagesize specification." << std::endl);
+        if(!readRandomVariable(messageElement, ranvarForwardSize, distribution, "forwardmessagesize")){                  //if no distribution is specified, read simple timeinterval
+            if(!readValue<int>(messageElement, "forwardmessagesize", forwardSize, 0)){
+                PRINT_ERROR( "Error in message forwardmessagesize specification." << std::endl);
+                return false;
+            }
+
+        }
+
+        if(size <= 0 && ranvarSize == 0){
+            PRINT_ERROR( "Message size must be more than 0 ot distribution must be specified." << std::endl);
             return false;
         }
 
-        if(size <= 0){
-            PRINT_ERROR( "Message size must be more than 0." << std::endl);
-            return false;
-        }
-
-        if(timeInterval <= 0 && ranvar == 0){
+        if(timeInterval <= 0 && ranvarTimeInterval == 0){
             PRINT_ERROR( "TimeInterval value must be either more than 0 or distribution must be specified." << std::endl);
             return false;
         }
@@ -558,7 +570,8 @@ bool XMLParser::parseMessages(std::string &messagesElement, std::vector<Message*
             }
 
            messages.push_back(new UserActionMessage(name, reliable.compare("no") == 0 ? false : true, timeInterval, size, clientsOfInterest, clientTimeRequirement,
-                                                         serverTimeRequirement, stream_number, forwardSize, forwardBack.compare("no") == 0 ? false : true, ranvar));
+                                                         serverTimeRequirement, stream_number, forwardSize, forwardBack.compare("no") == 0 ? false : true,
+                                                         ranvarTimeInterval, ranvarSize, ranvarForwardSize));
         }
 
         else if(type.compare("odt") == 0){
@@ -569,7 +582,7 @@ bool XMLParser::parseMessages(std::string &messagesElement, std::vector<Message*
             }
 
            messages.push_back(new OtherDataMessage(name, reliable.compare("no") == 0 ? false : true, timeInterval, size, stream_number, forwardSize,
-                                                   forwardBack.compare("no") == 0 ? false : true, clientTimeRequirement, ranvar));
+                                                   forwardBack.compare("no") == 0 ? false : true, clientTimeRequirement, ranvarTimeInterval, ranvarSize, ranvarForwardSize));
         }
 
         else{
@@ -641,15 +654,15 @@ bool XMLParser::getStreams(DataGenerator** &streams, bool isClient, uint16_t cli
     for(int i = 0; i < numberOfStreams; i++)
         streams[i] = 0;
 
-    if(this->streams[0] != 0 && isClient){
+    if(this->clientStreams[0] != 0 && isClient){
         for(int i = 0; i < numberOfStreams; i++){
-            ((ClientDataGenerator*)this->streams[i])->setClientNumber(clientNumber);
-            streams[i] = new ClientDataGenerator(*(this->streams[i]));
+            ((ClientDataGenerator*)this->clientStreams[i])->setClientNumber(clientNumber);
+            streams[i] = new ClientDataGenerator(*(this->clientStreams[i]));
         }
     }
-    else if(this->streams[0]){
+    else if(this->serverStreams[0]){
         for(int i = 0; i < numberOfStreams; i++){
-            streams[i] = new ServerDataGenerator(*(this->streams[i]));
+            streams[i] = new ServerDataGenerator(*(this->serverStreams[i]));
         }
     }else return false;
 
@@ -678,14 +691,14 @@ bool XMLParser::getClientStats(uint16_t clientIndex, uint16_t &clientNumber, int
     return true;
 }
 
-bool XMLParser::parseGameTick(std::string& file){
+bool XMLParser::parseGameTick(std::string& streamElement, int& serverGameTick, int& clientGameTick){
 
-    if(!readValue<int>(file, "<servergametick", serverGameTick) || serverGameTick < 0){
+    if(!readValue<int>(streamElement, "<servergametick", serverGameTick) || serverGameTick < 0){
         PRINT_ERROR(" Incorrect servergametick value." << std::endl);
         return false;
     }
 
-    if(!readValue<int>(file, "<clientgametick", clientGameTick) || clientGameTick < 0){
+    if(!readValue<int>(streamElement, "<clientgametick", clientGameTick) || clientGameTick < 0){
         PRINT_ERROR(" Incorrect clientgametick value." << std::endl);
         return false;
     }
@@ -715,11 +728,11 @@ bool XMLParser::parseRunningTime(std::string &file){
 
 }
 
- bool XMLParser::readRandomVariable(const std::string& element, RandomVariable*& ranvar, DistributionEnum& distribution){
+ bool XMLParser::readRandomVariable(const std::string& element, RandomVariable*& ranvar, DistributionEnum& distribution, const std::string& variableName){
 
      std::string result;
      std::string filename("");
-     readValue<std::string>(element, "timeinterval", result, 0);
+     readValue<std::string>(element, variableName, result, 0);
 
      std::string distName(result.substr(0, result.find('(')));
      if(distName.compare("empirical") == 0){

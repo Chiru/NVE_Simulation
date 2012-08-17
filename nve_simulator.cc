@@ -196,7 +196,6 @@ int main(int argc, char** argv){
         packetLoss[i] = CreateObjectWithAttributes<RateErrorModel>("RanVar", RandomVariableValue(UniformVariable(0,1)),
                                                                    "ErrorUnit", EnumValue(EU_PKT),
                                                                    "ErrorRate", DoubleValue(clients[i]->getLossRate()));
-
         clientRouterDevices[i].Get(0)->SetAttribute("ReceiveErrorModel", PointerValue(packetLoss[i]));
         clientRouterDevices[i].Get(1)->SetAttribute("ReceiveErrorModel", PointerValue(packetLoss[i]));
         clientRouterDevices[i].Get(0)->SetMtu(1514);

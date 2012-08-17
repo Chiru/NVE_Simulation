@@ -60,7 +60,6 @@ private:
     int runningTime;
     Ptr<Node> node;
     Address* peerAddr;
-    uint16_t gameTick;
 
 };
 
@@ -74,7 +73,6 @@ Client::Client(XMLParser& parser, uint16_t no, int runningTime, Ptr<Node> node, 
    parser.getStreams(streams, true, no);
    numberOfStreams = parser.getNumberOfStreams();
 
-   gameTick = parser.getClientGameTick();
 
    if(!parser.getClientStats(no, clientNumber, networkDelay, uplinkBandwidth, downlinkBandwidth, lossRate))
        PRINT_ERROR( "Mysterious error while creating " << no << ". client." << std::endl);
@@ -82,7 +80,7 @@ Client::Client(XMLParser& parser, uint16_t no, int runningTime, Ptr<Node> node, 
    for(int i = 0; i < numberOfStreams; i++){
        streams[i]->SetStartTime(Seconds(0));
        streams[i]->SetStopTime(Seconds(runningTime));
-       streams[i]->setupStream(node, peerAddr[i], gameTick);
+       streams[i]->setupStream(node, peerAddr[i]);
        node->AddApplication(streams[i]);
    }
 
