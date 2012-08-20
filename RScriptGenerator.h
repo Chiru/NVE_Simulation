@@ -337,6 +337,17 @@ bool RScriptGenerator::generateScriptForClientMessage(std::list<int> clientRecvT
             stream << ", ";
     }
 
+    stream << "\n#Vector for message sizes for message " << name;
+    stream << "\nmessagesizes_" << name << " = c(";
+    for(std::list<uint16_t>::const_iterator it = sizes.begin(); it != sizes.end();){
+        stream << *it;
+        if(++it == sizes.end()){
+            stream << ")\n";
+            break;
+        }
+        else
+            stream << ", ";
+    }
 
     stream << "\n#Setting max x value\n";
     stream <<  name << "_max = max(" << server << name << ", " << client << name << ", " << serverTimeReq << ", " << clientTimeReq << ")\n";
@@ -395,7 +406,7 @@ bool RScriptGenerator::generateScriptForClientMessage(std::list<int> clientRecvT
     stream << "\nplot(tabulate(sendtimes_" << name << "), type=\"h\", xlab=\"Time(ms)\", ylab =\"Message count\", main=\"Interarrival times for: " <<  name <<"\")" << std::endl;
 
     stream << "\n#Packet sizes for message " << name << std::endl;
-   // stream << ""
+    stream << "\nplot(tabulate(messagesizes_" << name << "), type=\"h\", xlab=\"Message size(bytes)\", ylab =\"Message count\", main=\"Message sizes for: " <<  name <<"\")" << std::endl;
 
 
     messageScript.append(stream.str());
@@ -460,6 +471,18 @@ bool RScriptGenerator::generateScriptForServerMessage(std::list<int> clientRecvT
             stream << ", ";
     }
 
+    stream << "\n#Vector for message sizes for message " << name;
+    stream << "\nmessagesizes_" << name << " = c(";
+    for(std::list<uint16_t>::const_iterator it = sizes.begin(); it != sizes.end();){
+        stream << *it;
+        if(++it == sizes.end()){
+            stream << ")\n";
+            break;
+        }
+        else
+            stream << ", ";
+    }
+
     stream << "\n#Server to client step function for message: " << name << std::endl;
     stream << clientFunc << name << " = ecdf(c(" << client << name << ", " << client << name << "_lost)" << ");\n";
 
@@ -476,6 +499,9 @@ bool RScriptGenerator::generateScriptForServerMessage(std::list<int> clientRecvT
 
     stream << "#Message interarrival times for " << name;
     stream << "\nplot(tabulate(sendtimes_" << name << "), type=\"h\", xlab=\"Time(ms)\", ylab =\"Message count\", main=\"Interarrival times for: " <<  name <<"\")" << std::endl;
+
+    stream << "\n#Packet sizes for message " << name << std::endl;
+    stream << "\nplot(tabulate(messagesizes_" << name << "), type=\"h\", xlab=\"Message size(bytes)\", ylab =\"Message count\", main=\"Message sizes for: " <<  name <<"\")" << std::endl;
 
     messageScript.append(stream.str());
 
