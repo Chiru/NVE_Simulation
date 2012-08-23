@@ -65,6 +65,8 @@ public:
     static void logMessageForwardedByServer(int messageNumber, uint16_t streamNumber, uint16_t size); //counts the messages forwarded to clients
     static void logMessagesSentFromServer(int messageNumber, Time, uint16_t streamNumber, uint32_t clientTimeRequirement, uint16_t messageNameIndex, uint16_t messageId, uint16_t size);
     static void countMessagesSentFromServer(int messageNumber, uint16_t streamNumber);
+    static void updateMessageTimeIntervalSentFromClient(int messageNumber, uint16_t streamNumber, Time time);  //this is used for updating the sending time when gametick is used and sending is not immediate
+    static void updateMessageTimeIntervalSentFromServer(int messageNumber, uint16_t streamNumber, Time time);  //this is used for updating the sending time when gametick is used and sending is not immediate
     static uint16_t userActionmessageCount;
     static uint16_t otherDataMessageCount;
 
@@ -272,7 +274,6 @@ void StatisticsCollector::logMessagesSentFromClient(int messageNumber, Time send
 }
 
 void StatisticsCollector::logMessagesSentFromServer(int messageNumber, Time sendTime, uint16_t streamNumber, uint32_t clientTimeRequirement, uint16_t messageNameIndex, uint16_t messageId, uint16_t size){
-
     static std::map<int, Time> lastTimes;
 
     serverMessageLog[streamNumber - 1].push_back(new MessageStats(messageNumber, sendTime, clientTimeRequirement, 0, messageNameIndex));
@@ -296,6 +297,14 @@ void StatisticsCollector::countMessagesSentFromServer(int messageNumber, uint16_
 void StatisticsCollector::logMessageForwardedByServer(int messageNumber, uint16_t streamNumber, uint16_t forwardMessageSize){
     userActionMessageLog[streamNumber-1].at(messageNumber)->numberOfClientsForwarded++;
     userActionMessageLog[streamNumber-1].at(messageNumber)->forwardMessageSize = forwardMessageSize;
+}
+
+void StatisticsCollector::updateMessageTimeIntervalSentFromClient(int messageNumber, uint16_t streamNumber, Time time){
+    userActionMessageLog[streamNumber-1].at(messageNumber)->sendTimeInterval = time;
+}
+
+void StatisticsCollector::updateMessageTimeIntervalSentFromServer(int messageNumber, uint16_t streamNumber, Time time){
+    serverMessageLog[streamNumber-1].at(messageNumber)->sendTimeInterval = time;
 }
 
 void StatisticsCollector::getStreamResults(std::vector<StatisticsCollector::MessageStats*>& clientStats, std::vector<StatisticsCollector::MessageStats*>& serverStats,

@@ -203,7 +203,7 @@ bool DataGenerator::setupStream(Ptr<Node> node, Address addr){
             socket = Socket::CreateSocket(node, TcpSocketFactory::GetTypeId());
             socket->SetAttribute("TcpNoDelay", BooleanValue(true));
             socket->SetAttribute("SegmentSize", UintegerValue(1400));
-           // socket->SetAttribute("DelAckCount", UintegerValue(100));
+           //socket->SetAttribute("DelAckCount", UintegerValue(100));
            // socket->SetAttribute("DelAckTimeout", TimeValue(Time("47ms")));
             break;
 
@@ -211,8 +211,8 @@ bool DataGenerator::setupStream(Ptr<Node> node, Address addr){
             socket = Socket::CreateSocket(node, TcpSocketFactory::GetTypeId());
             socket->SetAttribute("TcpNoDelay", BooleanValue(false));
             socket->SetAttribute("SegmentSize", UintegerValue(1400));
-            //socket->SetAttribute("DelAckCount", UintegerValue(100));
-            //socket->SetAttribute("DelAckTimeout", TimeValue(Time("45ms")));
+           // socket->SetAttribute("DelAckCount", UintegerValue(100));
+           // socket->SetAttribute("DelAckTimeout", TimeValue(Time("45ms")));
             break;
 
         case UDP:
@@ -982,7 +982,7 @@ void ServerDataGenerator::readReceivedData(uint8_t *buffer, uint16_t bufferSize,
                 messageName.assign("");
             }
             else if(retVal == NAME_CONTINUES){
-                PRINT_ERROR("This should never happen!2" << std::endl);sleep(1);
+                PRINT_ERROR("This should never happen!2" <<  messageName<< std::endl);sleep(1);
             }
             else if(retVal == READ_FAILED){ //this can happen if only second part of IP fragmented packet arrives
                 return;

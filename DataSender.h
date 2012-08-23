@@ -11,7 +11,7 @@
 class DataSender{
 
 public:
-    DataSender(ApplicationProtocol* appProto, uint16_t gameTick) : appProto(appProto), gameTick(gameTick), maxDatagramSize(1400){}
+    DataSender(ApplicationProtocol* appProto, uint16_t gameTick) : appProto(appProto), gameTick(gameTick), maxDatagramSize(1400), lastSendTime(Time("0ms")){}
 
     bool send(bool sendNow, uint8_t* buffer, const Message* msg, const Ptr<Socket> sock, bool forward, bool isClient);
     bool sendTo(bool sendNow, uint8_t* buffer, const Message* msg, const Address& addr, bool forward, bool isClient, const Ptr<Socket> sock = 0);
@@ -22,11 +22,16 @@ public:
 private:
 
     std::map<Ptr<Socket>, std::string> tcpBuffer;
+    std::vector<std::pair<uint16_t, int> > clientMessagesInTcpBuffer;
+    std::vector<std::pair<uint16_t, int> > serverMessagesInTcpBuffer;
     std::map<Address, std::pair<std::string, bool> > udpBuffer;
+    std::vector<std::pair<uint16_t, int> > clientMessagesInUdpBuffer;
+    std::vector<std::pair<uint16_t, int> > serverMessagesInUdpBuffer;
     ApplicationProtocol* appProto;
     bool isClient;
     uint16_t gameTick;
     uint16_t maxDatagramSize;
+    Time lastSendTime;
 
     int sendAndFragment(Ptr<Socket> socket, uint8_t *buffer, uint16_t size, bool reliable, const Address *const addr = 0);
 
@@ -55,7 +60,10 @@ bool DataSender::send(bool sendNow, uint8_t* buffer, const Message* msg, const P
         tempString.append((char*)buffer);
         tempString.resize(messageSize);
         tcpBuffer[sock].append(tempString);
-
+        if(isClient)
+            clientMessagesInTcpBuffer.push_back(std::make_pair<uint16_t, int>(msg->getStreamNumber(), msgId));
+        else if(!forward)
+                  serverMessagesInTcpBuffer.push_back(std::make_pair<uint16_t, int>(msg->getStreamNumber(), msgId));
     }
 
     return true;
@@ -100,6 +108,10 @@ bool DataSender::sendTo(bool sendNow, uint8_t* buffer, const Message* msg, const
         tempString.append((char*)buffer);
         tempString.resize(messageSize);
         udpBuffer[addr].first.append(tempString);
+        if(isClient)
+            clientMessagesInUdpBuffer.push_back(std::make_pair<uint16_t, int>(msg->getStreamNumber(), msgId));
+        else if(!forward)
+                 serverMessagesInUdpBuffer.push_back(std::make_pair<uint16_t, int>(msg->getStreamNumber(), msgId));
     }
 
     return true;
@@ -107,13 +119,36 @@ bool DataSender::sendTo(bool sendNow, uint8_t* buffer, const Message* msg, const
 
 bool DataSender::flushTcpBuffer(bool isClient){
 
+    Time interval;
+
+    if(lastSendTime.IsZero()){
+        lastSendTime = Simulator::Now();
+        interval = Time("0ms");
+    }else{
+        interval = Simulator::Now() - lastSendTime;
+        lastSendTime = Simulator::Now();
+    }
+
     for(std::map<Ptr<Socket>, std::string>::iterator it = tcpBuffer.begin(); it != tcpBuffer.end(); it++){
 
         if(it->first->Send((uint8_t*)it->second.c_str(), it->second.length(), 0) == -1){
             PRINT_ERROR("Problems with socket buffer1." << std::endl);
             return false;
         }
+
         tcpBuffer.erase(it);
+    }
+
+    if(isClient){
+        for(std::vector<std::pair<uint16_t, int> >::iterator msgIt = clientMessagesInTcpBuffer.begin(); msgIt != clientMessagesInTcpBuffer.end(); msgIt++){
+            StatisticsCollector::updateMessageTimeIntervalSentFromClient(msgIt->second, msgIt->first, interval);
+        }
+        clientMessagesInTcpBuffer.clear();
+    }else{
+        for(std::vector<std::pair<uint16_t, int> >::iterator msgIt = serverMessagesInTcpBuffer.begin(); msgIt != serverMessagesInTcpBuffer.end(); msgIt++){
+            StatisticsCollector::updateMessageTimeIntervalSentFromServer(msgIt->second, msgIt->first, interval);
+        }
+        serverMessagesInTcpBuffer.clear();
     }
 
     Simulator::Schedule(Time(MilliSeconds(gameTick)), &DataSender::flushTcpBuffer, this, isClient);
@@ -122,6 +157,29 @@ bool DataSender::flushTcpBuffer(bool isClient){
 }
 
 bool DataSender::flushUdpBuffer(Ptr<Socket> sock, bool isClient){
+
+    Time interval;
+
+    if(lastSendTime.IsZero()){
+        lastSendTime = Simulator::Now();
+        interval = Time("0ms");
+    }else{
+        interval = Simulator::Now() - lastSendTime;
+        lastSendTime = Simulator::Now();
+    }
+
+    if(isClient){
+        for(std::vector<std::pair<uint16_t, int> >::iterator it = clientMessagesInUdpBuffer.begin(); it != clientMessagesInUdpBuffer.end(); it++){
+            StatisticsCollector::updateMessageTimeIntervalSentFromClient(it->second, it->first, interval);
+        }
+        clientMessagesInUdpBuffer.clear();
+    }else{
+        for(std::vector<std::pair<uint16_t, int> >::iterator it = serverMessagesInUdpBuffer.begin(); it != serverMessagesInUdpBuffer.end(); it++){
+            StatisticsCollector::updateMessageTimeIntervalSentFromServer(it->second, it->first, interval);
+        }
+        serverMessagesInUdpBuffer.clear();
+    }
+
 
     if(appProto){
         if(isClient){
@@ -149,7 +207,6 @@ bool DataSender::flushUdpBuffer(Ptr<Socket> sock, bool isClient){
     }
 
     udpBuffer.clear();
-
     Simulator::Schedule(Time(MilliSeconds(gameTick)), &DataSender::flushUdpBuffer, this, sock, isClient);
     return true;
 }
