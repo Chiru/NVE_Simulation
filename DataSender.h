@@ -11,7 +11,7 @@
 class DataSender{
 
 public:
-    DataSender(ApplicationProtocol* appProto, uint16_t gameTick) : appProto(appProto), gameTick(gameTick), maxDatagramSize(1400), lastSendTime(Time("0ms")){}
+    DataSender(ApplicationProtocol* appProto, uint16_t gameTick) : appProto(appProto), gameTick(gameTick), maxDatagramSize(1400), lastSendTimes(){}
 
     bool send(bool sendNow, uint8_t* buffer, const Message* msg, const Ptr<Socket> sock, bool forward, bool isClient);
     bool sendTo(bool sendNow, uint8_t* buffer, const Message* msg, const Address& addr, bool forward, bool isClient, const Ptr<Socket> sock = 0);
@@ -21,19 +21,29 @@ public:
 
 private:
 
+    struct MessageInfo{
+        MessageInfo(uint16_t stream, int msgNumber, std::string msgName): streamNumber(stream), messageNumber(msgNumber), name(msgName){}
+
+        uint16_t streamNumber;
+        int messageNumber;
+        std::string name;
+
+    };
+
     std::map<Ptr<Socket>, std::string> tcpBuffer;
-    std::vector<std::pair<uint16_t, int> > clientMessagesInTcpBuffer;
-    std::vector<std::pair<uint16_t, int> > serverMessagesInTcpBuffer;
+    std::vector<MessageInfo> clientMessagesInTcpBuffer;
+    std::vector<MessageInfo> serverMessagesInTcpBuffer;
     std::map<Address, std::pair<std::string, bool> > udpBuffer;
-    std::vector<std::pair<uint16_t, int> > clientMessagesInUdpBuffer;
-    std::vector<std::pair<uint16_t, int> > serverMessagesInUdpBuffer;
+    std::vector<MessageInfo> clientMessagesInUdpBuffer;
+    std::vector<MessageInfo> serverMessagesInUdpBuffer;
     ApplicationProtocol* appProto;
     bool isClient;
     uint16_t gameTick;
     uint16_t maxDatagramSize;
-    Time lastSendTime;
+    std::map<std::string, Time, Message::StringComparator> lastSendTimes;   //collect time interarrival times for each message type in this stream
 
     int sendAndFragment(Ptr<Socket> socket, uint8_t *buffer, uint16_t size, bool reliable, const Address *const addr = 0);
+    Time getMessageSendInterval(int messageNumber, bool isClient, const std::string& name);
 
 };
 
@@ -60,10 +70,10 @@ bool DataSender::send(bool sendNow, uint8_t* buffer, const Message* msg, const P
         tempString.append((char*)buffer);
         tempString.resize(messageSize);
         tcpBuffer[sock].append(tempString);
-        if(isClient)
-            clientMessagesInTcpBuffer.push_back(std::make_pair<uint16_t, int>(msg->getStreamNumber(), msgId));
-        else if(!forward)
-                  serverMessagesInTcpBuffer.push_back(std::make_pair<uint16_t, int>(msg->getStreamNumber(), msgId));
+        if(isClient && !forward)
+            clientMessagesInTcpBuffer.push_back(MessageInfo(msg->getStreamNumber(), msgId, msg->getName()));
+        else if(!isClient && !forward)
+                  serverMessagesInTcpBuffer.push_back(MessageInfo(msg->getStreamNumber(), msgId, msg->getName()));
     }
 
     return true;
@@ -108,10 +118,10 @@ bool DataSender::sendTo(bool sendNow, uint8_t* buffer, const Message* msg, const
         tempString.append((char*)buffer);
         tempString.resize(messageSize);
         udpBuffer[addr].first.append(tempString);
-        if(isClient)
-            clientMessagesInUdpBuffer.push_back(std::make_pair<uint16_t, int>(msg->getStreamNumber(), msgId));
-        else if(!forward)
-                 serverMessagesInUdpBuffer.push_back(std::make_pair<uint16_t, int>(msg->getStreamNumber(), msgId));
+        if(isClient && !forward)
+            clientMessagesInUdpBuffer.push_back(MessageInfo(msg->getStreamNumber(), msgId, msg->getName()));
+        else if(!isClient && !forward)
+                 serverMessagesInUdpBuffer.push_back(MessageInfo(msg->getStreamNumber(), msgId, msg->getName()));
     }
 
     return true;
@@ -121,12 +131,20 @@ bool DataSender::flushTcpBuffer(bool isClient){
 
     Time interval;
 
-    if(lastSendTime.IsZero()){
-        lastSendTime = Simulator::Now();
-        interval = Time("0ms");
+    if(isClient){
+        for(std::vector<MessageInfo>::iterator msgIt = clientMessagesInTcpBuffer.begin(); msgIt != clientMessagesInTcpBuffer.end(); msgIt++){
+
+            interval = getMessageSendInterval(msgIt->messageNumber, true, msgIt->name);
+            StatisticsCollector::updateMessageTimeIntervalSentFromClient(msgIt->messageNumber, msgIt->streamNumber, interval);
+        }
+        clientMessagesInTcpBuffer.clear();
     }else{
-        interval = Simulator::Now() - lastSendTime;
-        lastSendTime = Simulator::Now();
+        for(std::vector<MessageInfo>::iterator msgIt = serverMessagesInTcpBuffer.begin(); msgIt != serverMessagesInTcpBuffer.end(); msgIt++){
+
+            interval = getMessageSendInterval(msgIt->messageNumber, false, msgIt->name);
+            StatisticsCollector::updateMessageTimeIntervalSentFromServer(msgIt->messageNumber, msgIt->streamNumber, interval);
+        }
+        serverMessagesInTcpBuffer.clear();
     }
 
     for(std::map<Ptr<Socket>, std::string>::iterator it = tcpBuffer.begin(); it != tcpBuffer.end(); it++){
@@ -139,17 +157,7 @@ bool DataSender::flushTcpBuffer(bool isClient){
         tcpBuffer.erase(it);
     }
 
-    if(isClient){
-        for(std::vector<std::pair<uint16_t, int> >::iterator msgIt = clientMessagesInTcpBuffer.begin(); msgIt != clientMessagesInTcpBuffer.end(); msgIt++){
-            StatisticsCollector::updateMessageTimeIntervalSentFromClient(msgIt->second, msgIt->first, interval);
-        }
-        clientMessagesInTcpBuffer.clear();
-    }else{
-        for(std::vector<std::pair<uint16_t, int> >::iterator msgIt = serverMessagesInTcpBuffer.begin(); msgIt != serverMessagesInTcpBuffer.end(); msgIt++){
-            StatisticsCollector::updateMessageTimeIntervalSentFromServer(msgIt->second, msgIt->first, interval);
-        }
-        serverMessagesInTcpBuffer.clear();
-    }
+
 
     Simulator::Schedule(Time(MilliSeconds(gameTick)), &DataSender::flushTcpBuffer, this, isClient);
 
@@ -160,22 +168,18 @@ bool DataSender::flushUdpBuffer(Ptr<Socket> sock, bool isClient){
 
     Time interval;
 
-    if(lastSendTime.IsZero()){
-        lastSendTime = Simulator::Now();
-        interval = Time("0ms");
-    }else{
-        interval = Simulator::Now() - lastSendTime;
-        lastSendTime = Simulator::Now();
-    }
-
     if(isClient){
-        for(std::vector<std::pair<uint16_t, int> >::iterator it = clientMessagesInUdpBuffer.begin(); it != clientMessagesInUdpBuffer.end(); it++){
-            StatisticsCollector::updateMessageTimeIntervalSentFromClient(it->second, it->first, interval);
+        for(std::vector<MessageInfo>::iterator it = clientMessagesInUdpBuffer.begin(); it != clientMessagesInUdpBuffer.end(); it++){
+
+            interval = getMessageSendInterval(it->messageNumber, true, it->name);
+            StatisticsCollector::updateMessageTimeIntervalSentFromClient(it->messageNumber, it->streamNumber, interval);
         }
         clientMessagesInUdpBuffer.clear();
     }else{
-        for(std::vector<std::pair<uint16_t, int> >::iterator it = serverMessagesInUdpBuffer.begin(); it != serverMessagesInUdpBuffer.end(); it++){
-            StatisticsCollector::updateMessageTimeIntervalSentFromServer(it->second, it->first, interval);
+        for(std::vector<MessageInfo>::iterator it = serverMessagesInUdpBuffer.begin(); it != serverMessagesInUdpBuffer.end(); it++){
+
+            interval = getMessageSendInterval(it->messageNumber, false, it->name);
+            StatisticsCollector::updateMessageTimeIntervalSentFromServer(it->messageNumber, it->streamNumber, interval);
         }
         serverMessagesInUdpBuffer.clear();
     }
@@ -234,6 +238,26 @@ int DataSender::sendAndFragment(Ptr<Socket> socket, uint8_t *buffer, uint16_t si
     }
 
     return -1;  //we should never get here
+}
+
+Time DataSender::getMessageSendInterval(int messageNumber, bool isClient, const std::string& name){
+
+    Time interval;
+
+    if(lastSendTimes.count(name) == 0){
+        lastSendTimes.insert(std::make_pair<std::string, Time>(std::string(name), Time("0ms")));
+    }
+
+    if(lastSendTimes.at(name).IsZero()){
+        lastSendTimes.at(name) = Simulator::Now();
+        interval = Time("0ms");
+    }else{
+        interval = Simulator::Now() -  lastSendTimes.at(name);
+        lastSendTimes.at(name)= Simulator::Now();
+    }
+
+    return interval;
+
 }
 
 #endif // DATASENDER_H

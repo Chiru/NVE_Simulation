@@ -304,7 +304,7 @@ void StatisticsCollector::updateMessageTimeIntervalSentFromClient(int messageNum
 }
 
 void StatisticsCollector::updateMessageTimeIntervalSentFromServer(int messageNumber, uint16_t streamNumber, Time time){
-    serverMessageLog[streamNumber-1].at(messageNumber)->sendTimeInterval = time;
+    //serverMessageLog[streamNumber-1].at(messageNumber)->sendTimeInterval = time;
 }
 
 void StatisticsCollector::getStreamResults(std::vector<StatisticsCollector::MessageStats*>& clientStats, std::vector<StatisticsCollector::MessageStats*>& serverStats,
