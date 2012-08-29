@@ -64,7 +64,8 @@ bool RScriptGenerator::generateScriptForStream(const std::list<int64_t>* transmi
     std::string clientFunc("clientfunc_");
     std::string serverToClientFunc("servertoclientfunc_");
 
-    std::string colors[] = {"\"green\"", "\"blue\"", "\"cyan\"", "\"yellow\"", "\"grey\""};
+    std::string colors[] = {"\"green\"", "\"blue\"", "\"orange\"", "\"red\"", "\"grey\""};
+    std::string lineTypes[] = {"lty=1", "lty=2", "lty=3", "lty=4", "lty=5"};
     std::stringstream stream;
 
     for(count = 0; count < maxStreams; count++){
@@ -179,11 +180,11 @@ bool RScriptGenerator::generateScriptForStream(const std::list<int64_t>* transmi
     for(int count = 0; count < maxStreams; count++){
         if(count == 0){  //then this is the first plot to draw to server
             stream << "plot(" << serverFunc << count<< ", do.points=FALSE, verticals=TRUE, main=\"Average stream transmit times from client to server\", col="<< colors[count] <<
-                      ", xlab=\"Time(ms)\", ylab=\"Frequency\", xlim=(c(0," << server << "max))" << ")\n";
+                      ", " << lineTypes[count] << ", lwd = 2, xlab=\"Time(ms)\", ylab=\"Frequency\", xlim=(c(0," << server << "max))" << ")\n";
             stream << "abline(h=0.1*0:10,  col=\"lightgray\")\n";
         }
         else
-            stream << "plot(" << serverFunc << count<< ", do.points=FALSE, add=TRUE, verticals=TRUE, col="  << colors[count] << ")\n";
+            stream << "plot(" << serverFunc << count<< ", do.points=FALSE, add=TRUE, verticals=TRUE, col="  << colors[count] << ", " << lineTypes[count]  << ", lwd = 2)\n";
 
         if(count +1 == maxStreams){
             stream << "#Legend\n";
@@ -195,6 +196,7 @@ bool RScriptGenerator::generateScriptForStream(const std::list<int64_t>* transmi
                 else
                     stream << ")";
             }
+
             stream << ", cex=0.8, col=c(";
             for(int i = 0; i <= count; i++){
                 stream << "col=" << colors[i];
@@ -204,7 +206,16 @@ bool RScriptGenerator::generateScriptForStream(const std::list<int64_t>* transmi
                     stream << ")";
             }
 
-            stream << ", lty=1, inset=.05)" << std::endl;
+            stream << ", lty=c(";
+            for(int i = 0; i <= count; i++){
+                stream  << lineTypes[i];
+                if(i != count)
+                    stream << ", ";
+                else
+                    stream << ")";
+            }
+
+            stream << ", lwd = 2, inset=.05)" << std::endl;
         }
 
     }
@@ -212,11 +223,11 @@ bool RScriptGenerator::generateScriptForStream(const std::list<int64_t>* transmi
     for(int count = 0; count < maxStreams; count++){
         if(count == 0)  { //then this is the first plot to draw to client
             stream << "plot(" << clientFunc << count << ", do.points=FALSE, verticals=TRUE, main=\"Average stream transmit times from client to client\", col=" << colors[count] <<
-                      ", xlab=\"Time(ms)\", ylab=\"Frequency\", xlim=(c(0," << client << "max))" << ")\n";
+                      ", " << lineTypes[count]  << ", lwd = 2, xlab=\"Time(ms)\", ylab=\"Frequency\", xlim=(c(0," << client << "max))" << ")\n";
             stream << "abline(h=0.1*0:10,  col=\"lightgray\")\n";
         }
         else
-           stream << "plot(" << clientFunc << count << ", do.points=FALSE, add=TRUE, verticals=TRUE, col=" << colors[count] << ")\n";
+           stream << "plot(" << clientFunc << count << ", do.points=FALSE, add=TRUE, verticals=TRUE, col=" << colors[count] <<  ", " << lineTypes[count]  <<", lwd = 2)\n";
 
         if(count +1 == maxStreams){
             stream << "#Legend\n";
@@ -237,18 +248,27 @@ bool RScriptGenerator::generateScriptForStream(const std::list<int64_t>* transmi
                     stream << ")";
             }
 
-            stream << ", lty=1, inset=.05)" << std::endl;
+            stream << ", lty=c(";
+            for(int i = 0; i <= count; i++){
+                stream  << lineTypes[i];
+                if(i != count)
+                    stream << ", ";
+                else
+                    stream << ")";
+            }
+
+            stream << ", lwd = 2, inset=.05)" << std::endl;
         }
     }
 
     for(int count = 0; count < maxStreams; count++){
         if(count == 0)  { //then this is the first plot to draw from server to client
             stream << "plot(" << serverToClientFunc << count << ", do.points=FALSE, verticals=TRUE, main=\"Average stream transmit times from server to client\", col=" << colors[count] <<
-                      ", xlab=\"Time(ms)\", ylab=\"Frequency\", xlim=(c(0," << serverToClient << "max))" << ")\n";
+                      ", " << lineTypes[count]  << ", lwd = 2, xlab=\"Time(ms)\", ylab=\"Frequency\", xlim=(c(0," << serverToClient << "max))" << ")\n";
             stream << "abline(h=0.1*0:10,  col=\"lightgray\")\n";
         }
         else
-           stream << "plot(" << serverToClientFunc << count << ", do.points=FALSE, add=TRUE, verticals=TRUE, col=" << colors[count] << ")\n";
+           stream << "plot(" << serverToClientFunc << count << ", do.points=FALSE, add=TRUE, verticals=TRUE, col=" << colors[count] << ", " << lineTypes[count]  << ", lwd = 2)\n";
 
         if(count +1 == maxStreams){
             stream << "#Legend\n";
@@ -269,7 +289,7 @@ bool RScriptGenerator::generateScriptForStream(const std::list<int64_t>* transmi
                     stream << ")";
             }
 
-            stream << ", lty=1, inset=.05)" << std::endl;
+            stream << ", lwd = 2, inset=.05)" << std::endl;
         }
     }
 
