@@ -64,7 +64,7 @@ bool RScriptGenerator::generateScriptForStream(const std::list<int64_t>* transmi
     std::string clientFunc("clientfunc_");
     std::string serverToClientFunc("servertoclientfunc_");
 
-    std::string colors[] = {"\"green\"", "\"blue\"", "\"orange\"", "\"red\"", "\"grey\""};
+    std::string colors[] = {"\"green\"", "\"blue\"", "\"purple\"", "\"red\"", "\"grey\""};
     std::string lineTypes[] = {"lty=1", "lty=2", "lty=3", "lty=4", "lty=5"};
     std::stringstream stream;
 
@@ -289,6 +289,15 @@ bool RScriptGenerator::generateScriptForStream(const std::list<int64_t>* transmi
                     stream << ")";
             }
 
+            stream << ", lty=c(";
+            for(int i = 0; i <= count; i++){
+                stream  << lineTypes[i];
+                if(i != count)
+                    stream << ", ";
+                else
+                    stream << ")";
+            }
+
             stream << ", lwd = 2, inset=.05)" << std::endl;
         }
     }
@@ -411,19 +420,19 @@ bool RScriptGenerator::generateScriptForClientMessage(std::list<int> clientRecvT
     stream << clientFunc << name << " = ecdf(c(" << client << name << ", " << client << name << "_lost)" << ");\n";
 
     stream << "\n#Plotting for message: " << name << std::endl;
-    stream << "plot(" << serverFunc << name << ", do.points=FALSE, verticals=TRUE, main=\"message: " << name << "\", col=" << color[0] << ", xlim=(c(0," << name << "_max" << ")), xlab=\"Time(ms)\","
+    stream << "plot(" << serverFunc << name << ", do.points=FALSE, verticals=TRUE, main=\"message: " << name << "\", col=\"black\", xlim=(c(0," << name << "_max" << ")), xlab=\"Time(ms)\","
            << " ylab=\"Frequency\")" << std::endl;
-    stream << "plot(" << clientFunc << name << ", do.points=FALSE, verticals=TRUE, add=TRUE, col=" << color[1] <<  ")" << std::endl;
+    stream << "plot(" << clientFunc << name << ", do.points=FALSE, verticals=TRUE, add=TRUE, col=\"darkgrey\")" << std::endl;
 
     stream << "#Requirement lines to message: " << name << std::endl;
-    stream << "lines(" << "c(" << serverTimeReq << "," << serverTimeReq << "), c(0,1), lty=2, col=" << color[0] << ")\n";
-    stream << "lines(" << "c(" << clientTimeReq << "," << clientTimeReq << "), c(0,1), lty=2, col=" << color[1] << ")\n";
+    stream << "lines(" << "c(" << serverTimeReq << "," << serverTimeReq << "), c(0,1), lty=2, col=\"black\", )\n";
+    stream << "lines(" << "c(" << clientTimeReq << "," << clientTimeReq << "), c(0,1), lty=2, col=\"grey\")\n";
     stream << "#Legend\n";
     stream << "legend(\"bottomright\", c(\"client to server\", \"client to client\", \"client to server requirement\", \"client to client requirement\"), cex=0.8, col=c("
-           << color[0] << ", " << color[1] << ", " << color[0] << ", " << color[1] << "), lty=c(1,1,2,2), inset=.05)" << std::endl;
+           << "\"black\", \"darkgrey\", \"black\", \"darkgrey\"), lty=c(1,1,2,2), inset=.05)" << std::endl;
 
-    stream << "#Message interarrival times for " << name;
-    stream << "\nplot(tabulate(sendtimes_" << name << "), type=\"h\", xlab=\"Time(ms)\", ylab =\"Message count\", main=\"Interarrival times for: " <<  name <<"\")" << std::endl;
+    stream << "#Message inter-departure times for " << name;
+    stream << "\nplot(tabulate(sendtimes_" << name << "), type=\"h\", xlab=\"Time(ms)\", ylab =\"Message count\", main=\"Inter-departure times for: " <<  name <<"\")" << std::endl;
 
     stream << "\n#Packet sizes for message " << name << std::endl;
     stream << "\nplot(tabulate(messagesizes_" << name << "), type=\"h\", xlab=\"Message size(bytes)\", ylab =\"Message count\", main=\"Message sizes for: " <<  name <<"\")" << std::endl;
@@ -508,17 +517,17 @@ bool RScriptGenerator::generateScriptForServerMessage(std::list<int> clientRecvT
 
 
     stream << "\n#Plotting for message: " << name << std::endl;
-    stream << "plot(" << clientFunc << name << ", do.points=FALSE, verticals=TRUE, main=\"message: " << name << "\", col=" << color[0] << ", xlim=(c(0," << name << "_max" << ")), xlab=\"Time(ms)\","
+    stream << "plot(" << clientFunc << name << ", do.points=FALSE, verticals=TRUE, main=\"message: " << name << "\", col=\"black\", xlim=(c(0," << name << "_max" << ")), xlab=\"Time(ms)\","
            << " ylab=\"Frequency\")" << std::endl;
 
     stream << "#Requirement lines to message: " << name << std::endl;
-    stream << "lines(" << "c(" << clientTimeReq << "," << clientTimeReq << "), c(0,1), lty=2, col=" << color[1] << ")\n";
+    stream << "lines(" << "c(" << clientTimeReq << "," << clientTimeReq << "), c(0,1), lty=2, col=\"black\")\n";
     stream << "#Legend\n";
     stream << "legend(\"bottomright\", c(\"server to client\", \"server to client requirement\"), cex=0.8, col=c("
-           << color[0] << ", " << color[1] << ", " << color[0] << ", " << color[1] << "), lty=c(1,1,2,2), inset=.05)" << std::endl;
+              << "\"black\", \"darkgrey\"), lty=c(1,2), inset=.05)" << std::endl;
 
-    stream << "#Message interarrival times for " << name;
-    stream << "\nplot(tabulate(sendtimes_" << name << "), type=\"h\", xlab=\"Time(ms)\", ylab =\"Message count\", main=\"Interarrival times for: " <<  name <<"\")" << std::endl;
+    stream << "#Message inter-departure times for " << name;
+    stream << "\nplot(tabulate(sendtimes_" << name << "), type=\"h\", xlab=\"Time(ms)\", ylab =\"Message count\", main=\"Inter-departure times for: " <<  name <<"\")" << std::endl;
 
     stream << "\n#Packet sizes for message " << name << std::endl;
     stream << "\nplot(tabulate(messagesizes_" << name << "), type=\"h\", xlab=\"Message size(bytes)\", ylab =\"Message count\", main=\"Message sizes for: " <<  name <<"\")" << std::endl;

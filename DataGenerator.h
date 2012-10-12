@@ -198,7 +198,7 @@ bool DataGenerator::setupStream(Ptr<Node> node, Address addr){
         immediateSend = false;
 
     switch(proto){
-
+    Config::SetDefault ("ns3::TcpL4Protocol::SocketType", StringValue ("ns3::TcpReno"));
         case TCP_NAGLE_DISABLED:
             socket = Socket::CreateSocket(node, TcpSocketFactory::GetTypeId());
             socket->SetAttribute("TcpNoDelay", BooleanValue(true));
@@ -228,7 +228,6 @@ bool DataGenerator::setupStream(Ptr<Node> node, Address addr){
 }
 
 DataGenerator::ReadMsgNameReturnValue DataGenerator::readMessageName(std::string &name, uint8_t *buffer, uint16_t charLeft, bool nameContinues){
-
 
     if(charLeft <= 1){
         return NAME_CONTINUES;      //read only "-character
@@ -855,8 +854,9 @@ void ServerDataGenerator::dataReceivedTcp(Ptr<Socket> sock){
                         client->dataLeft = true;
                         bytesRead = bufferSize;
                     }
-                    else if(retVal == READ_FAILED)
+                    else if(retVal == READ_FAILED){
                         PRINT_ERROR("This should never happen, check message names! 3" <<std::endl);
+                    }
 
                 }
             }

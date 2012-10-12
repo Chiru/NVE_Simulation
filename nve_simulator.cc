@@ -16,6 +16,7 @@
 
 
 #include "ns3/applications-module.h"
+#include "ns3/animation-interface.h"
 #include "ns3/nstime.h"
 #include "ns3/core-module.h"
 #include "ns3/point-to-point-helper.h"
@@ -66,6 +67,7 @@ int main(int argc, char** argv){
     FlowMonitorHelper flowMonHelper;
     struct stat resultDir, scriptDir;
 
+
     stat("./results", &resultDir);
     stat("./results/Rscripts", &scriptDir);
 
@@ -77,6 +79,7 @@ int main(int argc, char** argv){
         }
     }
 
+   // AnimationInterface anim = AnimationInterface("results/animation", true);
     DropTailQueue::GetTypeId();
 
     Config::SetDefault("ns3::DropTailQueue::MaxPackets", UintegerValue(2000));    //TODO: change to be configurable
@@ -193,8 +196,7 @@ int main(int argc, char** argv){
     }
 
     for(i = 0; i < numberOfClients; i++){
-        packetLoss[i] = CreateObjectWithAttributes<RateErrorModel>("RanVar", RandomVariableValue(UniformVariable(0,1)),
-                                                                   "ErrorUnit", EnumValue(EU_PKT),
+        packetLoss[i] = CreateObjectWithAttributes<RateErrorModel>("ErrorUnit", StringValue ("ERROR_UNIT_PACKET"),
                                                                    "ErrorRate", DoubleValue(clients[i]->getLossRate()));
         clientRouterDevices[i].Get(0)->SetAttribute("ReceiveErrorModel", PointerValue(packetLoss[i]));
         clientRouterDevices[i].Get(1)->SetAttribute("ReceiveErrorModel", PointerValue(packetLoss[i]));
@@ -227,9 +229,12 @@ int main(int argc, char** argv){
 
     stats->addFlowMonitor(flowMonHelper.InstallAll(), flowMonHelper);   //TODO: something leaks memory in flow monitoring (ns-3 bug?)
 
+
+  //  anim.StartAnimation();
     Simulator::Stop(Seconds(runningTime));   //+1 second because of giving the connections time to finish
     Simulator::Run();
     Simulator::Destroy();
+    //anim.StopAnimation();
 
     for(i = 0; i < numberOfClients; i++){
         delete clients[i];
