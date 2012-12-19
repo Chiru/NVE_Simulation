@@ -59,7 +59,7 @@ private:
     } RanvarValues;   //these are the different variables that are passed as a parameter to ns-3 distribution functions
 
     //distributions supported by ns-3
-    typedef enum{Uniform = 0, Constant, Sequential, Exponential, Pareto, Weibull, Normal, Lognormal, Gamma, Erlang, Zipf, Zeta, Triangular, Empirical, None} Distributions;
+    typedef enum{Uniform = 0, Constant, Sequential, Exponential, Pareto, Weibull, Normal, Lognormal, Gamma, Erlang, Zipf, Zeta, Triangular, Empirical, Extreme, Split, None} Distributions;
 
 
     //convenience class to operate with distribution enum types
@@ -67,10 +67,10 @@ private:
 
     public:
         DistributionEnum();
-        explicit DistributionEnum(Distributions dist);
-        explicit DistributionEnum(int dist);
+        explicit DistributionEnum(Distributions dist, XMLParser* owner = 0);
+        explicit DistributionEnum(int dist, XMLParser* owner = 0);
 
-        DistributionEnum(const std::string& distStr);
+        DistributionEnum(const std::string& distStr, XMLParser* owner = 0);
         operator int() const;
         bool operator==(const Distributions &d);
         bool operator<(const Distributions &d);
@@ -87,6 +87,10 @@ private:
 
         template <class T, class U, class V, class W> bool readCommaSeparatedString(const std::string& csvString, int paramCount, T& val1, U& val2, V& val3, W& val4);
         bool readEmpiricalDataFile(const std::string& filename, EmpiricalVariable& ranvar);
+        RandomVariable* readSplitDistribution(const std::string& params);
+        bool readAndRemovePercentage(std::string& dist, double& result);
+
+        XMLParser* owner;
 
     }; //end of nested class
 
@@ -732,15 +736,20 @@ bool XMLParser::parseRunningTime(std::string &file){
 
      std::string result;
      std::string filename("");
-     readValue<std::string>(element, variableName, result, 0);
+     if(variableName.empty()){
+        result = element;
+     }else{
+        readValue<std::string>(element, variableName, result, 0);
+     }
 
      std::string distName(result.substr(0, result.find('(')));
+
      if(distName.compare("empirical") == 0){
          getElement(result, 0, "(", ")", filename);
          filename = filename.substr(1, filename.length()-2);
      }
 
-     distribution = DistributionEnum(distName);
+     distribution = DistributionEnum(distName, this);
      if(distribution == None)
          return false;
 
@@ -754,22 +763,22 @@ bool XMLParser::parseRunningTime(std::string &file){
 
  //nested class DistributionEnum definitions
 
- const int XMLParser::DistributionEnum::distCount = 15;
+ const int XMLParser::DistributionEnum::distCount = 17;
  const std::string XMLParser::DistributionEnum::distributionStrings[XMLParser::DistributionEnum::distCount] = {"uniform", "constant", "sequential", "exponential", "pareto", "weibull", "normal",
                                                                                                                "lognormal", "gamma", "erlang", "zipf", "zeta",
-                                                                                                               "triangular", "empirical", "none"};
+                                                                                                               "triangular", "empirical", "extreme", "split", "none"};
 
  XMLParser::DistributionEnum::DistributionEnum(): distribution(XMLParser::Uniform){}
 
-XMLParser::DistributionEnum::DistributionEnum(XMLParser::Distributions dist){
-     setDistribution(dist);
+ XMLParser::DistributionEnum::DistributionEnum(XMLParser::Distributions dist, XMLParser* owner) : owner(owner){
+    setDistribution(dist);
  }
 
-XMLParser::DistributionEnum::DistributionEnum(int dist){
+XMLParser::DistributionEnum::DistributionEnum(int dist, XMLParser* owner): owner(owner){
      setDistribution(getDistribution(dist));
  }
 
-  XMLParser::DistributionEnum::DistributionEnum(const std::string& distStr){
+  XMLParser::DistributionEnum::DistributionEnum(const std::string& distStr, XMLParser* owner) : owner(owner){
 
       for(distribution = XMLParser::Uniform; this->operator<(XMLParser::None); distribution = getDistribution(((int)distribution+1))){
          if(distributionStrings[distribution].compare(distStr) == 0){
@@ -832,7 +841,9 @@ XMLParser::DistributionEnum::DistributionEnum(int dist){
          case 11: return XMLParser::Zeta;
          case 12: return XMLParser::Triangular;
          case 13: return XMLParser::Empirical;
-         case 14: return XMLParser::None;
+         case 14: return XMLParser::Extreme;
+         case 15: return XMLParser::Split;
+         case 16: return XMLParser::None;
          default: return XMLParser::None;
      }
 }
@@ -936,10 +947,10 @@ RandomVariable* XMLParser::DistributionEnum::constructRandomVariable(const std::
          }
          break;
      case XMLParser::Weibull:
-         if(!readCommaSeparatedString<double, double, double, uint32_t>(params, 3, v1.doubleVal, v2.doubleVal, v3.doubleVal, v4.uintVal)){
+         if(!readCommaSeparatedString<double, double, double, double>(params, 4, v1.doubleVal, v2.doubleVal, v3.doubleVal, v4.doubleVal)){
              PRINT_ERROR("Error in timeinterval distribution parameters" << std::endl);
          }else{
-             retVal = new WeibullVariable(v1.doubleVal, v2.doubleVal, v3.doubleVal);
+             retVal = new WeibullVariable(v1.doubleVal, v2.doubleVal, v3.doubleVal, v4.doubleVal);
          }
          break;
      case XMLParser::Normal:
@@ -1001,6 +1012,19 @@ RandomVariable* XMLParser::DistributionEnum::constructRandomVariable(const std::
              retVal = 0;
          }
          break;
+
+     case XMLParser::Extreme:
+         if(!readCommaSeparatedString<double, double, double, uint32_t>(params, 3, v1.doubleVal, v2.doubleVal, v3.doubleVal, v4.uintVal)){
+             PRINT_ERROR("Error in timeinterval distribution parameters" << std::endl);
+         }else{
+             retVal = new ExtremeVariable(v1.doubleVal, v2.doubleVal, v3.doubleVal);
+         }
+         break;
+
+     case XMLParser::Split:
+            retVal = readSplitDistribution(params);
+         break;
+
      case XMLParser::None:
      default:
          return 0;
@@ -1050,5 +1074,93 @@ bool XMLParser::DistributionEnum::readEmpiricalDataFile(const std::string &filen
     file.close();
     return true;
 }
+
+RandomVariable* XMLParser::DistributionEnum::readSplitDistribution(const std::string& params){
+
+    std::stringstream stream;
+    stream << params;
+    SplitDistribution* retVal = 0;
+    RandomVariable* ranvar;
+    DistributionEnum distribution;
+    char c;
+    size_t pos = 0;
+    size_t previous_pos = 0;
+    bool cont = true;
+    std::string temp;
+    int distCount = 0;
+    double percentage = 0;
+
+    stream >> c;
+
+    if(c != '(' || stream.fail())
+        return 0;
+
+    retVal = new SplitDistribution();
+
+    stream >> temp;
+
+    std::string dist = "";
+
+    while(cont){
+
+        pos = temp.find_first_of(',', temp.find_first_of(')', pos));
+
+        if(pos == std::string::npos){
+            dist = temp.substr(previous_pos, temp.find_first_of(')', previous_pos)- (previous_pos - 1));
+            cont = false;
+        }else{
+            dist = temp.substr(previous_pos, pos - previous_pos);
+        }
+
+        if(!readAndRemovePercentage(dist, percentage)){
+            delete retVal;
+            return 0;
+        }
+
+        owner->readRandomVariable(dist, ranvar, distribution, "");
+
+        if(ranvar != 0){
+            retVal->AddDistribution(*ranvar, percentage);
+            distCount++;
+        }
+
+        previous_pos = pos + 1;
+
+    }
+
+    if(distCount == 0){
+        delete retVal;
+        retVal = 0;
+
+    }
+
+    return retVal;
+
+}
+
+bool XMLParser::DistributionEnum::readAndRemovePercentage(std::string &dist, double &result){
+
+    std::stringstream stream;
+
+    stream << dist;
+
+    stream >> result;
+
+    if(stream.fail())
+        return false;
+
+    char c;
+
+    stream >> c;
+
+    if(stream.fail() || c != ':')
+        return false;
+
+    stream >> dist;
+
+    return true;
+
+}
+
 
 #endif // XML_PARSER_H
