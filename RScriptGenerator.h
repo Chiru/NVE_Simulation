@@ -19,7 +19,7 @@ public:
     bool generateScriptForStream(const std::list<int64_t>* transmitTimesToClients,  const std::list<int64_t>* transmitTimesToServer, const std::list<int64_t>* transmitTimesFromServer,
                                  uint16_t maxStreams);
     bool generateScriptForClientMessage(std::list<int> clientRecvTimes, std::list<int> serverRecvTimes, std::list<int> sendIntervals, const std::string& name, int serverTimeReq,
-                                        int clientTimeReq, uint16_t numberOfClientsForwarded, std::list<uint16_t> sizes);
+                                        int clientTimeReq, uint32_t numberOfClientsForwarded, std::list<uint16_t> sizes);
     bool generateScriptForServerMessage(std::list<int> clientRecvTimes, std::list<int> sendIntervals, const std::string& name, int clientTimeReq, uint16_t numberOfClientsForwarded,
                                         std::list<uint16_t> sizes);
     bool writeAndExecuteResultScript();
@@ -308,7 +308,7 @@ bool RScriptGenerator::generateScriptForStream(const std::list<int64_t>* transmi
 }
 
 bool RScriptGenerator::generateScriptForClientMessage(std::list<int> clientRecvTimes, std::list<int> serverRecvTimes, std::list<int> sendIntervals, const std::string &name, int serverTimeReq,
-                                                int clientTimeReq, uint16_t numberOfClientsForwarded, std::list<uint16_t> sizes){
+                                                int clientTimeReq, uint32_t numberOfClientsForwarded, std::list<uint16_t> sizes){
 
 
     static std::string color[2] = {"\"green\"", "\"blue\""};
@@ -399,7 +399,7 @@ bool RScriptGenerator::generateScriptForClientMessage(std::list<int> clientRecvT
 
     stream << "#Lost packets\n";
     stream << client << name << "_lost = c(";
-    if(numberOfClientsForwarded - clientRecvTimes.size() != 0){
+    if(numberOfClientsForwarded - clientRecvTimes.size() > 0){std::cout << "forwarded: " << numberOfClientsForwarded << " times.size() :"  <<clientRecvTimes.size() << std::endl;
         for(uint h = 0; h <  numberOfClientsForwarded - clientRecvTimes.size();){
             stream << name << "_max*2";
             if(++h == numberOfClientsForwarded - clientRecvTimes.size()){
