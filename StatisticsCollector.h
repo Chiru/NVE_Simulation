@@ -85,7 +85,8 @@ private:
     int runningTime;
     RScriptGenerator* scriptGen;
     std::string scriptSourceFile;
-    std::string scriptResultFile;
+    std::string scriptResultPdfFile;
+    std::string scriptResultTextFile;
 
     static bool verbose;
     static bool clientLog;
@@ -122,7 +123,7 @@ StatisticsCollector* StatisticsCollector::createStatisticsCollector(bool verbose
 }
 
 StatisticsCollector::StatisticsCollector(bool verbose, bool clientLog, bool serverLog, uint16_t numberOfStreams, int runningTime): streamCount(numberOfStreams), runningTime(runningTime),
-    scriptSourceFile("results/rscriptfile.R"), scriptResultFile("results/resultgraphs.pdf"){
+    scriptSourceFile("results/rscriptfile.R"), scriptResultPdfFile("results/resultgraphs.pdf"), scriptResultTextFile("results/results.txt"){
 
     StatisticsCollector::verbose = verbose;
     StatisticsCollector::clientLog = clientLog;
@@ -131,7 +132,7 @@ StatisticsCollector::StatisticsCollector(bool verbose, bool clientLog, bool serv
     userActionMessageLog = new std::vector<StatisticsCollector::MessageStats*>[numberOfStreams];
     serverMessageLog = new std::vector<StatisticsCollector::MessageStats*>[numberOfStreams];
 
-    scriptGen = new RScriptGenerator(scriptSourceFile, scriptResultFile);
+    scriptGen = new RScriptGenerator(scriptSourceFile, scriptResultPdfFile, scriptResultTextFile);
 
 }
 
@@ -230,7 +231,7 @@ StatisticsCollector::~StatisticsCollector(){
     getBandwidthResults();
 
     if(scriptGen->writeAndExecuteResultScript())
-        PRINT_RESULT(std::endl << "Generated a result file for graphs: " << scriptResultFile  << std::endl);
+        PRINT_RESULT(std::endl << "Generated a result file for graphs: " << scriptResultPdfFile  << std::endl);
     else
         PRINT_RESULT(std::endl << "Could not generate a result file for graphs." << std::endl);
 
