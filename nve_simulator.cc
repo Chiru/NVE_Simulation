@@ -220,7 +220,7 @@ int main(int argc, char** argv){
     Ipv4GlobalRoutingHelper::PopulateRoutingTables();
 
    //for(i = 0; i <= numberOfClients; i++){
-        csma[i].EnablePcapAll("results/");
+        csma[i].EnablePcapAll("results/node");
     //}
 
     //pointToPoint[numberOfClients].EnablePcapAll("results/simulated");
