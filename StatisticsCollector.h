@@ -242,7 +242,9 @@ StatisticsCollector::~StatisticsCollector(){
 }
 
 void StatisticsCollector::logUserActionMessageReceivedByClient(int messageNumber, Time recvTime, uint16_t streamNumber){
+
     userActionMessageLog[streamNumber-1].at(messageNumber)->clientRecvTimes.push_back(recvTime);
+
 }
 
 void StatisticsCollector::logServerMessageReceivedByClient(int messageNumber, Time recvTime, uint16_t streamNumber){
@@ -251,6 +253,7 @@ void StatisticsCollector::logServerMessageReceivedByClient(int messageNumber, Ti
 
 void StatisticsCollector::logUserActionMessageReceivedByServer(int messageNumber, Time recvTime, uint16_t streamNumber){
     userActionMessageLog[streamNumber-1].at(messageNumber)->serverRecvTime = recvTime;
+
 }
 
 void StatisticsCollector::logMessagesSentFromClient(int messageNumber, Time sendTime, uint16_t streamNumber, uint32_t clientTimeRequirement, uint32_t serverTimeRequirement, uint16_t nameIndex,
@@ -271,6 +274,7 @@ void StatisticsCollector::logMessagesSentFromClient(int messageNumber, Time send
     }
 
     userActionMessageLog[streamNumber-1].back()->messageSize = size;
+
 
 }
 

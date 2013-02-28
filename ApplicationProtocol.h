@@ -40,7 +40,7 @@ public:
     bool sendFromClient(const std::string& buffer, Ptr<Socket>, bool reliable);
     bool sendFromServer(uint8_t*, const Message*, const Address&, Ptr<Socket>, bool forward = false);
     bool sendFromServer(const std::string& buffer, const Address& addr, Ptr<Socket> sock, bool reliable);
-    void configureForStream(Callback<void, uint8_t*, uint16_t, Address&> memFunc);
+    void configureForStream(Callback<void, uint8_t*, uint16_t, Address&> memFunc, bool ordered);
     void recv(Ptr<Socket>);
     uint16_t getHeaderSize() const{return headerSize;}
 
@@ -65,9 +65,10 @@ private:
         uint8_t* buffer;
     };
 
-    enum AppProtoPacketType{UNRELIABLE, RELIABLE, DUPLICATE, ACK, ERROR}; //distinguish between different application proto headers
+    enum AppProtoPacketType{UNRELIABLE, RELIABLE, DUPLICATE, ACK, ERROR, UNORDERED}; //distinguish between different application proto headers
 
     std::list<ReliablePacket*> packetsWaitingAcks;
+    std::list<ReliablePacket*> packetsOutOfOrder;
     std::map<const Address, std::deque<uint32_t> > packetsToAck;  //server needs to remember also the client address for each message it has received
     std::map<const Address, std::list<uint32_t> > alreadyAcked;   //ack these again, but do not forward to application
     uint16_t ackSize;
@@ -75,18 +76,22 @@ private:
     uint16_t retransmit;
     uint16_t headerSize;
     uint64_t totalBytesSent;
-    uint32_t reliableMsgNumber;
+    std::map<const Address, uint32_t> reliableMsgNumber;
+    //uint32_t reliableMsgNumber;
     Ptr<Socket> socket;
     uint16_t maxDatagramSize;
     Callback<void, uint8_t*, uint16_t, Address&> forwardToApplication;
+    bool ordered;
+    std::map<const Address, uint32_t> lastOrderedNumber;
 
     void resendCheckClient(uint32_t reliableMsgNumber);   //resend data without an ack before the timer runs out
-    void resendCheckServer(uint32_t reliableMsgNumber, Address addr);
-    void addAppProtoHeader(char* buffer, bool reliable);
-    AppProtoPacketType parseAppProtoHeader(uint8_t* buffer, const Address& addr, Ptr<Socket> sock);
+    void resendCheckServer(std::map<const Address, uint32_t>& reliableMsgNumber, const Address& addr);
+    void addAppProtoHeader(char* buffer, bool reliable, const Address* addr = 0);
+    AppProtoPacketType parseAppProtoHeader(uint8_t* buffer, const Address& addr, Ptr<Socket> sock, uint32_t& msgNumber);
     bool sendAck(int* messagesToAck, uint16_t numberOfMessages, const Address& addr, Ptr<Socket> sock);
     uint16_t createAck(char* ack, int* numbers, uint16_t numberOfMessages);
     void ackAllPackets();
+    ReliablePacket* getAllOrdered(const Address& addr, uint32_t reliableMsgNumber);
 
     //IP fragmentation over UDP doesn't work like a charm, so send big packets in separate datagrams
     int sendAndFragment(Ptr<Socket> socket, uint8_t* buffer, uint16_t size, bool reliable, const Address* const addr = 0);
@@ -100,10 +105,9 @@ ApplicationProtocol::ApplicationProtocol(uint16_t packetSize, uint16_t delayedAc
       delayedAck(delayedAck),
       retransmit(retransmit),
       headerSize(headerSize),
-      reliableMsgNumber(0),
       socket(0),
-      maxDatagramSize(1400){  //TODO: hard coding
-
+      maxDatagramSize(1400) //TODO: hard coding
+{
 }
 
 ApplicationProtocol::~ApplicationProtocol(){
@@ -151,8 +155,8 @@ bool ApplicationProtocol::sendFromClient(const Message *msg, uint8_t *buffer, Pt
         uint8_t* tempMsg;
         tempMsg = (uint8_t*)malloc(messageSize + headerSize);
         memcpy(tempMsg, msgContents, messageSize + headerSize);
-        packetsWaitingAcks.push_back(new ApplicationProtocol::ReliablePacket(reliableMsgNumber, msg->getMessageSize(msgId), tempMsg));
-        Simulator::Schedule(Time(MilliSeconds(retransmit)), &ApplicationProtocol::resendCheckClient, this, reliableMsgNumber);
+        packetsWaitingAcks.push_back(new ApplicationProtocol::ReliablePacket((reliableMsgNumber.begin())->second, msg->getMessageSize(msgId), tempMsg));
+        Simulator::Schedule(Time(MilliSeconds(retransmit)), &ApplicationProtocol::resendCheckClient, this, (reliableMsgNumber.begin())->second);
     }
 
     totalBytesSent += bytesSent;
@@ -185,8 +189,8 @@ bool ApplicationProtocol::sendFromClient(const std::string &buffer, Ptr<Socket> 
         uint8_t* tempMsg;
         tempMsg = (uint8_t*)malloc(buffer.length() + headerSize);
         memcpy(tempMsg, msgContents, buffer.length() + headerSize);
-        packetsWaitingAcks.push_back(new ApplicationProtocol::ReliablePacket(reliableMsgNumber, buffer.length(), tempMsg));
-        Simulator::Schedule(Time(MilliSeconds(retransmit)), &ApplicationProtocol::resendCheckClient, this, reliableMsgNumber);
+        packetsWaitingAcks.push_back(new ApplicationProtocol::ReliablePacket((reliableMsgNumber.begin())->second, buffer.length(), tempMsg));
+        Simulator::Schedule(Time(MilliSeconds(retransmit)), &ApplicationProtocol::resendCheckClient, this, (reliableMsgNumber.begin())->second);
     }
 
     delete [] msgContents;
@@ -206,11 +210,27 @@ void ApplicationProtocol::recv(Ptr<Socket> socket){
     buffer = (uint8_t*)calloc(bufferSize, 1);
     socket->RecvFrom(buffer, bufferSize, 0, addr);
 
-    switch(parseAppProtoHeader(buffer, addr, socket)){
+    uint32_t msgNumber;
+    ReliablePacket* packet = 0;
 
-        case UNRELIABLE:
-        case RELIABLE:
-            forwardToApplication(buffer + headerSize, bufferSize - headerSize, addr);
+    switch(parseAppProtoHeader(buffer, addr, socket, msgNumber)){
+
+    case UNRELIABLE:
+        case RELIABLE:                
+                forwardToApplication(buffer + headerSize, bufferSize - headerSize, addr);
+                free(buffer);
+                while((packet = getAllOrdered(addr, ++msgNumber))){
+                    forwardToApplication(packet->buffer + headerSize, packet->msgSize - headerSize, addr);
+                    lastOrderedNumber[addr] = msgNumber;
+                    packetsToAck[addr].push_back(msgNumber);
+                    delete packet;
+                }
+
+            break;
+
+        case UNORDERED:
+            packetsOutOfOrder.push_back(new ReliablePacket(msgNumber, bufferSize, buffer, addr));
+
             break;
 
         case DUPLICATE: //this is already handled
@@ -223,8 +243,25 @@ void ApplicationProtocol::recv(Ptr<Socket> socket){
     }
 
 
-    free(buffer);
 }
+
+
+ApplicationProtocol::ReliablePacket* ApplicationProtocol::getAllOrdered(const Address& addr, uint32_t reliableMsgNumber){
+
+    ReliablePacket* retval = 0;
+
+    for(std::list<ReliablePacket*>::iterator it = packetsOutOfOrder.begin(); it != packetsOutOfOrder.end(); it++){
+        if((*it)->addr == addr && (*it)->msgNumber == reliableMsgNumber){
+            retval = (*it);
+            packetsOutOfOrder.remove(*it);
+            break;
+        }
+    }
+
+    return retval;
+
+}
+
 
 bool ApplicationProtocol::sendFromServer(uint8_t *buffer, const Message* msg, const Address& addr, Ptr<Socket> socket, bool forward){
 
@@ -247,7 +284,7 @@ bool ApplicationProtocol::sendFromServer(uint8_t *buffer, const Message* msg, co
 
     msgContents[0] = '\0';
 
-    addAppProtoHeader(msgContents, msg->getReliable());
+    addAppProtoHeader(msgContents, msg->getReliable(), &addr);
     strncpy(msgContents + headerSize, (char*)buffer, 30);
 
     if(socket->GetTxAvailable() < size + headerSize){        //TODO: how to remember messages when buffer overflows
@@ -262,7 +299,7 @@ bool ApplicationProtocol::sendFromServer(uint8_t *buffer, const Message* msg, co
         uint8_t* tempMsg;
         tempMsg = (uint8_t*)malloc(size + headerSize);
         memcpy(tempMsg, msgContents, size + headerSize);
-        packetsWaitingAcks.push_back(new ApplicationProtocol::ReliablePacket(reliableMsgNumber, size, tempMsg, addr));
+        packetsWaitingAcks.push_back(new ApplicationProtocol::ReliablePacket(reliableMsgNumber[addr], size, tempMsg, addr));
         Simulator::Schedule(Time(MilliSeconds(retransmit)), &ApplicationProtocol::resendCheckServer, this, reliableMsgNumber, addr);
     }
 
@@ -281,7 +318,7 @@ bool ApplicationProtocol::sendFromServer(const std::string &buffer, const Addres
     char* msgContents = new char[size + headerSize];
     msgContents[0] = 0;
 
-    addAppProtoHeader(msgContents, reliable);
+    addAppProtoHeader(msgContents, reliable, &addr);
     memcpy(msgContents + headerSize, buffer.c_str(), size);
 
     if(sock->GetTxAvailable() < size + headerSize){        //TODO: how to remember messages when buffer overflows
@@ -298,7 +335,7 @@ bool ApplicationProtocol::sendFromServer(const std::string &buffer, const Addres
         uint8_t* tempMsg;
         tempMsg = (uint8_t*)malloc(size + headerSize);
         memcpy(tempMsg, msgContents, size + headerSize);
-        packetsWaitingAcks.push_back(new ApplicationProtocol::ReliablePacket(reliableMsgNumber, size, tempMsg, addr));
+        packetsWaitingAcks.push_back(new ApplicationProtocol::ReliablePacket(reliableMsgNumber[addr], size, tempMsg, addr));
         Simulator::Schedule(Time(MilliSeconds(retransmit)), &ApplicationProtocol::resendCheckServer, this, reliableMsgNumber, addr);
     }
 
@@ -307,8 +344,9 @@ bool ApplicationProtocol::sendFromServer(const std::string &buffer, const Addres
     return true;
 }
 
-void ApplicationProtocol::configureForStream(Callback<void, uint8_t*, uint16_t, Address&> memFunc){
+void ApplicationProtocol::configureForStream(Callback<void, uint8_t*, uint16_t, Address&> memFunc, bool ordered){
     Simulator::Schedule(Time(MilliSeconds(delayedAck)), &ApplicationProtocol::ackAllPackets, this);
+    this->ordered = ordered;
     forwardToApplication = memFunc;
 }
 
@@ -329,12 +367,12 @@ void ApplicationProtocol::resendCheckClient(uint32_t reliableMsgNumber){
     }
 }
 
-void ApplicationProtocol::resendCheckServer(uint32_t reliableMsgNumber, Address addr){
+void ApplicationProtocol::resendCheckServer(std::map<const Address, uint32_t>& reliableMsgNumber, const Address& addr){
 
     for(std::list<ApplicationProtocol::ReliablePacket*>::const_iterator it = packetsWaitingAcks.begin(); it != packetsWaitingAcks.end(); it++){
-        if((**it).msgNumber == reliableMsgNumber && (**it).addr == addr){
+        if((**it).msgNumber == reliableMsgNumber[addr] && (**it).addr == addr){
             if(socket->GetTxAvailable() < (**it).msgSize + headerSize){
-                Simulator::Schedule(Time(MilliSeconds(retransmit)), &ApplicationProtocol::resendCheckClient, this, reliableMsgNumber);
+                Simulator::Schedule(Time(MilliSeconds(retransmit)), &ApplicationProtocol::resendCheckServer, this, reliableMsgNumber, addr);
                 return;
             }
             sendAndFragment(socket, (**it).buffer, (**it).msgSize + headerSize, true, &(**it).addr);
@@ -345,29 +383,48 @@ void ApplicationProtocol::resendCheckServer(uint32_t reliableMsgNumber, Address 
     }
 }
 
-void ApplicationProtocol::addAppProtoHeader(char *buffer, bool reliable){
+void ApplicationProtocol::addAppProtoHeader(char *buffer, bool reliable, const Address* addr){
 
     std::stringstream str("");
     str << "\"app:";
 
-    if(reliable)
-        str << ++reliableMsgNumber;
-    else
-        str << 0;
+
+    if(addr == 0){
+
+        if(reliableMsgNumber.empty()){
+            reliableMsgNumber.insert(std::pair<Address, uint32_t>(Address(), 0));
+        }
+
+        if(reliable)
+            str << ++(reliableMsgNumber.begin()->second);
+        else
+            str << 0;
+    }else{
+
+        if(reliableMsgNumber.count(*addr) == 0){
+            reliableMsgNumber.insert(std::pair<Address, uint32_t>(*addr, 0));
+
+        }
+
+        if(reliable)
+            str << ++(reliableMsgNumber[*addr]);
+        else
+            str << 0;
+    }
 
     str << "\"";
 
     strncpy(buffer, str.str().c_str(), headerSize);
 }
 
-ApplicationProtocol::AppProtoPacketType ApplicationProtocol::parseAppProtoHeader(uint8_t* buffer, const Address& addr, Ptr<Socket> sock){
+ApplicationProtocol::AppProtoPacketType ApplicationProtocol::parseAppProtoHeader(uint8_t* buffer, const Address& addr, Ptr<Socket> sock, uint32_t& msgNumber){
 
     if(strncmp((char*)buffer, "\"app:0\"", 7) == 0)
         return UNRELIABLE;
 
     if(strncmp((char*)buffer, "\"app:", 5) == 0){
         char* numberStr = strndup((char*)buffer + 5, strlen((char*)buffer) - 5);
-        uint32_t msgNumber = atoi(numberStr);
+        msgNumber = atoi(numberStr);
         free(numberStr);
 
         if(packetsToAck.count(addr) == 1){
@@ -377,10 +434,45 @@ ApplicationProtocol::AppProtoPacketType ApplicationProtocol::parseAppProtoHeader
                     return DUPLICATE;
                 }
             }
-            packetsToAck[addr].push_back(msgNumber);
+
+
+            for(std::deque<uint32_t>::const_reverse_iterator it = packetsToAck[addr].rbegin();  it != packetsToAck[addr].rend(); it++){
+                if(*it == msgNumber){
+                    return DUPLICATE;
+                }
+            }
+
+            if(ordered){
+                if(lastOrderedNumber[addr] == msgNumber -1){
+                    lastOrderedNumber[addr] = msgNumber;
+                    packetsToAck[addr].push_back(msgNumber);
+                    return RELIABLE;
+
+                }else{
+                    return UNORDERED;
+                }
+
+            }else{
+                packetsToAck[addr].push_back(msgNumber);
+                return RELIABLE;
+            }
+
+
         }else{
             packetsToAck.insert(std::make_pair<Address, std::deque<uint32_t> >(addr, std::deque<uint32_t>()));
-            packetsToAck[addr].push_back(msgNumber);
+            lastOrderedNumber.insert(std::make_pair<const Address&, uint32_t> (addr, 0));
+            if(ordered){
+                if(lastOrderedNumber[addr] == msgNumber-1){
+                    lastOrderedNumber[addr] = msgNumber;
+                    packetsToAck[addr].push_back(msgNumber);
+                    return RELIABLE;
+                }else{
+                    return UNORDERED;
+                }
+
+            }else{
+                packetsToAck[addr].push_back(msgNumber);
+            }
         }
 
         return RELIABLE;

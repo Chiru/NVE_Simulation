@@ -34,7 +34,8 @@ class DataGenerator : public ns3::Application{
 
         out << "\n\tStream: " << stream.streamNumber << "  protocol: "
             << (stream.proto == TCP_NAGLE_DISABLED ? "TCP  Nagle's disabled" : stream.proto == TCP_NAGLE_ENABLED ? "TCP  Nagle's enabled" :
-            (stream.appProto == 0 ? "UDP  Application protocol: no" : "UDP  Application protocol: yes"));
+            (stream.appProto == 0 ? "UDP  Application protocol: no" :  stream.isOrdered()  ? "UDP  Application protocol: yes   ordering: ordered" :
+                                                                                             "UDP  Application protocol: no   ordering: unordered" ));
 
         for(std::vector<Message*>::const_iterator it = stream.messages.begin(); it != stream.messages.end(); it++){
             out << "\n\t\t";
@@ -48,7 +49,7 @@ class DataGenerator : public ns3::Application{
 public:
     enum Protocol{TCP_NAGLE_DISABLED, TCP_NAGLE_ENABLED, UDP};
     DataGenerator() :sender(appProto, gameTick){}
-    DataGenerator(uint16_t streamNumber, Protocol proto, ApplicationProtocol* appProto, std::vector<Message*> messages, int gametick);
+    DataGenerator(uint16_t streamNumber, Protocol proto, ApplicationProtocol* appProto, std::vector<Message*> messages, int gametick, bool ordered);
     virtual ~DataGenerator();
     virtual void StartApplication() = 0;
     virtual void StopApplication() = 0;
@@ -64,6 +65,7 @@ public:
     int getGameTick() const{return gameTick;}
     void sendBackToSender(const Message*, const Address&, const Ptr<Socket>, std::string& messageName, bool isClient);
     bool sendImmediately() const {return immediateSend;}
+    bool isOrdered() const {return ordered;}
 
 protected:
     enum ReadMsgNameReturnValue{READ_FAILED = 0, READ_SUCCESS, NAME_CONTINUES};
@@ -79,14 +81,16 @@ protected:
     Address peerAddr;
     uint64_t totalBytesSent;
     int gameTick;
+    bool ordered;
     DataSender sender;
     bool immediateSend;
+
 };
 
 class ClientDataGenerator : public DataGenerator{
 
 public:
-    ClientDataGenerator(uint16_t streamNumber, Protocol proto, ApplicationProtocol* appProto, std::vector<Message*> messages, int gametick);
+    ClientDataGenerator(uint16_t streamNumber, Protocol proto, ApplicationProtocol* appProto, std::vector<Message*> messages, int gametick, bool ordered);
     ClientDataGenerator(const DataGenerator&);
     ~ClientDataGenerator();
 
@@ -134,7 +138,7 @@ class ServerDataGenerator : public DataGenerator{
     };
 
 public:
-    ServerDataGenerator(uint16_t streamNumber, Protocol proto, ApplicationProtocol* appProto, std::vector<Message*> messages, int gametick);
+    ServerDataGenerator(uint16_t streamNumber, Protocol proto, ApplicationProtocol* appProto, std::vector<Message*> messages, int gametick, bool ordered);
     ServerDataGenerator(const DataGenerator&);
     ~ServerDataGenerator();
 
@@ -164,8 +168,8 @@ private:
 
 //Class DataGenerator function definitions
 
-DataGenerator::DataGenerator(uint16_t streamNumber, Protocol proto, ApplicationProtocol* appProto, std::vector<Message*> messages, int tick)
-    : streamNumber(streamNumber), proto(proto), appProto(appProto), messages(messages), running(false), totalBytesSent(0), gameTick(tick), sender(DataSender(appProto, tick)){
+DataGenerator::DataGenerator(uint16_t streamNumber, Protocol proto, ApplicationProtocol* appProto, std::vector<Message*> messages, int tick, bool ordered)
+    : streamNumber(streamNumber), proto(proto), appProto(appProto), messages(messages), running(false), totalBytesSent(0), gameTick(tick), ordered(ordered), sender(DataSender(appProto, tick)){
 
     if(tick == 0)
         immediateSend = true;
@@ -297,8 +301,8 @@ void DataGenerator::sendBackToSender(const Message* msg, const Address& addr, co
 
 //Class ClientDataGenerator function definitions
 
-ClientDataGenerator::ClientDataGenerator(uint16_t streamNumber, Protocol proto, ApplicationProtocol* appProto, std::vector<Message*> messages, int tick)
-    : DataGenerator(streamNumber, proto, appProto, messages, tick), ownerClient(0), bytesLeftToRead(0), dataLeft(false), nameLeft(false){
+ClientDataGenerator::ClientDataGenerator(uint16_t streamNumber, Protocol proto, ApplicationProtocol* appProto, std::vector<Message*> messages, int tick, bool ordered)
+    : DataGenerator(streamNumber, proto, appProto, messages, tick, ordered), ownerClient(0), bytesLeftToRead(0), dataLeft(false), nameLeft(false){
 }
 
 ClientDataGenerator::ClientDataGenerator(const DataGenerator& stream) : bytesLeftToRead(0), dataLeft(false), nameLeft(false){
@@ -306,6 +310,7 @@ ClientDataGenerator::ClientDataGenerator(const DataGenerator& stream) : bytesLef
     this->streamNumber = stream.getStreamNumber();
     this->ownerClient = (dynamic_cast<const ClientDataGenerator&>(stream)).getClientNumber();
     this->gameTick = stream.getGameTick();
+    this->ordered = stream.isOrdered();
 
     if(stream.getApplicationProtocol() != 0)
         this->appProto = new ApplicationProtocol((*(stream.getApplicationProtocol())));
@@ -355,7 +360,7 @@ void ClientDataGenerator::StartApplication(){
                 Simulator::Schedule(Time(MilliSeconds(gameTick)), &DataSender::flushUdpBuffer, &sender, socket, true);
             if(appProto){
                 socket->SetRecvCallback(MakeCallback(&ApplicationProtocol::recv, appProto));
-                appProto->configureForStream(MakeCallback(&ClientDataGenerator::readReceivedData, this));
+                appProto->configureForStream(MakeCallback(&ClientDataGenerator::readReceivedData, this), ordered);
             }else{
                 socket->SetRecvCallback(MakeCallback(&ClientDataGenerator::dataReceivedUdp, this));
 
@@ -645,8 +650,8 @@ bool ClientDataGenerator::sendData(Message *msg, uint8_t* buffer){
 
 //Class ServerDataGenerator function definitions
 
-ServerDataGenerator::ServerDataGenerator(uint16_t streamNumber, Protocol proto, ApplicationProtocol* appProto, std::vector<Message*> messages, int tick)
-    : DataGenerator(streamNumber, proto, appProto, messages, tick){
+ServerDataGenerator::ServerDataGenerator(uint16_t streamNumber, Protocol proto, ApplicationProtocol* appProto, std::vector<Message*> messages, int tick, bool ordered)
+    : DataGenerator(streamNumber, proto, appProto, messages, tick, ordered){
 
     probability = UniformVariable(0,1);
 
@@ -657,6 +662,7 @@ ServerDataGenerator::ServerDataGenerator(const DataGenerator& stream){
     this->probability = UniformVariable(0,1);
     this->gameTick = stream.getGameTick();
     this->streamNumber = stream.getStreamNumber();
+    this->ordered = stream.isOrdered();
 
     if(stream.getApplicationProtocol() != 0)
         this->appProto = new ApplicationProtocol((*(stream.getApplicationProtocol())));
@@ -711,7 +717,7 @@ void ServerDataGenerator::StartApplication(){
                 Simulator::Schedule(Time(MilliSeconds(gameTick)), &DataSender::flushUdpBuffer, &sender, socket, false);
             if(appProto){
                 socket->SetRecvCallback(MakeCallback(&ApplicationProtocol::recv, appProto));
-                appProto->configureForStream(MakeCallback(&ServerDataGenerator::readReceivedData, this));
+                appProto->configureForStream(MakeCallback(&ServerDataGenerator::readReceivedData, this), ordered);
             }else{
                 socket->SetRecvCallback(MakeCallback(&ServerDataGenerator::dataReceivedUdp, this));
             }

@@ -351,6 +351,7 @@ bool XMLParser::parseStream(std::string &streamElement, DataGenerator* &clientSt
     std::string nagle("");
     std::string useAppProto("");
     std::string messagesElement("");
+    std::string ordered("");
     std::vector<Message*> messages;
     int serverGameTick = 0, clientGameTick = 0;
 
@@ -378,6 +379,12 @@ bool XMLParser::parseStream(std::string &streamElement, DataGenerator* &clientSt
         if(!getApplicationProtocol(appProto)){
             appProto = 0;
         }
+
+        if(!readValue<std::string>(streamElement, "ordered", ordered, 0)){
+            PRINT_ERROR("Error in ordering specification in stream number " << stream_number << std::endl);
+            return false;
+        }
+
     }else appProto = 0;
 
 
@@ -408,8 +415,8 @@ bool XMLParser::parseStream(std::string &streamElement, DataGenerator* &clientSt
         return false;
     }
 
-    clientStream = new ClientDataGenerator(stream_number, proto, appProto, messages, clientGameTick);
-    serverStream = new ServerDataGenerator(stream_number, proto, appProto, messages, serverGameTick);
+    clientStream = new ClientDataGenerator(stream_number, proto, appProto, messages, clientGameTick, (ordered.compare("yes") == 0));
+    serverStream = new ServerDataGenerator(stream_number, proto, appProto, messages, serverGameTick, (ordered.compare("yes") == 0));
 
     return true;
 }
@@ -644,6 +651,7 @@ bool XMLParser::parseApplicationProtocol(std::string &file){
         PRINT_ERROR("Incorrect format in application protocol parameter: headersize" << std::endl);
         return false;
     }
+
 
     appProto = new ApplicationProtocol(acksize, delack, retransmit, headerSize);
 
