@@ -21,6 +21,11 @@ MainWindow::MainWindow(QWidget *parent) :
 
     addClient();
 
+    widget = new QWidget(ui->streamsScrollArea);
+    widget->setLayout(new QBoxLayout(QBoxLayout::TopToBottom, ui->streamsScrollArea));
+
+    ui->streamsScrollArea->setWidget(widget);
+
     QObject::connect(ui->addClientButton, SIGNAL(clicked()), this, SLOT(addClient()));
     QObject::connect(ui->removeClientButton, SIGNAL(clicked()), this, SLOT(removeClient()));
 }
@@ -59,7 +64,7 @@ void MainWindow::addClientWidgetToScrollArea()
 
     line->setFrameStyle(QFrame::HLine | QFrame::Plain);
     ui->clientsScrollArea->widget()->layout()->addWidget(line);
-    previousLines.push(line);
+    previousClientsLines.push(line);
 }
 
 
@@ -69,7 +74,7 @@ void MainWindow::removeClient()
     if(!previousClients.isEmpty())
     {
         ClientWidget* previousClient = previousClients.pop();
-        QFrame* previousLine = previousLines.pop();
+        QFrame* previousLine = previousClientsLines.pop();
 
         ui->clientsScrollArea->widget()->layout()->removeWidget(previousClient);
         delete previousClient;
@@ -81,5 +86,17 @@ void MainWindow::removeClient()
     }
 }
 
+
+void MainWindow::addStream()
+{
+
+
+}
+
+void MainWindow::removeStream()
+{
+
+
+}
 
 

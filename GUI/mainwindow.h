@@ -7,6 +7,7 @@
 #include <QStack>
 
 class ClientWidget;
+class StreamWidget;
 
 namespace Ui {
     class MainWindow;
@@ -24,15 +25,18 @@ private:
     Ui::MainWindow *ui;
     int numberOfClients;
     QStack<ClientWidget*> previousClients;
-    QStack<QFrame*> previousLines;
+    QStack<QFrame*> previousClientsLines;
+    QStack<StreamWidget*> previousStreams;
+    QStack<QFrame*> previousStreamsLines;
 
     void addClientWidgetToScrollArea();
-
 
 
 public slots:
     void addClient();
     void removeClient();
+    void addStream();
+    void removeStream();
 };
 
 
