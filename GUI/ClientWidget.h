@@ -4,6 +4,7 @@
 #include <QGroupBox>
 #include <QDoubleSpinBox>
 #include <QSpinBox>
+#include <QCheckBox>
 
 class ClientWidget : public QGroupBox
 {
@@ -20,6 +21,9 @@ private:
     QDoubleSpinBox* downlink;
     QSpinBox* arrive;
     QSpinBox* exit;
+    QCheckBox* pcap;
+    QCheckBox* graph;
+
 
 };
 

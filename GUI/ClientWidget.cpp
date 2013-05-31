@@ -26,6 +26,8 @@ ClientWidget::ClientWidget(int number, QWidget *parent, const ClientWidget* prev
     downlink = new QDoubleSpinBox(this);
     arrive = new QSpinBox(this);
     exit = new QSpinBox(this);
+    pcap = new QCheckBox("Enable pcap", this);
+    graph = new QCheckBox("Enable graphs", this);
 
     if(previous != 0)
     {
@@ -43,13 +45,22 @@ ClientWidget::ClientWidget(int number, QWidget *parent, const ClientWidget* prev
     layout->addWidget(downlink, 2,4);
     layout->addWidget(arrive, 3,2);
     layout->addWidget(exit, 3,4);
+    layout->addWidget(pcap, 4,1);
+    layout->addWidget(graph, 4,3);
+
+    delay->setToolTip("Network delay of this client type");
+    loss->setToolTip("Packet loss of this client type");
+    uplink->setToolTip("Uplink bandwidth of this client type");
+    downlink->setToolTip("Downlink bandwidth of this client type");
+    arrive->setToolTip("Simulation time when this client type starts the connection");
+    exit->setToolTip("Simulation time when this client type closes the connection");
+    pcap->setToolTip("Enable pcap-file creation for this client type (makes the simulation slower)");
+    graph->setToolTip("Enable graphs for this client type");
+
 
     delay->setMaximum(10000);
     arrive->setMaximum(100000);
     exit->setMaximum(100000);
-
-    delay->setFocusPolicy(Qt::ClickFocus);
-
 
 }
 
