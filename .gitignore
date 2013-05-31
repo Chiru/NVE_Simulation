@@ -1,0 +1,8 @@
+*.o
+*moc_*
+*NVE.*
+
+GUI/Makefile
+GUI/NVE_simulation
+GUI/ui_mainwindow.h
+
