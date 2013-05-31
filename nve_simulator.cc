@@ -41,6 +41,7 @@
 #include <sstream>
 
 
+
 void printAddresses(NetDeviceContainer *deviceContainer, Ipv4InterfaceContainer *ipv4Container,  int count);
 void printHelpAndQuit();
 
@@ -221,6 +222,8 @@ int main(int argc, char** argv){
 
    //for(i = 0; i <= numberOfClients; i++){
         csma[i].EnablePcapAll("results/node");
+       // csma[0].EnablePcap("results/node", clientRouterNodes[0]);
+       // csma[numberOfClients].EnablePcap("results/node", routerServerNodes);
     //}
 
     //pointToPoint[numberOfClients].EnablePcapAll("results/simulated");

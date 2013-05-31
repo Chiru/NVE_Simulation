@@ -216,7 +216,8 @@ void ApplicationProtocol::recv(Ptr<Socket> socket){
     switch(parseAppProtoHeader(buffer, addr, socket, msgNumber)){
 
     case UNRELIABLE:
-        case RELIABLE:                
+    case RELIABLE:
+
                 forwardToApplication(buffer + headerSize, bufferSize - headerSize, addr);
                 free(buffer);
                 while((packet = getAllOrdered(addr, ++msgNumber))){
@@ -224,6 +225,10 @@ void ApplicationProtocol::recv(Ptr<Socket> socket){
                     lastOrderedNumber[addr] = msgNumber;
                     packetsToAck[addr].push_back(msgNumber);
                     delete packet;
+                }
+
+                if(delayedAck == 0){
+                    ackAllPackets();
                 }
 
             break;
@@ -536,7 +541,8 @@ void ApplicationProtocol::ackAllPackets(){
         delete [] messages;
     }
 
-    Simulator::Schedule(Time(MilliSeconds(delayedAck)), &ApplicationProtocol::ackAllPackets, this);
+    if(delayedAck > 0)
+        Simulator::Schedule(Time(MilliSeconds(delayedAck)), &ApplicationProtocol::ackAllPackets, this);
 
 }
 

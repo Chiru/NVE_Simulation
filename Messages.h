@@ -349,8 +349,9 @@ void UserActionMessage::scheduleSendEvent(Callback<bool, Message*, uint8_t*> sen
 
     if(ranvarTimeInterval == 0)
         sendEvent = Simulator::Schedule(Time(MilliSeconds(timeInterval)), &UserActionMessage::sendData, this);
-    else
+    else{
         sendEvent = Simulator::Schedule(Time(MilliSeconds(interval)), &UserActionMessage::sendData, this);
+    }
 }
 
 void UserActionMessage::sendData(){
