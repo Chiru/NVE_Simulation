@@ -1,6 +1,7 @@
 #include "mainwindow.h"
 #include "ui_mainwindow.h"
 #include "ClientWidget.h"
+#include "StreamWidget.h"
 #include <QBoxLayout>
 #include <QScrollBar>
 
@@ -8,7 +9,8 @@
 MainWindow::MainWindow(QWidget *parent) :
     QMainWindow(parent),
     ui(new Ui::MainWindow),
-    numberOfClients(1)
+    numberOfClients(1),
+    numberOfStreams(1)
 {
     ui->setupUi(this);
 
@@ -19,15 +21,20 @@ MainWindow::MainWindow(QWidget *parent) :
 
     ui->clientCountSpinBox->setMinimum(1);
 
-    addClient();
-
     widget = new QWidget(ui->streamsScrollArea);
     widget->setLayout(new QBoxLayout(QBoxLayout::TopToBottom, ui->streamsScrollArea));
 
     ui->streamsScrollArea->setWidget(widget);
 
+    addClient();
+    addStream();
+
     QObject::connect(ui->addClientButton, SIGNAL(clicked()), this, SLOT(addClient()));
     QObject::connect(ui->removeClientButton, SIGNAL(clicked()), this, SLOT(removeClient()));
+    QObject::connect(ui->addStreamButton, SIGNAL(clicked()), this, SLOT(addStream()));
+    QObject::connect(ui->removeStreamButton, SIGNAL(clicked()), this, SLOT(removeStream()));
+
+
 }
 
 MainWindow::~MainWindow()
@@ -70,7 +77,6 @@ void MainWindow::addClientWidgetToScrollArea()
 
 void MainWindow::removeClient()
 {
-
     if(!previousClients.isEmpty())
     {
         ClientWidget* previousClient = previousClients.pop();
@@ -89,14 +95,34 @@ void MainWindow::removeClient()
 
 void MainWindow::addStream()
 {
+    StreamWidget* stream = new StreamWidget(numberOfStreams++, ui->streamsScrollArea->widget());
 
+    QFrame* line = new QFrame(ui->streamsScrollArea->widget());
+
+    ui->streamsScrollArea->widget()->layout()->addWidget(stream);
+    previousStreams.push(stream);
+
+    line->setFrameStyle(QFrame::HLine | QFrame::Plain);
+    ui->streamsScrollArea->widget()->layout()->addWidget(line);
+    previousStreamsLines.push(line);
 
 }
 
 void MainWindow::removeStream()
 {
+    if(!previousStreams.isEmpty())
+    {
+        StreamWidget* previousStream = previousStreams.pop();
+        QFrame* previousLine = previousStreamsLines.pop();
 
+        ui->streamsScrollArea->widget()->layout()->removeWidget(previousStream);
+        delete previousStream;
 
+        ui->streamsScrollArea->widget()->layout()->removeWidget(previousLine);
+        delete previousLine;
+
+        numberOfStreams--;
+    }
 }
 
 

@@ -32,4 +32,15 @@ StreamWidget::StreamWidget(int number, QWidget *parent)
     layout->addWidget(clientGameTick, 4, 2);
     layout->addWidget(serverGameTick, 5,2);
 
+    udp->setChecked(true);
+    nagle->setDisabled(true);
+
+    QObject::connect(tcp, SIGNAL(clicked(bool)), appProto, SLOT(setDisabled(bool)));
+    QObject::connect(tcp, SIGNAL(clicked(bool)), ordered, SLOT(setDisabled(bool)));
+    QObject::connect(tcp, SIGNAL(clicked(bool)), nagle, SLOT(setEnabled(bool)));
+
+    QObject::connect(udp, SIGNAL(clicked(bool)), appProto, SLOT(setEnabled(bool)));
+    QObject::connect(udp, SIGNAL(clicked(bool)), ordered, SLOT(setEnabled(bool)));
+    QObject::connect(udp, SIGNAL(clicked(bool)), nagle, SLOT(setDisabled(bool)));
+
 }

@@ -6,7 +6,7 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>1269</width>
+    <width>1280</width>
     <height>707</height>
    </rect>
   </property>
@@ -129,7 +129,7 @@
      <rect>
       <x>640</x>
       <y>10</y>
-      <width>601</width>
+      <width>631</width>
       <height>511</height>
      </rect>
     </property>
@@ -141,7 +141,7 @@
       <rect>
        <x>10</x>
        <y>20</y>
-       <width>581</width>
+       <width>611</width>
        <height>401</height>
       </rect>
      </property>
@@ -153,7 +153,7 @@
        <rect>
         <x>0</x>
         <y>0</y>
-        <width>579</width>
+        <width>609</width>
         <height>399</height>
        </rect>
       </property>
@@ -164,7 +164,7 @@
       <rect>
        <x>10</x>
        <y>420</y>
-       <width>581</width>
+       <width>611</width>
        <height>51</height>
       </rect>
      </property>
@@ -177,7 +177,7 @@
      <widget class="QPushButton" name="removeStreamButton">
       <property name="geometry">
        <rect>
-        <x>350</x>
+        <x>370</x>
         <y>10</y>
         <width>191</width>
         <height>27</height>
@@ -208,7 +208,7 @@
     <rect>
      <x>0</x>
      <y>0</y>
-     <width>1269</width>
+     <width>1280</width>
      <height>25</height>
     </rect>
    </property>

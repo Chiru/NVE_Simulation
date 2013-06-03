@@ -24,6 +24,7 @@ public:
 private:
     Ui::MainWindow *ui;
     int numberOfClients;
+    int numberOfStreams;
     QStack<ClientWidget*> previousClients;
     QStack<QFrame*> previousClientsLines;
     QStack<StreamWidget*> previousStreams;
