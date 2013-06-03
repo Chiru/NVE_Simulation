@@ -29,6 +29,14 @@ MainWindow::MainWindow(QWidget *parent) :
     addClient();
     addStream();
 
+    ui->appProto_ackSize->setMaximum(500);
+    ui->appProto_delAck->setMaximum(10000);
+    ui->appProto_headerSize->setMaximum(500);
+    ui->appProto_RTO->setMaximum(10000);
+
+    ui->simTime->setMaximum(100000);
+    ui->simTime->setSingleStep(10);
+
     QObject::connect(ui->addClientButton, SIGNAL(clicked()), this, SLOT(addClient()));
     QObject::connect(ui->removeClientButton, SIGNAL(clicked()), this, SLOT(removeClient()));
     QObject::connect(ui->addStreamButton, SIGNAL(clicked()), this, SLOT(addStream()));

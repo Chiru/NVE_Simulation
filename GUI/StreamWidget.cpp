@@ -24,13 +24,13 @@ StreamWidget::StreamWidget(int number, QWidget *parent)
     clientGameTick = new QSpinBox(this);
     serverGameTick = new QSpinBox(this);
 
-    layout->addWidget(udp, 1,2);
-    layout->addWidget(tcp, 1,3);
-    layout->addWidget(appProto, 2,2);
+    layout->addWidget(udp, 1, 2);
+    layout->addWidget(tcp, 1, 3);
+    layout->addWidget(appProto, 2, 2);
     layout->addWidget(nagle, 2, 3);
     layout->addWidget(ordered, 3, 2);
     layout->addWidget(clientGameTick, 4, 2);
-    layout->addWidget(serverGameTick, 5,2);
+    layout->addWidget(serverGameTick, 5, 2);
 
     udp->setChecked(true);
     nagle->setDisabled(true);
@@ -42,5 +42,11 @@ StreamWidget::StreamWidget(int number, QWidget *parent)
     QObject::connect(udp, SIGNAL(clicked(bool)), appProto, SLOT(setEnabled(bool)));
     QObject::connect(udp, SIGNAL(clicked(bool)), ordered, SLOT(setEnabled(bool)));
     QObject::connect(udp, SIGNAL(clicked(bool)), nagle, SLOT(setDisabled(bool)));
+
+    clientGameTick->setMaximum(10000);
+    serverGameTick->setMaximum(10000);
+
+    clientGameTick->setSingleStep(10);
+    serverGameTick->setSingleStep(10);
 
 }
