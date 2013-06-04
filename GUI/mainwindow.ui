@@ -30,9 +30,9 @@
        <property name="geometry">
         <rect>
          <x>0</x>
-         <y>-42</y>
+         <y>-76</y>
          <width>1161</width>
-         <height>695</height>
+         <height>729</height>
         </rect>
        </property>
        <layout class="QGridLayout" name="gridLayout_5">
@@ -85,7 +85,7 @@
               <item>
                <widget class="QPushButton" name="addClientButton">
                 <property name="toolTip">
-                 <string>Add defined amount of new client types. </string>
+                 <string>Add defined amount of new client types. Copies values from previous client type.</string>
                 </property>
                 <property name="text">
                  <string>Add new client(s)</string>
@@ -233,6 +233,9 @@ p, li { white-space: pre-wrap; }
         </item>
         <item row="2" column="0">
          <widget class="QGroupBox" name="streamsGroupBox">
+          <property name="toolTip">
+           <string>Different streams can be added here.</string>
+          </property>
           <property name="title">
            <string>Stream definitions</string>
           </property>
@@ -247,8 +250,8 @@ p, li { white-space: pre-wrap; }
                <rect>
                 <x>0</x>
                 <y>0</y>
-                <width>738</width>
-                <height>225</height>
+                <width>768</width>
+                <height>259</height>
                </rect>
               </property>
              </widget>
@@ -265,6 +268,9 @@ p, li { white-space: pre-wrap; }
              <layout class="QHBoxLayout" name="horizontalLayout_2">
               <item>
                <widget class="QPushButton" name="addStreamButton">
+                <property name="toolTip">
+                 <string>Add new stream to the list.</string>
+                </property>
                 <property name="text">
                  <string>Add stream</string>
                 </property>
@@ -272,6 +278,9 @@ p, li { white-space: pre-wrap; }
               </item>
               <item>
                <widget class="QPushButton" name="removeStreamButton">
+                <property name="toolTip">
+                 <string>Remove previous stream from the list.</string>
+                </property>
                 <property name="text">
                  <string>Remove stream</string>
                 </property>
@@ -297,7 +306,7 @@ p, li { white-space: pre-wrap; }
              <property name="frameShadow">
               <enum>QFrame::Raised</enum>
              </property>
-             <layout class="QGridLayout" name="gridLayout_4">
+             <layout class="QFormLayout" name="formLayout">
               <item row="0" column="0">
                <widget class="QLabel" name="label_7">
                 <property name="text">
@@ -305,27 +314,48 @@ p, li { white-space: pre-wrap; }
                 </property>
                </widget>
               </item>
-              <item row="0" column="1" colspan="2">
-               <widget class="QLineEdit" name="lineEdit"/>
+              <item row="0" column="1">
+               <widget class="QLineEdit" name="lineEdit">
+                <property name="toolTip">
+                 <string>Each message must have unique name. </string>
+                </property>
+               </widget>
               </item>
-              <item row="1" column="0">
+              <item row="2" column="0">
                <widget class="QLabel" name="label_8">
                 <property name="text">
                  <string>Message type:</string>
                 </property>
                </widget>
               </item>
-              <item row="1" column="1">
-               <widget class="QComboBox" name="comboBox"/>
+              <item row="2" column="1">
+               <widget class="QComboBox" name="comboBox">
+                <property name="toolTip">
+                 <string>Changes message type.</string>
+                </property>
+                <item>
+                 <property name="text">
+                  <string>Client to server</string>
+                 </property>
+                </item>
+                <item>
+                 <property name="text">
+                  <string>Server to client</string>
+                 </property>
+                </item>
+               </widget>
               </item>
-              <item row="1" column="2">
+              <item row="3" column="1">
                <widget class="QCheckBox" name="checkBox">
+                <property name="toolTip">
+                 <string>If application protocol is enabled in UDP stream, messages can be reliable or unreliable.</string>
+                </property>
                 <property name="text">
                  <string>Reliable</string>
                 </property>
                </widget>
               </item>
-              <item row="2" column="0" colspan="2">
+              <item row="4" column="0" colspan="2">
                <widget class="QFrame" name="frame_4">
                 <property name="frameShape">
                  <enum>QFrame::StyledPanel</enum>
@@ -336,6 +366,9 @@ p, li { white-space: pre-wrap; }
                 <layout class="QHBoxLayout" name="horizontalLayout_3">
                  <item>
                   <widget class="QLabel" name="label_9">
+                   <property name="toolTip">
+                    <string>Message size definition in bytes.</string>
+                   </property>
                    <property name="text">
                     <string>Message size (bytes):</string>
                    </property>
@@ -344,8 +377,11 @@ p, li { white-space: pre-wrap; }
                 </layout>
                </widget>
               </item>
-              <item row="3" column="0" colspan="2">
+              <item row="5" column="0" colspan="2">
                <widget class="QFrame" name="frame_5">
+                <property name="toolTip">
+                 <string>Time interval of two consecutive messages in milliseconds.</string>
+                </property>
                 <property name="frameShape">
                  <enum>QFrame::StyledPanel</enum>
                 </property>
@@ -363,15 +399,21 @@ p, li { white-space: pre-wrap; }
                 </layout>
                </widget>
               </item>
-              <item row="4" column="0">
+              <item row="6" column="0">
                <widget class="QCheckBox" name="checkBox_2">
+                <property name="toolTip">
+                 <string>Defines whether the receiver returns the message.</string>
+                </property>
                 <property name="text">
                  <string>Return to sender</string>
                 </property>
                </widget>
               </item>
-              <item row="5" column="0" colspan="2">
+              <item row="7" column="0" colspan="2">
                <widget class="QFrame" name="frame_6">
+                <property name="toolTip">
+                 <string>The size of the forwarded (or returned) message in bytes.</string>
+                </property>
                 <property name="frameShape">
                  <enum>QFrame::StyledPanel</enum>
                 </property>
@@ -389,7 +431,7 @@ p, li { white-space: pre-wrap; }
                 </layout>
                </widget>
               </item>
-              <item row="6" column="0" colspan="2">
+              <item row="8" column="0" colspan="2">
                <widget class="QFrame" name="frame_7">
                 <property name="frameShape">
                  <enum>QFrame::StyledPanel</enum>
@@ -400,6 +442,9 @@ p, li { white-space: pre-wrap; }
                 <layout class="QVBoxLayout" name="verticalLayout_6">
                  <item>
                   <widget class="QLabel" name="label_12">
+                   <property name="toolTip">
+                    <string>Defines the percentage of the other clients that receive the  forwarded message from the server. </string>
+                   </property>
                    <property name="text">
                     <string>Clients of interest (%):</string>
                    </property>

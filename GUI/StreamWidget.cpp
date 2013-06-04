@@ -49,4 +49,12 @@ StreamWidget::StreamWidget(int number, QWidget *parent)
     clientGameTick->setSingleStep(10);
     serverGameTick->setSingleStep(10);
 
+    tcp->setToolTip("Use TCP in this stream");
+    udp->setToolTip("use UDP in this stream");
+    nagle->setToolTip("Enable nagle's algorithm");
+    appProto->setToolTip("Enables the application protocol in UDP stream");
+    ordered->setToolTip("Defines all messages in this stream to be received in order");
+    clientGameTick->setToolTip("Defines the amount of time clients buffer data before sending it");
+    serverGameTick->setToolTip("Defines the amount of time the server buffers data before sending it");
+
 }
