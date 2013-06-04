@@ -4,6 +4,7 @@
 #include "StreamWidget.h"
 #include <QBoxLayout>
 #include <QScrollBar>
+#include <iostream>
 
 
 MainWindow::MainWindow(QWidget *parent) :
@@ -12,19 +13,20 @@ MainWindow::MainWindow(QWidget *parent) :
     numberOfClients(1),
     numberOfStreams(1)
 {
+
     ui->setupUi(this);
 
-    QWidget* widget = new QWidget(ui->clientsScrollArea);
-    widget->setLayout(new QBoxLayout(QBoxLayout::TopToBottom, ui->clientsScrollArea));
+    QWidget* widget = new QWidget(ui->clientScrollArea);
+    widget->setLayout(new QBoxLayout(QBoxLayout::TopToBottom, ui->clientScrollArea));
 
-    ui->clientsScrollArea->setWidget(widget);
+    ui->clientScrollArea->setWidget(widget);
 
     ui->clientCountSpinBox->setMinimum(1);
 
-    widget = new QWidget(ui->streamsScrollArea);
-    widget->setLayout(new QBoxLayout(QBoxLayout::TopToBottom, ui->streamsScrollArea));
+    widget = new QWidget(ui->streamScrollArea);
+    widget->setLayout(new QBoxLayout(QBoxLayout::TopToBottom, ui->streamScrollArea));
 
-    ui->streamsScrollArea->setWidget(widget);
+    ui->streamScrollArea->setWidget(widget);
 
     addClient();
     addStream();
@@ -68,17 +70,17 @@ void MainWindow::addClientWidgetToScrollArea()
     ClientWidget* client;
 
     if(numberOfClients == 1)
-        client = new ClientWidget(numberOfClients++, ui->clientsScrollArea->widget());
+        client = new ClientWidget(numberOfClients++, ui->clientScrollArea->widget());
     else
-        client = new ClientWidget(numberOfClients++, ui->clientsScrollArea->widget(), previousClients.top());
+        client = new ClientWidget(numberOfClients++, ui->clientScrollArea->widget(), previousClients.top());
 
-    QFrame* line = new QFrame(ui->clientsScrollArea->widget());
+    QFrame* line = new QFrame(ui->clientScrollArea->widget());
 
-    ui->clientsScrollArea->widget()->layout()->addWidget(client);
+    ui->clientScrollArea->widget()->layout()->addWidget(client);
     previousClients.push(client);
 
     line->setFrameStyle(QFrame::HLine | QFrame::Plain);
-    ui->clientsScrollArea->widget()->layout()->addWidget(line);
+    ui->clientScrollArea->widget()->layout()->addWidget(line);
     previousClientsLines.push(line);
 }
 
@@ -90,10 +92,10 @@ void MainWindow::removeClient()
         ClientWidget* previousClient = previousClients.pop();
         QFrame* previousLine = previousClientsLines.pop();
 
-        ui->clientsScrollArea->widget()->layout()->removeWidget(previousClient);
+        ui->clientScrollArea->widget()->layout()->removeWidget(previousClient);
         delete previousClient;
 
-        ui->clientsScrollArea->widget()->layout()->removeWidget(previousLine);
+        ui->clientScrollArea->widget()->layout()->removeWidget(previousLine);
         delete previousLine;
 
         numberOfClients--;
@@ -103,15 +105,15 @@ void MainWindow::removeClient()
 
 void MainWindow::addStream()
 {
-    StreamWidget* stream = new StreamWidget(numberOfStreams++, ui->streamsScrollArea->widget());
+    StreamWidget* stream = new StreamWidget(numberOfStreams++, ui->streamScrollArea->widget());
 
-    QFrame* line = new QFrame(ui->streamsScrollArea->widget());
+    QFrame* line = new QFrame(ui->streamScrollArea->widget());
 
-    ui->streamsScrollArea->widget()->layout()->addWidget(stream);
+    ui->streamScrollArea->widget()->layout()->addWidget(stream);
     previousStreams.push(stream);
 
     line->setFrameStyle(QFrame::HLine | QFrame::Plain);
-    ui->streamsScrollArea->widget()->layout()->addWidget(line);
+    ui->streamScrollArea->widget()->layout()->addWidget(line);
     previousStreamsLines.push(line);
 
 }
@@ -123,10 +125,10 @@ void MainWindow::removeStream()
         StreamWidget* previousStream = previousStreams.pop();
         QFrame* previousLine = previousStreamsLines.pop();
 
-        ui->streamsScrollArea->widget()->layout()->removeWidget(previousStream);
+        ui->streamScrollArea->widget()->layout()->removeWidget(previousStream);
         delete previousStream;
 
-        ui->streamsScrollArea->widget()->layout()->removeWidget(previousLine);
+        ui->streamScrollArea->widget()->layout()->removeWidget(previousLine);
         delete previousLine;
 
         numberOfStreams--;

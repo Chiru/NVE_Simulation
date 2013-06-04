@@ -5,6 +5,7 @@
 #include <QGroupBox>
 #include <QFrame>
 #include <QStack>
+#include <QScrollArea>
 
 class ClientWidget;
 class StreamWidget;

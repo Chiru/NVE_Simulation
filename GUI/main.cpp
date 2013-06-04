@@ -1,4 +1,5 @@
 #include <QtGui/QApplication>
+#include <QScrollArea>
 #include "mainwindow.h"
 
 int main(int argc, char *argv[])

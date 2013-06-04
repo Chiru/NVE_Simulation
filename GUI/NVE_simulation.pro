@@ -13,10 +13,12 @@ TEMPLATE = app
 SOURCES += main.cpp\
         mainwindow.cpp \
     ClientWidget.cpp \
-    StreamWidget.cpp
+    StreamWidget.cpp \
+    MessageWidget.cpp
 
 HEADERS  += mainwindow.h \
     ClientWidget.h \
-    StreamWidget.h
+    StreamWidget.h \
+    MessageWidget.h
 
 FORMS    += mainwindow.ui
