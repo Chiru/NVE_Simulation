@@ -7,7 +7,7 @@
     <x>0</x>
     <y>0</y>
     <width>1197</width>
-    <height>733</height>
+    <height>863</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -30,9 +30,9 @@
        <property name="geometry">
         <rect>
          <x>0</x>
-         <y>-76</y>
-         <width>1161</width>
-         <height>729</height>
+         <y>0</y>
+         <width>1177</width>
+         <height>783</height>
         </rect>
        </property>
        <layout class="QGridLayout" name="gridLayout_5">
@@ -52,8 +52,8 @@
                <rect>
                 <x>0</x>
                 <y>0</y>
-                <width>790</width>
-                <height>264</height>
+                <width>806</width>
+                <height>285</height>
                </rect>
               </property>
              </widget>
@@ -236,6 +236,9 @@ p, li { white-space: pre-wrap; }
           <property name="toolTip">
            <string>Different streams can be added here.</string>
           </property>
+          <property name="styleSheet">
+           <string notr="true"/>
+          </property>
           <property name="title">
            <string>Stream definitions</string>
           </property>
@@ -250,8 +253,8 @@ p, li { white-space: pre-wrap; }
                <rect>
                 <x>0</x>
                 <y>0</y>
-                <width>768</width>
-                <height>259</height>
+                <width>784</width>
+                <height>292</height>
                </rect>
               </property>
              </widget>
@@ -293,13 +296,19 @@ p, li { white-space: pre-wrap; }
          </widget>
         </item>
         <item row="2" column="1" colspan="2">
-         <widget class="QGroupBox" name="groupBox_3">
+         <widget class="QGroupBox" name="messageEditor">
+          <property name="enabled">
+           <bool>true</bool>
+          </property>
           <property name="title">
            <string>Message definition</string>
           </property>
           <layout class="QHBoxLayout" name="horizontalLayout_4">
            <item>
-            <widget class="QFrame" name="frame_3">
+            <widget class="QFrame" name="message">
+             <property name="enabled">
+              <bool>false</bool>
+             </property>
              <property name="frameShape">
               <enum>QFrame::StyledPanel</enum>
              </property>
@@ -307,29 +316,44 @@ p, li { white-space: pre-wrap; }
               <enum>QFrame::Raised</enum>
              </property>
              <layout class="QFormLayout" name="formLayout">
+              <property name="fieldGrowthPolicy">
+               <enum>QFormLayout::AllNonFixedFieldsGrow</enum>
+              </property>
               <item row="0" column="0">
-               <widget class="QLabel" name="label_7">
+               <widget class="QLabel" name="message_nameLabel">
+                <property name="enabled">
+                 <bool>false</bool>
+                </property>
                 <property name="text">
                  <string>Message name:</string>
                 </property>
                </widget>
               </item>
               <item row="0" column="1">
-               <widget class="QLineEdit" name="lineEdit">
+               <widget class="QLineEdit" name="message_name">
+                <property name="enabled">
+                 <bool>false</bool>
+                </property>
                 <property name="toolTip">
                  <string>Each message must have unique name. </string>
                 </property>
                </widget>
               </item>
               <item row="2" column="0">
-               <widget class="QLabel" name="label_8">
+               <widget class="QLabel" name="message_typeLabel">
+                <property name="enabled">
+                 <bool>false</bool>
+                </property>
                 <property name="text">
                  <string>Message type:</string>
                 </property>
                </widget>
               </item>
               <item row="2" column="1">
-               <widget class="QComboBox" name="comboBox">
+               <widget class="QComboBox" name="message_type">
+                <property name="enabled">
+                 <bool>false</bool>
+                </property>
                 <property name="toolTip">
                  <string>Changes message type.</string>
                 </property>
@@ -346,7 +370,10 @@ p, li { white-space: pre-wrap; }
                </widget>
               </item>
               <item row="3" column="1">
-               <widget class="QCheckBox" name="checkBox">
+               <widget class="QCheckBox" name="message_reliable">
+                <property name="enabled">
+                 <bool>false</bool>
+                </property>
                 <property name="toolTip">
                  <string>If application protocol is enabled in UDP stream, messages can be reliable or unreliable.</string>
                 </property>
@@ -365,7 +392,10 @@ p, li { white-space: pre-wrap; }
                 </property>
                 <layout class="QHBoxLayout" name="horizontalLayout_3">
                  <item>
-                  <widget class="QLabel" name="label_9">
+                  <widget class="QLabel" name="message_size">
+                   <property name="enabled">
+                    <bool>false</bool>
+                   </property>
                    <property name="toolTip">
                     <string>Message size definition in bytes.</string>
                    </property>
@@ -390,7 +420,10 @@ p, li { white-space: pre-wrap; }
                 </property>
                 <layout class="QVBoxLayout" name="verticalLayout_7">
                  <item>
-                  <widget class="QLabel" name="label_10">
+                  <widget class="QLabel" name="message_timeInterval">
+                   <property name="enabled">
+                    <bool>false</bool>
+                   </property>
                    <property name="text">
                     <string>Message time interval (ms):</string>
                    </property>
@@ -400,7 +433,10 @@ p, li { white-space: pre-wrap; }
                </widget>
               </item>
               <item row="6" column="0">
-               <widget class="QCheckBox" name="checkBox_2">
+               <widget class="QCheckBox" name="message_returnToSender">
+                <property name="enabled">
+                 <bool>false</bool>
+                </property>
                 <property name="toolTip">
                  <string>Defines whether the receiver returns the message.</string>
                 </property>
@@ -422,7 +458,10 @@ p, li { white-space: pre-wrap; }
                 </property>
                 <layout class="QVBoxLayout" name="verticalLayout_5">
                  <item>
-                  <widget class="QLabel" name="label_11">
+                  <widget class="QLabel" name="message_forwardMessageSize">
+                   <property name="enabled">
+                    <bool>false</bool>
+                   </property>
                    <property name="text">
                     <string>Forward message size (bytes):</string>
                    </property>
@@ -433,6 +472,9 @@ p, li { white-space: pre-wrap; }
               </item>
               <item row="8" column="0" colspan="2">
                <widget class="QFrame" name="frame_7">
+                <property name="enabled">
+                 <bool>false</bool>
+                </property>
                 <property name="frameShape">
                  <enum>QFrame::StyledPanel</enum>
                 </property>
@@ -441,7 +483,10 @@ p, li { white-space: pre-wrap; }
                 </property>
                 <layout class="QVBoxLayout" name="verticalLayout_6">
                  <item>
-                  <widget class="QLabel" name="label_12">
+                  <widget class="QLabel" name="message_clientsOfInterest">
+                   <property name="enabled">
+                    <bool>false</bool>
+                   </property>
                    <property name="toolTip">
                     <string>Defines the percentage of the other clients that receive the  forwarded message from the server. </string>
                    </property>
@@ -451,6 +496,23 @@ p, li { white-space: pre-wrap; }
                   </widget>
                  </item>
                 </layout>
+               </widget>
+              </item>
+              <item row="9" column="0">
+               <widget class="QPushButton" name="message_add">
+                <property name="enabled">
+                 <bool>false</bool>
+                </property>
+                <property name="text">
+                 <string>Add</string>
+                </property>
+               </widget>
+              </item>
+              <item row="9" column="1">
+               <widget class="QPushButton" name="message_cancel">
+                <property name="text">
+                 <string>Cancel</string>
+                </property>
                </widget>
               </item>
              </layout>

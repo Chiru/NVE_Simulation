@@ -37,6 +37,8 @@ ClientWidget::ClientWidget(int number, QWidget *parent, const ClientWidget* prev
         downlink->setValue(previous->downlink->value());
         arrive->setValue(previous->arrive->value());
         exit->setValue(previous->exit->value());
+        pcap->setChecked(previous->pcap->isChecked());
+        graph->setChecked(previous->graph->isChecked());
     }
 
     layout->addWidget(delay, 1,2);

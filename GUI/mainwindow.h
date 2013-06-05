@@ -9,6 +9,7 @@
 
 class ClientWidget;
 class StreamWidget;
+class MessageTemplate;
 
 namespace Ui {
     class MainWindow;
@@ -32,6 +33,7 @@ private:
     QStack<QFrame*> previousStreamsLines;
 
     void addClientWidgetToScrollArea();
+    void enableMessageEditor(bool enabled);
 
 
 public slots:
@@ -39,6 +41,8 @@ public slots:
     void removeClient();
     void addStream();
     void removeStream();
+    void setMessage(const MessageTemplate* const msg, const StreamWidget* caller);
+    void finishEditor();
 };
 
 

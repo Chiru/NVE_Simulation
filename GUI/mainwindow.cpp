@@ -2,6 +2,7 @@
 #include "ui_mainwindow.h"
 #include "ClientWidget.h"
 #include "StreamWidget.h"
+#include "MessageTemplate.h"
 #include <QBoxLayout>
 #include <QScrollBar>
 #include <iostream>
@@ -107,6 +108,9 @@ void MainWindow::addStream()
 {
     StreamWidget* stream = new StreamWidget(numberOfStreams++, ui->streamScrollArea->widget());
 
+    QObject::connect(stream, SIGNAL(setupMessageEditor(const MessageTemplate* const, const StreamWidget*)),
+                     this, SLOT(setMessage(const MessageTemplate* const, const StreamWidget*)));
+
     QFrame* line = new QFrame(ui->streamScrollArea->widget());
 
     ui->streamScrollArea->widget()->layout()->addWidget(stream);
@@ -135,4 +139,52 @@ void MainWindow::removeStream()
     }
 }
 
+void MainWindow::setMessage(const MessageTemplate * const msg, const StreamWidget* caller)
+{
+    enableMessageEditor(true);
+    ui->message_name->setText(msg->getMessageName());
+    ui->message_type->setCurrentIndex(msg->getType());
+
+    if(!msg->isAppProtoEnabled())
+        ui->message_reliable->setEnabled(false);
+    else
+        ui->message_reliable->setChecked(msg->isReliable());
+
+    ui->message_reliable->setChecked(msg->isReliable());
+    ui->message_returnToSender->setChecked(msg->isReturnedToSender());
+
+    QObject::connect(ui->message_add, SIGNAL(clicked()), caller, SLOT(newMessageAdded()));
+    QObject::connect(ui->message_add, SIGNAL(clicked()), this, SLOT(finishEditor()));
+    QObject::connect(ui->message_cancel, SIGNAL(clicked()), caller, SLOT(editorClosed()));
+    QObject::connect(ui->message_cancel, SIGNAL(clicked()), this, SLOT(finishEditor()));
+
+}
+
+void MainWindow::finishEditor()
+{
+    QObject::disconnect(ui->message_add, 0, 0, 0);
+    QObject::disconnect(ui->message_cancel, 0, 0, 0);
+    enableMessageEditor(false);
+}
+
+
+void MainWindow::enableMessageEditor(bool enabled)
+{
+
+    //looks like stupid hard-coding, but for some reason these are not automagically enabled when the parent widget is enabled
+    ui->message->setEnabled(enabled);
+    ui->message_nameLabel->setEnabled(enabled);
+    ui->message_name->setEnabled(enabled);
+    ui->message_typeLabel->setEnabled(enabled);
+    ui->message_type->setEnabled(enabled);
+    ui->message_reliable->setEnabled(enabled);
+    ui->message_size->setEnabled(enabled);
+    ui->message_timeInterval->setEnabled(enabled);
+    ui->message_returnToSender->setEnabled(enabled);
+    ui->message_forwardMessageSize->setEnabled(enabled);
+    ui->message_clientsOfInterest->setEnabled(enabled);
+    ui->message_cancel->setEnabled(enabled);
+    ui->message_add->setEnabled(enabled);
+
+}
 
