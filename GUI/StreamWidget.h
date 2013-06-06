@@ -8,6 +8,7 @@
 #include <QListWidget>
 #include <QDialogButtonBox>
 #include <QPushButton>
+#include <QLabel>
 #include "MessageTemplate.h"
 #include "mainwindow.h"
 
@@ -35,6 +36,10 @@ private:
     QListWidget* messageList;
     QPushButton* addMessage;
     QPushButton* removeMessage;
+    QLabel* protocolLabel;
+    QLabel* clientGameTickLabel;
+    QLabel* serverGameTickLabel;
+
     MainWindow* mw;
 
     static QList<QString> messageNames; //messages must have unique names, even in different streams
@@ -46,7 +51,7 @@ public slots:
     void editorClosed();
 
 signals:
-    void setupMessageEditor(const MessageTemplate* const msg, const StreamWidget*);
+    void setupMessageEditor(const MessageTemplate* const msg, StreamWidget*);
 
 };
 

@@ -44,7 +44,7 @@ public slots:
     void removeClient();
     void addStream();
     void removeStream();
-    void setMessage(const MessageTemplate* const msg, const StreamWidget* caller);
+    void setMessage(const MessageTemplate* const msg, StreamWidget* caller);
     void finishEditor();
 };
 

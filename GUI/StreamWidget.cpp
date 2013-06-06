@@ -20,7 +20,9 @@ StreamWidget::StreamWidget(int number, MainWindow* mw, QWidget *parent)
 
     this->setLayout(layout);
 
-    layout->addWidget(new QLabel("Transport layer protocol: ", this),1,1);
+    protocolLabel = new QLabel("Transport layer protocol: ", this);
+
+    layout->addWidget(protocolLabel,1,1);
 
     tcp = new QRadioButton("TCP", this);
     udp = new QRadioButton("UDP", this);
@@ -47,8 +49,11 @@ StreamWidget::StreamWidget(int number, MainWindow* mw, QWidget *parent)
     gameTickLayout->addWidget(clientGameTick);
     gameTickLayout->addWidget(serverGameTick);
 
-    labelLayout->addWidget(new QLabel("Client game tick (ms):", this));
-    labelLayout->addWidget(new QLabel("Server game tick (ms):", this));
+    clientGameTickLabel = new QLabel("Client game tick (ms):", this);
+    serverGameTickLabel = new QLabel("Server game tick (ms):", this);
+
+    labelLayout->addWidget(clientGameTickLabel);
+    labelLayout->addWidget(serverGameTickLabel);
 
     layout->addWidget(udp, 1, 2);
     layout->addWidget(tcp, 1, 3);
@@ -139,19 +144,31 @@ void StreamWidget::editorClosed()
     delete messageInEditor;
     messageInEditor = 0;
     mw->finishEditor();
+    enableStreamWidgets(true);
 }
 
 void StreamWidget::enableStreamWidgets(bool enabled)
 {
     tcp->setEnabled(enabled);
     udp->setEnabled(enabled);
-    nagle->setEnabled(enabled);
-    appProto->setEnabled(enabled);
-    ordered->setEnabled(enabled);
+
+    if(tcp->isChecked())
+    {
+        nagle->setEnabled(enabled);
+    }
+    else
+    {
+        appProto->setEnabled(enabled);
+        ordered->setEnabled(enabled);
+    }
+
     clientGameTick->setEnabled(enabled);
     serverGameTick->setEnabled(enabled);
     messageList->setEnabled(enabled);
     addMessage->setEnabled(enabled);
     removeMessage->setEnabled(enabled);
+    clientGameTickLabel->setEnabled(enabled);
+    serverGameTickLabel->setEnabled(enabled);
+    protocolLabel->setEnabled(enabled);
 
 }

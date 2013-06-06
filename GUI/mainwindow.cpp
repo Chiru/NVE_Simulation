@@ -113,8 +113,8 @@ void MainWindow::addStream()
 {
     StreamWidget* stream = new StreamWidget(numberOfStreams++, this, ui->streamScrollArea->widget());
 
-    QObject::connect(stream, SIGNAL(setupMessageEditor(const MessageTemplate* const, const StreamWidget*)),
-                     this, SLOT(setMessage(const MessageTemplate* const, const StreamWidget*)));
+    QObject::connect(stream, SIGNAL(setupMessageEditor(const MessageTemplate* const, StreamWidget*)),
+                     this, SLOT(setMessage(const MessageTemplate* const, StreamWidget*)));
 
     QFrame* line = new QFrame(ui->streamScrollArea->widget());
 
@@ -144,9 +144,10 @@ void MainWindow::removeStream()
     }
 }
 
-void MainWindow::setMessage(const MessageTemplate * const msg, const StreamWidget* caller)
+void MainWindow::setMessage(const MessageTemplate * const msg, StreamWidget* caller)
 {
     enableMessageEditor(true);
+    caller->enableStreamWidgets(false);
     ui->message_name->setText(msg->getMessageName());
     ui->message_type->setCurrentIndex(msg->getType());
 
