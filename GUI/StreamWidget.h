@@ -19,6 +19,7 @@ class StreamWidget : public QGroupBox
 public:
     StreamWidget(int number, MainWindow* mw,QWidget* parent = 0);
     bool isAppProtoEnabled() const{return appProto->isChecked();}
+    bool tcpUsed() const {return tcp->isChecked();}
     void enableStreamWidgets(bool enabled);
 
 private:

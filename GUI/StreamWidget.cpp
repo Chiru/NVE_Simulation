@@ -64,18 +64,18 @@ StreamWidget::StreamWidget(int number, MainWindow* mw, QWidget *parent)
     layout->addItem(gameTickLayout, 4, 2);
     layout->addItem(listLayout, 4, 3);
 
+    QObject::connect(tcp, SIGNAL(toggled(bool)), appProto, SLOT(setDisabled(bool)));
+    QObject::connect(tcp, SIGNAL(toggled(bool)), ordered, SLOT(setDisabled(bool)));
+    QObject::connect(tcp, SIGNAL(toggled(bool)), nagle, SLOT(setEnabled(bool)));
+    QObject::connect(tcp, SIGNAL(toggled(bool)), nagle, SLOT(setChecked(bool)));
+    QObject::connect(udp, SIGNAL(toggled(bool)), appProto, SLOT(setChecked(bool)));
+    QObject::connect(udp, SIGNAL(toggled(bool)), ordered, SLOT(setChecked(bool)));
+    QObject::connect(appProto, SIGNAL(toggled(bool)), ordered, SLOT(setEnabled(bool)));
+    QObject::connect(appProto, SIGNAL(toggled(bool)), ordered, SLOT(setChecked(bool)));
 
     udp->setChecked(true);
     nagle->setDisabled(true);
-    nagle->setChecked(true);
-
-    QObject::connect(tcp, SIGNAL(clicked(bool)), appProto, SLOT(setDisabled(bool)));
-    QObject::connect(tcp, SIGNAL(clicked(bool)), ordered, SLOT(setDisabled(bool)));
-    QObject::connect(tcp, SIGNAL(clicked(bool)), nagle, SLOT(setEnabled(bool)));
-
-    QObject::connect(udp, SIGNAL(clicked(bool)), appProto, SLOT(setEnabled(bool)));
-    QObject::connect(udp, SIGNAL(clicked(bool)), ordered, SLOT(setEnabled(bool)));
-    QObject::connect(udp, SIGNAL(clicked(bool)), nagle, SLOT(setDisabled(bool)));
+    nagle->setChecked(false);
 
     clientGameTick->setMaximum(10000);
     serverGameTick->setMaximum(10000);
@@ -121,7 +121,7 @@ void StreamWidget::newMessageAdded()
     {
         if(messageNames.contains(messageInEditor->getMessageName()))
         {
-            //messagename already in use
+            mw->setMsgConfigErrorMessage("Message name already in use!");
         }
         else
         {
@@ -130,13 +130,11 @@ void StreamWidget::newMessageAdded()
             messageList->insertItem(messageList->count(), messageInEditor->getMessageName());
             editorClosed();
         }
-
     }
     else
     {
-        //error in message
+        mw->setMsgConfigErrorMessage("Missing parameters in message configuration!");
     }
-
 }
 
 void StreamWidget::editorClosed()
@@ -172,3 +170,4 @@ void StreamWidget::enableStreamWidgets(bool enabled)
     protocolLabel->setEnabled(enabled);
 
 }
+

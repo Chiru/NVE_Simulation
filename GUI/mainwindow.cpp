@@ -152,11 +152,19 @@ void MainWindow::setMessage(const MessageTemplate * const msg, StreamWidget* cal
     ui->message_type->setCurrentIndex(msg->getType());
 
     if(!msg->isAppProtoEnabled())
-        ui->message_reliable->setEnabled(false);
-    else
-        ui->message_reliable->setChecked(msg->isReliable());
+    {
+        if(caller->tcpUsed())
+            ui->message_reliable->setChecked(true);
 
-    ui->message_reliable->setChecked(msg->isReliable());
+        ui->message_reliable->setDisabled(true);
+
+    }
+    else
+    {
+        ui->message_reliable->setEnabled(true);
+        ui->message_reliable->setChecked(msg->isReliable());
+    }
+
     ui->message_returnToSender->setChecked(msg->isReturnedToSender());
 
     QObject::connect(ui->message_add, SIGNAL(clicked()), caller, SLOT(newMessageAdded()));
@@ -204,6 +212,9 @@ void MainWindow::enableMessageEditor(bool enabled)
 
 bool MainWindow::configMessageFromEditor(MessageTemplate* const msg)
 {
+
+    if(ui->message_name->text() == "")
+        return false;
 
     msg->setMessageName(ui->message_name->text());
     msg->setMessageType(ui->message_type->currentIndex());
