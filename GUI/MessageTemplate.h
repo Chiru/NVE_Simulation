@@ -14,8 +14,7 @@ class MessageTemplate : public QGroupBox
 {
 public:
     typedef enum {ClientToServer, ServerToClient} TYPE;
-
-    MessageTemplate(bool appProtoEnabled, QWidget* parent = 0);
+    MessageTemplate( QWidget* parent = 0, bool appProtoEnabled = false);
     MessageTemplate(const MessageTemplate& c);
     QString getMessageName() const {return messageName;}
     TYPE getType() const {return type;}
@@ -26,6 +25,15 @@ public:
     DistributionElement getTimeInterval() const {return timeInterval;}
     DistributionElement getForwardMessageSize() const {return forwardMessageSize;}
     DistributionElement getClientsOfInterest() const {return clientsOfInterest;}
+    void setMessageName(const QString&);
+    void setMessageType(int);
+    void setAppProtoEnabled(bool enabled);
+    void setReliable(bool);
+    void setReturnToSender(bool);
+    void setMessageSize(Distribution, QList<double>);
+    void setTimeInterval(Distribution, QList<double>);
+    void setForwardMessageSize(Distribution, QList<double>);
+    void setClientsOfInterest(Distribution, QList<double>);
 
 private:
 
