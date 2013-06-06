@@ -16,7 +16,9 @@ class StreamWidget : public QGroupBox
     Q_OBJECT
 
 public:
-    StreamWidget(int number, QWidget* parent = 0);
+    StreamWidget(int number, MainWindow* mw,QWidget* parent = 0);
+    bool isAppProtoEnabled() const{return appProto->isChecked();}
+    void enableStreamWidgets(bool enabled);
 
 private:
 
@@ -33,7 +35,9 @@ private:
     QListWidget* messageList;
     QPushButton* addMessage;
     QPushButton* removeMessage;
-    QGroupBox* messageEditor;
+    MainWindow* mw;
+
+    static QList<QString> messageNames; //messages must have unique names, even in different streams
 
 public slots:
     void openMessageEditor();

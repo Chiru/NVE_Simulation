@@ -4,11 +4,14 @@
 #include <QVBoxLayout>
 #include <QHBoxLayout>
 
+QList<QString> StreamWidget::messageNames;
 
-StreamWidget::StreamWidget(int number, QWidget *parent)
+
+StreamWidget::StreamWidget(int number, MainWindow* mw, QWidget *parent)
     : QGroupBox(parent),
       messageInEditor(0),
-      streamNumber(number)
+      streamNumber(number),
+      mw(mw)
 
 {
     QGridLayout* layout = new QGridLayout(this);
@@ -96,8 +99,7 @@ void StreamWidget::openMessageEditor()
 {
     delete messageInEditor;
 
-    messageInEditor = new MessageTemplate(appProto->isChecked(), this);
-    messageList->insertItem(messageList->count(), "<new message>");
+    messageInEditor = new MessageTemplate(this, appProto->isChecked());
     emit setupMessageEditor(messageInEditor, this);
 
 }
@@ -110,13 +112,46 @@ void StreamWidget::removeMessageFromList()
 
 void StreamWidget::newMessageAdded()
 {
-    messages.append(new MessageTemplate(messageInEditor));
+    if(mw->configMessageFromEditor(messageInEditor))
+    {
+        if(messageNames.contains(messageInEditor->getMessageName()))
+        {
+            //messagename already in use
+        }
+        else
+        {
+            messageNames.append(messageInEditor->getMessageName());
+            messages.append(new MessageTemplate(messageInEditor));
+            messageList->insertItem(messageList->count(), messageInEditor->getMessageName());
+            editorClosed();
+        }
+
+    }
+    else
+    {
+        //error in message
+    }
+
 }
 
 void StreamWidget::editorClosed()
 {
     delete messageInEditor;
     messageInEditor = 0;
+    mw->finishEditor();
 }
 
+void StreamWidget::enableStreamWidgets(bool enabled)
+{
+    tcp->setEnabled(enabled);
+    udp->setEnabled(enabled);
+    nagle->setEnabled(enabled);
+    appProto->setEnabled(enabled);
+    ordered->setEnabled(enabled);
+    clientGameTick->setEnabled(enabled);
+    serverGameTick->setEnabled(enabled);
+    messageList->setEnabled(enabled);
+    addMessage->setEnabled(enabled);
+    removeMessage->setEnabled(enabled);
 
+}

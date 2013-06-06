@@ -21,6 +21,8 @@ class MainWindow : public QMainWindow
 
 public:
     explicit MainWindow(QWidget *parent = 0);
+    bool configMessageFromEditor(MessageTemplate* const msg);
+    void setMsgConfigErrorMessage(const QString& error);
     ~MainWindow();
 
 private:
@@ -31,6 +33,7 @@ private:
     QStack<QFrame*> previousClientsLines;
     QStack<StreamWidget*> previousStreams;
     QStack<QFrame*> previousStreamsLines;
+    QPalette* palette;
 
     void addClientWidgetToScrollArea();
     void enableMessageEditor(bool enabled);

@@ -46,11 +46,16 @@ MainWindow::MainWindow(QWidget *parent) :
     QObject::connect(ui->removeStreamButton, SIGNAL(clicked()), this, SLOT(removeStream()));
 
 
+    palette = new QPalette();
+    palette->setColor(QPalette::WindowText, QColor(255,0,0));
+    ui->message_errorLabel->setPalette(*palette);
+
 }
 
 MainWindow::~MainWindow()
 {
     delete ui;
+    delete palette;
 }
 
 
@@ -106,7 +111,7 @@ void MainWindow::removeClient()
 
 void MainWindow::addStream()
 {
-    StreamWidget* stream = new StreamWidget(numberOfStreams++, ui->streamScrollArea->widget());
+    StreamWidget* stream = new StreamWidget(numberOfStreams++, this, ui->streamScrollArea->widget());
 
     QObject::connect(stream, SIGNAL(setupMessageEditor(const MessageTemplate* const, const StreamWidget*)),
                      this, SLOT(setMessage(const MessageTemplate* const, const StreamWidget*)));
@@ -154,9 +159,7 @@ void MainWindow::setMessage(const MessageTemplate * const msg, const StreamWidge
     ui->message_returnToSender->setChecked(msg->isReturnedToSender());
 
     QObject::connect(ui->message_add, SIGNAL(clicked()), caller, SLOT(newMessageAdded()));
-    QObject::connect(ui->message_add, SIGNAL(clicked()), this, SLOT(finishEditor()));
     QObject::connect(ui->message_cancel, SIGNAL(clicked()), caller, SLOT(editorClosed()));
-    QObject::connect(ui->message_cancel, SIGNAL(clicked()), this, SLOT(finishEditor()));
 
 }
 
@@ -165,13 +168,18 @@ void MainWindow::finishEditor()
     QObject::disconnect(ui->message_add, 0, 0, 0);
     QObject::disconnect(ui->message_cancel, 0, 0, 0);
     enableMessageEditor(false);
+
+    ui->message_name->setText("");
+    setMsgConfigErrorMessage("");
+    ui->message_reliable->setChecked(false);
+    ui->message_returnToSender->setChecked(false);
+    ui->message_type->setCurrentIndex(0);
+
 }
 
 
 void MainWindow::enableMessageEditor(bool enabled)
 {
-
-    //looks like stupid hard-coding, but for some reason these are not automagically enabled when the parent widget is enabled
     ui->message->setEnabled(enabled);
     ui->message_nameLabel->setEnabled(enabled);
     ui->message_name->setEnabled(enabled);
@@ -186,5 +194,36 @@ void MainWindow::enableMessageEditor(bool enabled)
     ui->message_cancel->setEnabled(enabled);
     ui->message_add->setEnabled(enabled);
 
+    ui->addStreamButton->setEnabled(!enabled);
+    ui->removeStreamButton->setEnabled(!enabled);
+
+
 }
+
+
+bool MainWindow::configMessageFromEditor(MessageTemplate* const msg)
+{
+
+    msg->setMessageName(ui->message_name->text());
+    msg->setMessageType(ui->message_type->currentIndex());
+    msg->setReliable(ui->message_reliable->isChecked());
+    msg->setReturnToSender(ui->message_returnToSender->isChecked());
+
+    //TODO: add these later
+    // msg->setMessageSize(Constant, 0);
+   // msg->setTimeInterval(Constant, 0);
+   // msg->setForwardMessageSize(Constant, 0);
+   // msg->setClientsOfInterest(Constant, 0);
+
+    return true;
+
+}
+
+
+void MainWindow::setMsgConfigErrorMessage(const QString &error)
+{
+     ui->message_errorLabel->setText(error);
+}
+
+
 
