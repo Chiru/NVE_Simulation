@@ -3,14 +3,20 @@
 #include <QLabel>
 #include <QVBoxLayout>
 #include <QHBoxLayout>
+#include <iostream>
+#include <typeinfo>
 
 QList<QString> StreamWidget::messageNames;
 
 
 StreamWidget::StreamWidget(int number, MainWindow* mw, QWidget *parent)
     : QGroupBox(parent),
+      messages(QList<MessageTemplate*>()),
       messageInEditor(0),
+      previousMessageName(""),
       streamNumber(number),
+      editButtonEnabled(false),
+      removeButtonEnabled(false),
       mw(mw)
 
 {
@@ -33,7 +39,8 @@ StreamWidget::StreamWidget(int number, MainWindow* mw, QWidget *parent)
     serverGameTick = new QSpinBox(this);
     messageList = new QListWidget(this);
     addMessage = new QPushButton("Add message", this);
-    removeMessage = new QPushButton("Remove message", this);
+    removeMessage = new QPushButton("Remove", this);
+    editMessage = new QPushButton("Edit", this);
 
     QVBoxLayout* labelLayout = new QVBoxLayout(layout->widget());
     QVBoxLayout* gameTickLayout = new QVBoxLayout(layout->widget());
@@ -42,6 +49,10 @@ StreamWidget::StreamWidget(int number, MainWindow* mw, QWidget *parent)
 
     listButtons->addWidget(addMessage);
     listButtons->addWidget(removeMessage);
+    listButtons->addWidget(editMessage);
+
+    editMessage->setEnabled(false);
+    removeMessage->setEnabled(false);
 
     listLayout->addWidget(messageList);
     listLayout->addItem(listButtons);
@@ -72,6 +83,7 @@ StreamWidget::StreamWidget(int number, MainWindow* mw, QWidget *parent)
     QObject::connect(udp, SIGNAL(toggled(bool)), ordered, SLOT(setChecked(bool)));
     QObject::connect(appProto, SIGNAL(toggled(bool)), ordered, SLOT(setEnabled(bool)));
     QObject::connect(appProto, SIGNAL(toggled(bool)), ordered, SLOT(setChecked(bool)));
+    QObject::connect(messageList, SIGNAL(currentRowChanged(int)), this, SLOT(rowFocusChanged(int)));
 
     udp->setChecked(true);
     nagle->setDisabled(true);
@@ -94,39 +106,69 @@ StreamWidget::StreamWidget(int number, MainWindow* mw, QWidget *parent)
     addMessage->setToolTip("Adds new message type to this stream");
     removeMessage->setToolTip("Removes the selected message from this stream");
 
-    QObject::connect(addMessage, SIGNAL(clicked()), this, SLOT(openMessageEditor()));
+    QObject::connect(addMessage, SIGNAL(clicked()), this, SLOT(addNewMessage()));
+    QObject::connect(editMessage, SIGNAL(clicked()), this, SLOT(editExistingMessage()));
     QObject::connect(removeMessage, SIGNAL(clicked()), this, SLOT(removeMessageFromList()));
 
 }
 
-
-void StreamWidget::openMessageEditor()
+StreamWidget::~StreamWidget()
 {
-    delete messageInEditor;
+    for(QList<MessageTemplate*>::iterator it = messages.begin(); it != messages.end(); it++)
+    {
+        delete *it;
+    }
+}
 
+
+void StreamWidget::addNewMessage()
+{
     messageInEditor = new MessageTemplate(this, appProto->isChecked());
-    emit setupMessageEditor(messageInEditor, this);
 
+    previousMessageName = "";
+
+    emit setupMessageEditor(messageInEditor, this);
+}
+
+
+void StreamWidget::editExistingMessage()
+{
+    QString text = messageList->currentItem()->text();
+
+    for(QList<MessageTemplate*>::iterator it = messages.begin(); it != messages.end(); it++)
+    {
+        if((*it)->getMessageName() == text)
+        {
+            messageInEditor = new MessageTemplate(**it);
+            previousMessageName = (*it)->getMessageName();
+            break;
+        }
+    }
+
+    emit setupMessageEditor(messageInEditor, this);
 }
 
 void StreamWidget::removeMessageFromList()
 {
-
-
+    if(messageList->currentRow() != -1)
+        deleteMessageFromList(messageList->item(messageList->currentRow())->text());
 }
 
 void StreamWidget::newMessageAdded()
 {
     if(mw->configMessageFromEditor(messageInEditor))
     {
-        if(messageNames.contains(messageInEditor->getMessageName()))
+        if((previousMessageName == "" || previousMessageName != messageInEditor->getMessageName()) && messageNames.contains(messageInEditor->getMessageName()))
         {
             mw->setMsgConfigErrorMessage("Message name already in use!");
         }
         else
         {
+            deleteMessageFromList(previousMessageName);
+
             messageNames.append(messageInEditor->getMessageName());
-            messages.append(new MessageTemplate(messageInEditor));
+
+            messages.append(new MessageTemplate(*messageInEditor));
             messageList->insertItem(messageList->count(), messageInEditor->getMessageName());
             editorClosed();
         }
@@ -137,12 +179,45 @@ void StreamWidget::newMessageAdded()
     }
 }
 
+void StreamWidget::deleteMessageFromList(const QString &messageName)
+{
+    for(QList<MessageTemplate*>::iterator it = messages.begin(); it != messages.end(); it++)
+    {
+        if((*it)->getMessageName() == messageName)
+        {
+            delete(*it);
+            messages.erase(it);
+            messageNames.removeAll(messageName);
+            messageList->takeItem(messageList->currentRow());
+            break;
+        }
+    }
+}
+
 void StreamWidget::editorClosed()
 {
     delete messageInEditor;
     messageInEditor = 0;
     mw->finishEditor();
     enableStreamWidgets(true);
+}
+
+void StreamWidget::rowFocusChanged(int rowNumber)
+{
+    if(rowNumber != -1)
+    {
+        editMessage->setEnabled(true);
+        editButtonEnabled = true;
+        removeMessage->setEnabled(true);
+        removeButtonEnabled = true;
+    }
+    else
+    {
+        editMessage->setEnabled(false);
+        editButtonEnabled = false;
+        removeMessage->setEnabled(false);
+        removeButtonEnabled = false;
+    }
 }
 
 void StreamWidget::enableStreamWidgets(bool enabled)
@@ -164,10 +239,19 @@ void StreamWidget::enableStreamWidgets(bool enabled)
     serverGameTick->setEnabled(enabled);
     messageList->setEnabled(enabled);
     addMessage->setEnabled(enabled);
-    removeMessage->setEnabled(enabled);
     clientGameTickLabel->setEnabled(enabled);
     serverGameTickLabel->setEnabled(enabled);
     protocolLabel->setEnabled(enabled);
+
+    if(removeButtonEnabled)
+        removeMessage->setEnabled(enabled);
+    else
+        removeMessage->setEnabled(false);
+
+    if(editButtonEnabled)
+        editMessage->setEnabled(enabled);
+    else
+        editMessage->setEnabled(false);
 
 }
 

@@ -18,6 +18,7 @@ class StreamWidget : public QGroupBox
 
 public:
     StreamWidget(int number, MainWindow* mw,QWidget* parent = 0);
+    ~StreamWidget();
     bool isAppProtoEnabled() const{return appProto->isChecked();}
     bool tcpUsed() const {return tcp->isChecked();}
     void enableStreamWidgets(bool enabled);
@@ -26,6 +27,7 @@ private:
 
     QList<MessageTemplate*> messages;
     MessageTemplate* messageInEditor;
+    QString previousMessageName;
     int streamNumber;
     QRadioButton* tcp;
     QRadioButton* udp;
@@ -37,19 +39,25 @@ private:
     QListWidget* messageList;
     QPushButton* addMessage;
     QPushButton* removeMessage;
+    QPushButton* editMessage;
     QLabel* protocolLabel;
     QLabel* clientGameTickLabel;
     QLabel* serverGameTickLabel;
-
+    bool editButtonEnabled;
+    bool removeButtonEnabled;
     MainWindow* mw;
+
+    void deleteMessageFromList(const QString& messageName);
 
     static QList<QString> messageNames; //messages must have unique names, even in different streams
 
 public slots:
-    void openMessageEditor();
+    void addNewMessage();
+    void editExistingMessage();
     void removeMessageFromList();
     void newMessageAdded();
     void editorClosed();
+    void rowFocusChanged(int);
 
 signals:
     void setupMessageEditor(const MessageTemplate* const msg, StreamWidget*);
