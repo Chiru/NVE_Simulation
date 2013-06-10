@@ -195,17 +195,23 @@ void MainWindow::enableMessageEditor(bool enabled)
     ui->message_typeLabel->setEnabled(enabled);
     ui->message_type->setEnabled(enabled);
     ui->message_reliable->setEnabled(enabled);
+    ui->message_sizeFrame->setEnabled(enabled);
+    ui->message_timeIntervalFrame->setEnabled(enabled);
+    ui->message_forwardMessageSizeFrame->setEnabled(enabled);
+    ui->message_clientsOfInterestFrame->setEnabled(enabled);
     ui->message_size->setEnabled(enabled);
     ui->message_timeInterval->setEnabled(enabled);
     ui->message_returnToSender->setEnabled(enabled);
     ui->message_forwardMessageSize->setEnabled(enabled);
     ui->message_clientsOfInterest->setEnabled(enabled);
+    ui->message_configMessageSize->setEnabled(enabled);
+    ui->message_configTimeInterval->setEnabled(enabled);
+    ui->message_configForwardMessageSize->setEnabled(enabled);
+    ui->message_configClientsOfInterest->setEnabled(enabled);
     ui->message_cancel->setEnabled(enabled);
     ui->message_add->setEnabled(enabled);
-
     ui->addStreamButton->setEnabled(!enabled);
     ui->removeStreamButton->setEnabled(!enabled);
-
 
 }
 

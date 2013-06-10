@@ -30,9 +30,9 @@
        <property name="geometry">
         <rect>
          <x>0</x>
-         <y>0</y>
+         <y>-134</y>
          <width>1161</width>
-         <height>785</height>
+         <height>917</height>
         </rect>
        </property>
        <layout class="QGridLayout" name="gridLayout_5">
@@ -253,8 +253,8 @@ p, li { white-space: pre-wrap; }
                <rect>
                 <x>0</x>
                 <y>0</y>
-                <width>768</width>
-                <height>315</height>
+                <width>750</width>
+                <height>447</height>
                </rect>
               </property>
              </widget>
@@ -382,33 +382,8 @@ p, li { white-space: pre-wrap; }
                 </property>
                </widget>
               </item>
-              <item row="4" column="0" colspan="2">
-               <widget class="QFrame" name="frame_4">
-                <property name="frameShape">
-                 <enum>QFrame::StyledPanel</enum>
-                </property>
-                <property name="frameShadow">
-                 <enum>QFrame::Raised</enum>
-                </property>
-                <layout class="QHBoxLayout" name="horizontalLayout_3">
-                 <item>
-                  <widget class="QLabel" name="message_size">
-                   <property name="enabled">
-                    <bool>false</bool>
-                   </property>
-                   <property name="toolTip">
-                    <string>Message size definition in bytes.</string>
-                   </property>
-                   <property name="text">
-                    <string>Message size (bytes):</string>
-                   </property>
-                  </widget>
-                 </item>
-                </layout>
-               </widget>
-              </item>
               <item row="5" column="0" colspan="2">
-               <widget class="QFrame" name="frame_5">
+               <widget class="QFrame" name="message_timeIntervalFrame">
                 <property name="toolTip">
                  <string>Time interval of two consecutive messages in milliseconds.</string>
                 </property>
@@ -418,14 +393,28 @@ p, li { white-space: pre-wrap; }
                 <property name="frameShadow">
                  <enum>QFrame::Raised</enum>
                 </property>
-                <layout class="QVBoxLayout" name="verticalLayout_7">
-                 <item>
+                <layout class="QFormLayout" name="formLayout_3">
+                 <item row="0" column="0">
                   <widget class="QLabel" name="message_timeInterval">
                    <property name="enabled">
                     <bool>false</bool>
                    </property>
                    <property name="text">
                     <string>Message time interval (ms):</string>
+                   </property>
+                  </widget>
+                 </item>
+                 <item row="0" column="1">
+                  <widget class="QPushButton" name="message_configTimeInterval">
+                   <property name="text">
+                    <string>Configure</string>
+                   </property>
+                  </widget>
+                 </item>
+                 <item row="1" column="0" colspan="2">
+                  <widget class="QLabel" name="label_8">
+                   <property name="text">
+                    <string/>
                    </property>
                   </widget>
                  </item>
@@ -446,7 +435,7 @@ p, li { white-space: pre-wrap; }
                </widget>
               </item>
               <item row="7" column="0" colspan="2">
-               <widget class="QFrame" name="frame_6">
+               <widget class="QFrame" name="message_forwardMessageSizeFrame">
                 <property name="toolTip">
                  <string>The size of the forwarded (or returned) message in bytes.</string>
                 </property>
@@ -456,8 +445,8 @@ p, li { white-space: pre-wrap; }
                 <property name="frameShadow">
                  <enum>QFrame::Raised</enum>
                 </property>
-                <layout class="QVBoxLayout" name="verticalLayout_5">
-                 <item>
+                <layout class="QGridLayout" name="gridLayout_4">
+                 <item row="0" column="0">
                   <widget class="QLabel" name="message_forwardMessageSize">
                    <property name="enabled">
                     <bool>false</bool>
@@ -467,13 +456,30 @@ p, li { white-space: pre-wrap; }
                    </property>
                   </widget>
                  </item>
+                 <item row="0" column="1">
+                  <widget class="QPushButton" name="message_configForwardMessageSize">
+                   <property name="text">
+                    <string>Configure</string>
+                   </property>
+                  </widget>
+                 </item>
+                 <item row="1" column="0" colspan="2">
+                  <widget class="QLabel" name="label_9">
+                   <property name="text">
+                    <string/>
+                   </property>
+                  </widget>
+                 </item>
                 </layout>
                </widget>
               </item>
               <item row="8" column="0" colspan="2">
-               <widget class="QFrame" name="frame_7">
+               <widget class="QFrame" name="message_clientsOfInterestFrame">
                 <property name="enabled">
                  <bool>false</bool>
+                </property>
+                <property name="toolTip">
+                 <string>Defines the percentage of the other clients that receive the  forwarded message from the server. </string>
                 </property>
                 <property name="frameShape">
                  <enum>QFrame::StyledPanel</enum>
@@ -481,17 +487,31 @@ p, li { white-space: pre-wrap; }
                 <property name="frameShadow">
                  <enum>QFrame::Raised</enum>
                 </property>
-                <layout class="QVBoxLayout" name="verticalLayout_6">
-                 <item>
+                <layout class="QGridLayout" name="gridLayout_6">
+                 <item row="0" column="0">
                   <widget class="QLabel" name="message_clientsOfInterest">
                    <property name="enabled">
                     <bool>false</bool>
                    </property>
                    <property name="toolTip">
-                    <string>Defines the percentage of the other clients that receive the  forwarded message from the server. </string>
+                    <string/>
                    </property>
                    <property name="text">
                     <string>Clients of interest (%):</string>
+                   </property>
+                  </widget>
+                 </item>
+                 <item row="0" column="1">
+                  <widget class="QPushButton" name="message_configClientsOfInterest">
+                   <property name="text">
+                    <string>Configure</string>
+                   </property>
+                  </widget>
+                 </item>
+                 <item row="1" column="0" colspan="2">
+                  <widget class="QLabel" name="label_10">
+                   <property name="text">
+                    <string/>
                    </property>
                   </widget>
                  </item>
@@ -504,7 +524,7 @@ p, li { white-space: pre-wrap; }
                  <bool>false</bool>
                 </property>
                 <property name="text">
-                 <string>Add</string>
+                 <string>Ok</string>
                 </property>
                </widget>
               </item>
@@ -935,6 +955,48 @@ p, li { white-space: pre-wrap; }
                 <property name="text">
                  <string/>
                 </property>
+               </widget>
+              </item>
+              <item row="4" column="0" colspan="2">
+               <widget class="QFrame" name="message_sizeFrame">
+                <property name="toolTip">
+                 <string>Message size definition in bytes.</string>
+                </property>
+                <property name="frameShape">
+                 <enum>QFrame::StyledPanel</enum>
+                </property>
+                <property name="frameShadow">
+                 <enum>QFrame::Raised</enum>
+                </property>
+                <layout class="QFormLayout" name="formLayout_2">
+                 <item row="0" column="0">
+                  <widget class="QLabel" name="message_size">
+                   <property name="enabled">
+                    <bool>false</bool>
+                   </property>
+                   <property name="toolTip">
+                    <string/>
+                   </property>
+                   <property name="text">
+                    <string>Message size (bytes):</string>
+                   </property>
+                  </widget>
+                 </item>
+                 <item row="0" column="1">
+                  <widget class="QPushButton" name="message_configMessageSize">
+                   <property name="text">
+                    <string>Configure</string>
+                   </property>
+                  </widget>
+                 </item>
+                 <item row="1" column="0" colspan="2">
+                  <widget class="QLabel" name="label_7">
+                   <property name="text">
+                    <string/>
+                   </property>
+                  </widget>
+                 </item>
+                </layout>
                </widget>
               </item>
              </layout>
