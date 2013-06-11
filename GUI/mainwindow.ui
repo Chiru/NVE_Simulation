@@ -30,9 +30,9 @@
        <property name="geometry">
         <rect>
          <x>0</x>
-         <y>-134</y>
+         <y>-64</y>
          <width>1161</width>
-         <height>917</height>
+         <height>900</height>
         </rect>
        </property>
        <layout class="QGridLayout" name="gridLayout_5">
@@ -254,7 +254,7 @@ p, li { white-space: pre-wrap; }
                 <x>0</x>
                 <y>0</y>
                 <width>750</width>
-                <height>447</height>
+                <height>430</height>
                </rect>
               </property>
              </widget>
@@ -412,26 +412,13 @@ p, li { white-space: pre-wrap; }
                   </widget>
                  </item>
                  <item row="1" column="0" colspan="2">
-                  <widget class="QLabel" name="label_8">
+                  <widget class="QLabel" name="message_timeIntervalDistribution">
                    <property name="text">
                     <string/>
                    </property>
                   </widget>
                  </item>
                 </layout>
-               </widget>
-              </item>
-              <item row="6" column="0">
-               <widget class="QCheckBox" name="message_returnToSender">
-                <property name="enabled">
-                 <bool>false</bool>
-                </property>
-                <property name="toolTip">
-                 <string>Defines whether the receiver returns the message.</string>
-                </property>
-                <property name="text">
-                 <string>Return to sender</string>
-                </property>
                </widget>
               </item>
               <item row="7" column="0" colspan="2">
@@ -487,7 +474,7 @@ p, li { white-space: pre-wrap; }
                 <property name="frameShadow">
                  <enum>QFrame::Raised</enum>
                 </property>
-                <layout class="QGridLayout" name="gridLayout_6">
+                <layout class="QFormLayout" name="formLayout_4">
                  <item row="0" column="0">
                   <widget class="QLabel" name="message_clientsOfInterest">
                    <property name="enabled">
@@ -502,37 +489,9 @@ p, li { white-space: pre-wrap; }
                   </widget>
                  </item>
                  <item row="0" column="1">
-                  <widget class="QPushButton" name="message_configClientsOfInterest">
-                   <property name="text">
-                    <string>Configure</string>
-                   </property>
-                  </widget>
-                 </item>
-                 <item row="1" column="0" colspan="2">
-                  <widget class="QLabel" name="label_10">
-                   <property name="text">
-                    <string/>
-                   </property>
-                  </widget>
+                  <widget class="QDoubleSpinBox" name="message_clientsOfInterestSpinBox"/>
                  </item>
                 </layout>
-               </widget>
-              </item>
-              <item row="10" column="0">
-               <widget class="QPushButton" name="message_add">
-                <property name="enabled">
-                 <bool>false</bool>
-                </property>
-                <property name="text">
-                 <string>Ok</string>
-                </property>
-               </widget>
-              </item>
-              <item row="10" column="1">
-               <widget class="QPushButton" name="message_cancel">
-                <property name="text">
-                 <string>Cancel</string>
-                </property>
                </widget>
               </item>
               <item row="9" column="0" colspan="2">
@@ -957,6 +916,23 @@ p, li { white-space: pre-wrap; }
                 </property>
                </widget>
               </item>
+              <item row="10" column="0">
+               <widget class="QPushButton" name="message_add">
+                <property name="enabled">
+                 <bool>false</bool>
+                </property>
+                <property name="text">
+                 <string>Ok</string>
+                </property>
+               </widget>
+              </item>
+              <item row="10" column="1">
+               <widget class="QPushButton" name="message_cancel">
+                <property name="text">
+                 <string>Cancel</string>
+                </property>
+               </widget>
+              </item>
               <item row="4" column="0" colspan="2">
                <widget class="QFrame" name="message_sizeFrame">
                 <property name="toolTip">
@@ -990,13 +966,26 @@ p, li { white-space: pre-wrap; }
                   </widget>
                  </item>
                  <item row="1" column="0" colspan="2">
-                  <widget class="QLabel" name="label_7">
+                  <widget class="QLabel" name="message_sizeDistribution">
                    <property name="text">
                     <string/>
                    </property>
                   </widget>
                  </item>
                 </layout>
+               </widget>
+              </item>
+              <item row="6" column="0">
+               <widget class="QCheckBox" name="message_returnToSender">
+                <property name="enabled">
+                 <bool>false</bool>
+                </property>
+                <property name="toolTip">
+                 <string>Defines whether the receiver returns the message.</string>
+                </property>
+                <property name="text">
+                 <string>Return to sender</string>
+                </property>
                </widget>
               </item>
              </layout>

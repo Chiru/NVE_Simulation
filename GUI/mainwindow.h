@@ -6,6 +6,8 @@
 #include <QFrame>
 #include <QStack>
 #include <QScrollArea>
+#include "MessageTemplate.h"
+#include "DistributionWidget.h"
 
 class ClientWidget;
 class StreamWidget;
@@ -21,7 +23,7 @@ class MainWindow : public QMainWindow
 
 public:
     explicit MainWindow(QWidget *parent = 0);
-    bool configMessageFromEditor(MessageTemplate* const msg);
+    bool configMessageFromEditor(MessageTemplate* msg);
     void setMsgConfigErrorMessage(const QString& error);
     ~MainWindow();
 
@@ -34,9 +36,13 @@ private:
     QStack<StreamWidget*> previousStreams;
     QStack<QFrame*> previousStreamsLines;
     QPalette* palette;
+    DistributionWidget* messageSize;
+    DistributionWidget* timeInterval;
+
 
     void addClientWidgetToScrollArea();
     void enableMessageEditor(bool enabled);
+
 
 
 public slots:
@@ -44,7 +50,7 @@ public slots:
     void removeClient();
     void addStream();
     void removeStream();
-    void setMessage(const MessageTemplate* const msg, StreamWidget* caller);
+    void setMessage(const MessageTemplate* msg, StreamWidget* caller);
     void finishEditor();
 };
 

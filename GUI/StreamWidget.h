@@ -60,7 +60,7 @@ public slots:
     void rowFocusChanged(int);
 
 signals:
-    void setupMessageEditor(const MessageTemplate* const msg, StreamWidget*);
+    void setupMessageEditor(const MessageTemplate* msg, StreamWidget*);
 
 };
 

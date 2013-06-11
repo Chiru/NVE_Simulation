@@ -14,11 +14,13 @@ SOURCES += main.cpp\
         mainwindow.cpp \
     ClientWidget.cpp \
     StreamWidget.cpp \
-    MessageTemplate.cpp
+    MessageTemplate.cpp \
+    DistributionWidget.cpp
 
 HEADERS  += mainwindow.h \
     ClientWidget.h \
     StreamWidget.h \
-    MessageTemplate.h
+    MessageTemplate.h \
+    DistributionWidget.h
 
 FORMS    += mainwindow.ui
