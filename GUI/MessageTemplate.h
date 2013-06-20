@@ -5,9 +5,29 @@
 
 typedef enum{Uniform = 0, Constant, Sequential, Exponential, Pareto, Weibull, Normal, Lognormal, Gamma, Erlang, Zipf, Zeta, Triangular, Empirical, Extreme, Split, None} Distribution;
 
-struct DistributionElement{
+class DistributionElement
+{
+
+public:
+    DistributionElement();
+    ~DistributionElement();
+
+    void setDist(Distribution);
+    void setParams(const QList<double>&);
+    void setFileName(const QString&);
+    void setDistributions(const QList<DistributionElement*>&);
+    Distribution getDist() const {return dist;}
+    QString getFileName() const {return filename;}
+    QList<double>& getParams() {return params;}
+    const QList<double>& getParams() const {return params;}
+    QList<DistributionElement*>& getSplitDistributions() {return splitDistributions;}
+
+private:
     Distribution dist;
     QList<double> params;
+    QString filename;
+    QList<DistributionElement*> splitDistributions;
+
 };
 
 class MessageTemplate : public QGroupBox

@@ -12,10 +12,10 @@ MessageTemplate::MessageTemplate(QWidget *parent, bool appProtoEnabled)
       returnToSender(false)
 {
 
-    messageSize.dist = Constant;
-    timeInterval.dist = Constant;
-    forwardMessageSize.dist = Constant;
-    clientsOfInterest.dist = Constant;
+    messageSize.setDist(Constant);
+    timeInterval.setDist(Constant);
+    forwardMessageSize.setDist(Constant);
+    clientsOfInterest.setDist(Constant);
 
 }
 
@@ -62,24 +62,62 @@ void MessageTemplate::setReturnToSender(bool returnToSender)
 
 void MessageTemplate::setMessageSize(Distribution dist, QList<double> params)
 {
-    this->messageSize.dist = dist;
-    this->messageSize.params = params;
+    this->messageSize.setDist(dist);
+    this->messageSize.setParams(params);
 }
 
 void MessageTemplate::setTimeInterval(Distribution dist, QList<double> params)
 {
-    this->timeInterval.dist = dist;
-    this->timeInterval.params = params;
+    this->timeInterval.setDist(dist);
+    this->timeInterval.setParams(params);
 }
 
 void MessageTemplate::setForwardMessageSize(Distribution dist, QList<double> params)
 {
-    this->forwardMessageSize.dist = dist;
-    this->forwardMessageSize.params = params;
+    this->forwardMessageSize.setDist(dist);
+    this->forwardMessageSize.setParams(params);
 }
 
 void MessageTemplate::setClientsOfInterest(Distribution dist, QList<double> params)
 {
-    this->clientsOfInterest.dist = dist;
-    this->clientsOfInterest.params = params;
+    this->clientsOfInterest.setDist(dist);
+    this->clientsOfInterest.setParams(params);
 }
+
+
+DistributionElement::DistributionElement()
+    :dist(Constant)
+{
+}
+
+
+DistributionElement::~DistributionElement()
+{
+    DistributionElement* elem;
+
+    foreach(elem, splitDistributions)
+        delete elem;
+}
+
+
+void DistributionElement::setDist(Distribution dist)
+{
+    this->dist = dist;
+}
+
+void DistributionElement::setParams(const QList<double>& params)
+{
+    this->params = params;
+}
+
+void DistributionElement::setFileName(const QString& fileName)
+{
+    this->filename = fileName;
+}
+
+void DistributionElement::setDistributions(const QList<DistributionElement*>& splitDistributions)
+{
+    this->splitDistributions = splitDistributions;
+}
+
+
