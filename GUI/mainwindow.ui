@@ -30,9 +30,9 @@
        <property name="geometry">
         <rect>
          <x>0</x>
-         <y>-64</y>
+         <y>-65</y>
          <width>1161</width>
-         <height>900</height>
+         <height>914</height>
         </rect>
        </property>
        <layout class="QGridLayout" name="gridLayout_5">
@@ -254,7 +254,7 @@ p, li { white-space: pre-wrap; }
                 <x>0</x>
                 <y>0</y>
                 <width>750</width>
-                <height>430</height>
+                <height>444</height>
                </rect>
               </property>
              </widget>
@@ -394,6 +394,9 @@ p, li { white-space: pre-wrap; }
                  <enum>QFrame::Raised</enum>
                 </property>
                 <layout class="QFormLayout" name="formLayout_3">
+                 <property name="fieldGrowthPolicy">
+                  <enum>QFormLayout::AllNonFixedFieldsGrow</enum>
+                 </property>
                  <item row="0" column="0">
                   <widget class="QLabel" name="message_timeInterval">
                    <property name="enabled">
@@ -412,11 +415,7 @@ p, li { white-space: pre-wrap; }
                   </widget>
                  </item>
                  <item row="1" column="0" colspan="2">
-                  <widget class="QLabel" name="message_timeIntervalDistribution">
-                   <property name="text">
-                    <string/>
-                   </property>
-                  </widget>
+                  <widget class="QLineEdit" name="message_timeIntervalDistribution"/>
                  </item>
                 </layout>
                </widget>
@@ -945,6 +944,9 @@ p, li { white-space: pre-wrap; }
                  <enum>QFrame::Raised</enum>
                 </property>
                 <layout class="QFormLayout" name="formLayout_2">
+                 <property name="fieldGrowthPolicy">
+                  <enum>QFormLayout::AllNonFixedFieldsGrow</enum>
+                 </property>
                  <item row="0" column="0">
                   <widget class="QLabel" name="message_size">
                    <property name="enabled">
@@ -966,11 +968,7 @@ p, li { white-space: pre-wrap; }
                   </widget>
                  </item>
                  <item row="1" column="0" colspan="2">
-                  <widget class="QLabel" name="message_sizeDistribution">
-                   <property name="text">
-                    <string/>
-                   </property>
-                  </widget>
+                  <widget class="QLineEdit" name="message_sizeDistribution"/>
                  </item>
                 </layout>
                </widget>

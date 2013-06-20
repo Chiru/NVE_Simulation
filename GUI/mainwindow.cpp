@@ -45,8 +45,9 @@ MainWindow::MainWindow(QWidget *parent) :
     timeInterval = new DistributionWidget(ui->message_timeInterval, ui->message_configTimeInterval, ui->message_timeIntervalDistribution,
                                           ui->message_timeIntervalFrame->layout(), this);
 
-    ui->message_clientsOfInterestSpinBox->setMaximum(1);
-    ui->message_clientsOfInterestSpinBox->setSingleStep(0.05);
+
+    ui->message_clientsOfInterestSpinBox->setMaximum(100);
+    ui->message_clientsOfInterestSpinBox->setSingleStep(0.5);
 
     QObject::connect(ui->addClientButton, SIGNAL(clicked()), this, SLOT(addClient()));
     QObject::connect(ui->removeClientButton, SIGNAL(clicked()), this, SLOT(removeClient()));
@@ -197,19 +198,6 @@ void MainWindow::finishEditor()
 }
 
 
-void MainWindow::createDistributionDialog()
-{
-
-}
-
-
-void MainWindow::finishDistributionDialog()
-{
-
-}
-
-
-
 void MainWindow::enableMessageEditor(bool enabled)
 {
     ui->message->setEnabled(enabled);
@@ -221,11 +209,13 @@ void MainWindow::enableMessageEditor(bool enabled)
     ui->message_returnToSender->setEnabled(enabled);
     ui->message_cancel->setEnabled(enabled);
     ui->message_add->setEnabled(enabled);
-    ui->addStreamButton->setEnabled(!enabled);
-    ui->removeStreamButton->setEnabled(!enabled);
+
     ui->message_clientsOfInterestFrame->setEnabled(enabled);
     ui->message_clientsOfInterest->setEnabled(enabled);
     ui->message_clientsOfInterestSpinBox->setEnabled(enabled);
+
+    ui->addStreamButton->setEnabled(!enabled);
+    ui->removeStreamButton->setEnabled(!enabled);
 
     messageSize->enableWidget(enabled);
     timeInterval->enableWidget(enabled);
