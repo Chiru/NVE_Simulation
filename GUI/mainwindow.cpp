@@ -22,14 +22,12 @@ MainWindow::MainWindow(QWidget *parent) :
 
     ui->clientScrollArea->setWidget(widget);
 
-    ui->clientCountSpinBox->setMinimum(1);
-
     widget = new QWidget(ui->streamScrollArea);
     widget->setLayout(new QBoxLayout(QBoxLayout::TopToBottom, ui->streamScrollArea));
 
     ui->streamScrollArea->setWidget(widget);
 
-    addClient();
+    addClientWidgetToScrollArea();
     addStream();
 
     ui->appProto_ackSize->setMaximum(500);
@@ -49,7 +47,7 @@ MainWindow::MainWindow(QWidget *parent) :
     ui->message_clientsOfInterestSpinBox->setMaximum(100);
     ui->message_clientsOfInterestSpinBox->setSingleStep(0.5);
 
-    QObject::connect(ui->addClientButton, SIGNAL(clicked()), this, SLOT(addClient()));
+    QObject::connect(ui->addClientButton, SIGNAL(clicked()), this, SLOT(addClientWidgetToScrollArea()));
     QObject::connect(ui->removeClientButton, SIGNAL(clicked()), this, SLOT(removeClient()));
     QObject::connect(ui->addStreamButton, SIGNAL(clicked()), this, SLOT(addStream()));
     QObject::connect(ui->removeStreamButton, SIGNAL(clicked()), this, SLOT(removeStream()));
@@ -66,18 +64,6 @@ MainWindow::~MainWindow()
 {
     delete ui;
     delete palette;
-}
-
-
-void MainWindow::addClient()
-{
-
-    int count = ui->clientCountSpinBox->value();
-
-    for(int i = 0; i < count; i++)
-    {
-        addClientWidgetToScrollArea();
-    }
 }
 
 
@@ -177,6 +163,10 @@ void MainWindow::setMessage(const MessageTemplate * msg, StreamWidget* caller)
 
     ui->message_returnToSender->setChecked(msg->isReturnedToSender());
 
+    ui->message_sizeDistribution->setText(msg->getMessageSize().getDistributionString());
+    ui->message_timeIntervalDistribution->setText(msg->getMessageTimeInterval().getDistributionString());
+    ui->message_clientsOfInterestSpinBox->setValue(msg->getClientsOfInterest());
+
     QObject::connect(ui->message_add, SIGNAL(clicked()), caller, SLOT(newMessageAdded()));
     QObject::connect(ui->message_cancel, SIGNAL(clicked()), caller, SLOT(editorClosed()));
 
@@ -234,11 +224,15 @@ bool MainWindow::configMessageFromEditor(MessageTemplate* msg)
     msg->setReliable(ui->message_reliable->isChecked());
     msg->setReturnToSender(ui->message_returnToSender->isChecked());
 
-     //TODO: add these later
-    // msg->setMessageSize(Constant, 0);
-   // msg->setTimeInterval(Constant, 0);
+    if((msg->setMessageSize(messageSize->getCopyOfDistributionElement())) == 0)
+       return false;
+
+    if((msg->setTimeInterval(timeInterval->getCopyOfDistributionElement())) == 0)
+        return false;
+
+    //TODO: add also forwardmessagesize configuration
   // msg->setForwardMessageSize(Constant, 0);
- // msg->setClientsOfInterest(Constant, 0);
+    msg->setClientsOfInterest(ui->message_clientsOfInterestSpinBox->value());
 
     return true;
 

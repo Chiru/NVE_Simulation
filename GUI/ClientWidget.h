@@ -15,6 +15,7 @@ private:
 
     int clientNumber;
 
+    QSpinBox* clientCount;
     QSpinBox* delay;
     QDoubleSpinBox* loss;
     QDoubleSpinBox* uplink;

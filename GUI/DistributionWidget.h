@@ -24,6 +24,7 @@ public:
     DistributionWidget(const QString& label, QWidget* parent = 0);
     DistributionWidget(QLabel* label, QPushButton* button, QLineEdit* resultDist, QLayout* layout, QWidget* parent = 0);
     ~DistributionWidget();
+    DistributionElement* getCopyOfDistributionElement();
 
     void enableWidget(bool enabled);
 
@@ -52,7 +53,7 @@ public:
     DistributionDialog(bool alreadySplit);
     ~DistributionDialog();
     DistributionElement* getDistribution();
-    QString getDistributionString(const DistributionElement* distribution);
+    const QList<QDoubleSpinBox*>& getSplitDistributionPercentages() const {return splitDistributionPercentages;}
 
 private:
     DistributionElement* distribution;
@@ -74,6 +75,7 @@ private:
     void addParamWidgetsToDialog();
     void setValues() const;
     void updateSplitDistribution();
+
 
 private slots:
     void acceptDistributionDialog();

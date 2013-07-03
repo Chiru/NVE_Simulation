@@ -39,14 +39,12 @@ private:
     DistributionWidget* messageSize;
     DistributionWidget* timeInterval;
 
-
-    void addClientWidgetToScrollArea();
     void enableMessageEditor(bool enabled);
 
 
 
 public slots:
-    void addClient();
+    void addClientWidgetToScrollArea();
     void removeClient();
     void addStream();
     void removeStream();

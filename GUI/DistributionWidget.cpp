@@ -49,6 +49,7 @@ void DistributionWidget::enableWidget(bool enabled)
     this->setEnabled(enabled);
     description->setEnabled(enabled);
     distributionName->setEnabled(enabled);
+    distributionName->clear();
     config->setEnabled(enabled);
 }
 
@@ -61,16 +62,29 @@ void DistributionWidget::createDistributionDialog()
     {
         delete distribution;
         distribution = dialog->getDistribution();
-        distributionName->setText(dialog->getDistributionString(distribution));
+
+        const QList<QDoubleSpinBox*> percentages = dialog->getSplitDistributionPercentages();
+
+        if(!percentages.empty())
+        {
+            distribution->setSplitDistributionPercentages(percentages);
+        }
+
+        distributionName->setText(distribution->getDistributionString());
 
     }
-
-    delete distribution;
-    distribution = 0;
 
     delete dialog;
 }
 
+
+DistributionElement* DistributionWidget::getCopyOfDistributionElement()
+{
+    if(distribution == 0)
+        return 0;
+
+    return new DistributionElement(*distribution);
+}
 
 
 DistributionDialog::DistributionDialog(bool alreadySplit)
@@ -120,6 +134,7 @@ void DistributionDialog::cancelDistributionDialog()
 }
 
 
+//this is used only when creating split distributions
 void DistributionDialog::createDistributionDialog()
 {
 
@@ -127,11 +142,14 @@ void DistributionDialog::createDistributionDialog()
     if(dialog->exec())
     {
         DistributionElement* dist = dialog->getDistribution();
-        splitDistributionNames.append(new QLineEdit(getDistributionString(dist)));
-        paramDescriptions.append(new QLabel("Distribution " + QString::number(numberOfDistributionsSplit +1) + " "));
+        splitDistributionNames.append(new QLineEdit(dist->getDistributionString()));
+        paramDescriptions.append(new QLabel("Distribution " + QString::number(numberOfDistributionsSplit) + " "));
         paramDescriptions.append(new QLabel("Percentage "));
         splitDistributionPercentages.append(new QDoubleSpinBox());
+        splitDistributionPercentages.last()->setMaximum(100);
         updateSplitDistribution();
+
+        distribution->addSplitDistribution(dist);
 
         delete dist;
     }
@@ -274,7 +292,7 @@ void DistributionDialog::distributionChanged(int dist)
         params[2]->setMaximum(10000);
         break;
     case Empirical:
-        paramDescriptions.append(new QLabel("Filename "));
+        paramDescriptions.append(new QLabel("Filename (must contain comma-separated values)"));
         fileName = new QLineEdit();
         break;
     case Extreme:    //TODO: check if this is supported in ns-3 version
@@ -290,14 +308,9 @@ void DistributionDialog::distributionChanged(int dist)
         break;
     case Split: //TODO: check if this is supported in ns-3 version
         numberOfDistributionsSplit++;
-        paramDescriptions.append(new QLabel("Distribution 1"));
-        paramDescriptions.append(new QLabel("Percentage "));
-        splitDistributionNames.append(new QLineEdit(""));
-        splitDistributionNames.last()->setReadOnly(true);
-        splitDistributionPercentages.append(new QDoubleSpinBox());
-        splitDistributionPercentages[0]->setMaximum(1);
         splitDistributionButton = new QPushButton("Add");
         QObject::connect(splitDistributionButton, SIGNAL(clicked()), this, SLOT(createDistributionDialog()));
+        this->buttonBox->button(QDialogButtonBox::Ok)->setEnabled(false);
         break;
 
     }
@@ -423,21 +436,17 @@ DistributionElement* DistributionDialog::getDistribution()
 
     if(distribution->getDist() == Empirical)
     {
-        retVal = new DistributionElement();
+        retVal = new DistributionElement(*distribution);
         retVal->setFileName(this->fileName->text());
-        retVal->setDist(distribution->getDist());
 
     }
     else if(distribution->getDist() == Split)
     {
-        retVal = new DistributionElement();
-        retVal->setDistributions(distribution->getSplitDistributions());
-        retVal->setDist(distribution->getDist());
+        retVal = new DistributionElement(*distribution);
     }
     else
     {
-        retVal = new DistributionElement();
-        retVal->setDist(this->distribution->getDist());
+        retVal = new DistributionElement(*distribution);
 
         for(QList<QDoubleSpinBox*>::const_iterator it = this->params.begin(); it != this->params.end(); it++)
         {
@@ -450,119 +459,11 @@ DistributionElement* DistributionDialog::getDistribution()
 
 
 
-QString DistributionDialog::getDistributionString(const DistributionElement* distribution)
-{
-    QString text("");
-
-    if(distribution == 0)
-    {
-        text = "";
-    }
-    else
-    {
-
-        switch(distribution->getDist())
-        {
-        case None:
-        break;
-        case Constant:
-            text = "Constant (";
-        break;
-        case Uniform:
-            text = "Uniform (";
-        break;
-        case Sequential:
-            text = "Sequential (";
-        break;
-        case Exponential:
-            text = "Exponential (";
-        break;
-        case Pareto:
-            text = "Pareto (";
-        break;
-        case Weibull:
-            text = "Weibull (";
-        break;
-        case Normal:
-            text = "Normal (";
-        break;
-        case Lognormal:
-            text = "Lognormal (";
-        break;
-        case Gamma:
-            text = "Gamma (";
-        break;
-        case Erlang:
-            text = "Erlang (";
-        break;
-        case Zipf:
-            text = "Zipf (";
-        break;
-        case Zeta:
-            text = "Zeta (";
-        break;
-        case Triangular:
-            text = "Triangular (";
-        break;
-        case Extreme:
-            text = "Extreme (";
-        break;
-        case Empirical:
-            text = "Empirical (";
-        break;
-        case Split:
-            text = "Split (";
-            break;
-
-        }
-
-        if(distribution->getDist() != Empirical && distribution->getDist() != Split)
-        {
-            bool first = true;
-
-            for(QList<double>::const_iterator it = distribution->getParams().begin(); it != distribution->getParams().end(); it++)
-            {
-                if(!first)
-                    text.append(", ");
-                else
-                    first = false;
-
-                text.append(QString::number(*it));
-            }
-
-        }
-        else if(distribution->getDist() == Empirical)
-        {
-            text.append(distribution->getFileName());
-        }
-        else if(distribution->getDist() == Split)
-        {
-
-
-        }
-    }
-
-    text.append(")");
-
-    return text;
-
-}
-
-
 void DistributionDialog::updateSplitDistribution()
 {
-
-   // paramsLayout->removeWidget(splitDistributionButton);
-
-   // while(!paramsLayout->isEmpty())
-    {
-     //   paramsLayout->removeItem(paramsLayout->itemAt(0));
-    }
+    this->buttonBox->button(QDialogButtonBox::Ok)->setEnabled(true);
 
     numberOfDistributionsSplit++;
     addParamWidgetsToDialog();
-
 }
-
-
 

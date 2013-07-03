@@ -13,13 +13,15 @@ ClientWidget::ClientWidget(int number, QWidget *parent, const ClientWidget* prev
 
     this->setLayout(layout);
 
-    layout->addWidget(new QLabel("Network delay (ms):", this), 1,1);
-    layout->addWidget(new QLabel("Packet loss %:", this), 1,3);
-    layout->addWidget(new QLabel("Uplink bandwidth (Mbps):", this), 2,1);
-    layout->addWidget(new QLabel("Downlink bandwidth (Mbps):", this), 2,3);
-    layout->addWidget(new QLabel("Join time (seconds):", this), 3,1);
-    layout->addWidget(new QLabel("Exit time (seconds):", this), 3,3);
+    layout->addWidget(new QLabel("Number of clients:", this), 1,1);
+    layout->addWidget(new QLabel("Network delay (ms):", this), 2,1);
+    layout->addWidget(new QLabel("Packet loss %:", this), 2,3);
+    layout->addWidget(new QLabel("Uplink bandwidth (Mbps):", this), 3,1);
+    layout->addWidget(new QLabel("Downlink bandwidth (Mbps):", this), 3,3);
+    layout->addWidget(new QLabel("Join time (seconds):", this), 4,1);
+    layout->addWidget(new QLabel("Exit time (seconds):", this), 4,3);
 
+    clientCount = new QSpinBox(this);
     delay = new QSpinBox(this);
     loss = new QDoubleSpinBox(this);
     uplink = new QDoubleSpinBox(this);
@@ -28,6 +30,9 @@ ClientWidget::ClientWidget(int number, QWidget *parent, const ClientWidget* prev
     exit = new QSpinBox(this);
     pcap = new QCheckBox("Enable pcap", this);
     graph = new QCheckBox("Enable graphs", this);
+
+    clientCount->setValue(1);
+    clientCount->setMinimum(1);
 
     if(previous != 0)
     {
@@ -41,15 +46,17 @@ ClientWidget::ClientWidget(int number, QWidget *parent, const ClientWidget* prev
         graph->setChecked(previous->graph->isChecked());
     }
 
-    layout->addWidget(delay, 1,2);
-    layout->addWidget(loss, 1,4);
-    layout->addWidget(uplink, 2,2);
-    layout->addWidget(downlink, 2,4);
-    layout->addWidget(arrive, 3,2);
-    layout->addWidget(exit, 3,4);
-    layout->addWidget(pcap, 4,1);
-    layout->addWidget(graph, 4,3);
+    layout->addWidget(clientCount, 1, 2);
+    layout->addWidget(delay, 2,2);
+    layout->addWidget(loss, 2,4);
+    layout->addWidget(uplink, 3,2);
+    layout->addWidget(downlink, 3,4);
+    layout->addWidget(arrive, 4,2);
+    layout->addWidget(exit, 4,4);
+    layout->addWidget(pcap, 5,1);
+    layout->addWidget(graph, 5,3);
 
+    clientCount->setToolTip("Number of clients of this type");
     delay->setToolTip("Network delay of this client type");
     loss->setToolTip("Packet loss of this client type");
     uplink->setToolTip("Uplink bandwidth of this client type");

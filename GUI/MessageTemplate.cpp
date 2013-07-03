@@ -1,4 +1,5 @@
 #include "MessageTemplate.h"
+#include <iostream>
 
 int MessageTemplate::messageTypeCount = 1;
 
@@ -12,10 +13,10 @@ MessageTemplate::MessageTemplate(QWidget *parent, bool appProtoEnabled)
       returnToSender(false)
 {
 
-    messageSize.setDist(Constant);
-    timeInterval.setDist(Constant);
-    forwardMessageSize.setDist(Constant);
-    clientsOfInterest.setDist(Constant);
+    messageSize.setDist(None);
+    timeInterval.setDist(None);
+    forwardMessageSize.setDist(None);
+    clientsOfInterest = 100;
 
 }
 
@@ -60,16 +61,22 @@ void MessageTemplate::setReturnToSender(bool returnToSender)
     this->returnToSender = returnToSender;
 }
 
-void MessageTemplate::setMessageSize(Distribution dist, QList<double> params)
+bool MessageTemplate::setMessageSize(DistributionElement* elem)
 {
-    this->messageSize.setDist(dist);
-    this->messageSize.setParams(params);
+    if(elem == 0)
+        return false;
+
+    this->messageSize = *elem;
+    return true;
 }
 
-void MessageTemplate::setTimeInterval(Distribution dist, QList<double> params)
+bool MessageTemplate::setTimeInterval(DistributionElement* elem)
 {
-    this->timeInterval.setDist(dist);
-    this->timeInterval.setParams(params);
+    if(elem == 0)
+        return false;
+
+    this->timeInterval = *elem;
+    return true;
 }
 
 void MessageTemplate::setForwardMessageSize(Distribution dist, QList<double> params)
@@ -78,10 +85,10 @@ void MessageTemplate::setForwardMessageSize(Distribution dist, QList<double> par
     this->forwardMessageSize.setParams(params);
 }
 
-void MessageTemplate::setClientsOfInterest(Distribution dist, QList<double> params)
+
+void MessageTemplate::setClientsOfInterest(double percentage)
 {
-    this->clientsOfInterest.setDist(dist);
-    this->clientsOfInterest.setParams(params);
+    clientsOfInterest = percentage;
 }
 
 
@@ -91,12 +98,33 @@ DistributionElement::DistributionElement()
 }
 
 
+DistributionElement::DistributionElement(const DistributionElement &c)
+{
+    this->dist = c.dist;
+    this->params = c.params;
+    this->filename = c.filename;
+    this->percentage = c.percentage;
+    this->copyDistributions(c.splitDistributions);
+}
+
 DistributionElement::~DistributionElement()
 {
     DistributionElement* elem;
 
     foreach(elem, splitDistributions)
         delete elem;
+}
+
+
+DistributionElement& DistributionElement::operator=(const DistributionElement& elem)
+{
+    this->dist = elem.dist;
+    this->params = elem.params;
+    this->filename = elem.filename;
+    this->percentage = elem.percentage;
+    this->copyDistributions(elem.splitDistributions);
+
+    return *this;
 }
 
 
@@ -115,9 +143,139 @@ void DistributionElement::setFileName(const QString& fileName)
     this->filename = fileName;
 }
 
-void DistributionElement::setDistributions(const QList<DistributionElement*>& splitDistributions)
+void DistributionElement::copyDistributions(const QList<DistributionElement*>& splitDistributions)
 {
-    this->splitDistributions = splitDistributions;
+    DistributionElement* dist;
+
+    foreach(dist, splitDistributions)
+        this->splitDistributions.append(new DistributionElement(*dist));
 }
 
+QString DistributionElement::getDistributionString() const
+{
+    QString text("");
+
+
+    switch(dist)
+    {
+    case None:
+        return "";
+    break;
+    case Constant:
+        text = "Constant (";
+    break;
+    case Uniform:
+        text = "Uniform (";
+    break;
+    case Sequential:
+        text = "Sequential (";
+    break;
+    case Exponential:
+        text = "Exponential (";
+    break;
+    case Pareto:
+        text = "Pareto (";
+    break;
+    case Weibull:
+        text = "Weibull (";
+    break;
+    case Normal:
+        text = "Normal (";
+    break;
+    case Lognormal:
+        text = "Lognormal (";
+    break;
+    case Gamma:
+        text = "Gamma (";
+    break;
+    case Erlang:
+        text = "Erlang (";
+    break;
+    case Zipf:
+        text = "Zipf (";
+    break;
+    case Zeta:
+        text = "Zeta (";
+    break;
+    case Triangular:
+        text = "Triangular (";
+    break;
+    case Extreme:
+        text = "Extreme (";
+    break;
+    case Empirical:
+        text = "Empirical (";
+    break;
+    case Split:
+        text = "Split (";
+        break;
+
+    }
+
+    if(dist != Empirical && dist != Split)
+    {
+        bool first = true;
+
+        for(QList<double>::const_iterator it = params.begin(); it != params.end(); it++)
+        {
+            if(!first)
+                text.append(", ");
+            else
+                first = false;
+
+            text.append(QString::number(*it));
+        }
+
+    }
+    else if(dist == Empirical)
+    {
+        text.append(filename);
+    }
+    else if(dist == Split)
+    {
+
+        DistributionElement* dist;
+
+        foreach(dist, splitDistributions)
+        {
+            text.append(QString(" %1%2").arg(dist->getPercentage()).arg("%:"));
+            text.append(dist->getDistributionString());
+
+            if(dist != splitDistributions.last())
+                text.append(", ");
+        }
+    }
+
+    text.append(")");
+
+    return text;
+
+}
+
+
+void DistributionElement::addSplitDistribution(const DistributionElement *dist)
+{
+    splitDistributions.append(new DistributionElement(*dist));
+}
+
+
+void DistributionElement::setSplitDistributionPercentages(const QList<QDoubleSpinBox*>& percentages)
+{
+    DistributionElement* dist;
+
+    QList<QDoubleSpinBox*>::const_iterator it = percentages.begin();
+
+    foreach(dist, splitDistributions)
+    {
+        dist->setPercentage((*it)->value());
+        it++;
+    }
+
+}
+
+
+void DistributionElement::setPercentage(double percentage)
+{
+    this->percentage = percentage;
+}
 
