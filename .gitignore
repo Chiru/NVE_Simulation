@@ -5,3 +5,4 @@
 GUI/Makefile
 GUI/NVE_simulation
 GUI/NVE_simulation.pro.user
+GUI/ui_mainwindow.h

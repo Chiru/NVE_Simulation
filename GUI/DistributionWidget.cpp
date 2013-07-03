@@ -145,7 +145,7 @@ void DistributionDialog::createDistributionDialog()
         splitDistributionNames.append(new QLineEdit(dist->getDistributionString()));
         paramDescriptions.append(new QLabel("Distribution " + QString::number(numberOfDistributionsSplit) + " "));
         paramDescriptions.append(new QLabel("Percentage "));
-        splitDistributionPercentages.append(new QDoubleSpinBox());
+        splitDistributionPercentages.append(new QDoubleSpinBox(this));
         splitDistributionPercentages.last()->setMaximum(100);
         updateSplitDistribution();
 

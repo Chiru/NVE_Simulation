@@ -67,6 +67,7 @@ bool MessageTemplate::setMessageSize(DistributionElement* elem)
         return false;
 
     this->messageSize = *elem;
+    delete elem;
     return true;
 }
 
@@ -76,6 +77,7 @@ bool MessageTemplate::setTimeInterval(DistributionElement* elem)
         return false;
 
     this->timeInterval = *elem;
+    delete elem;
     return true;
 }
 
