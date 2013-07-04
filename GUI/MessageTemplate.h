@@ -48,11 +48,13 @@ public:
     QString getMessageName() const {return messageName;}
     const DistributionElement& getMessageSize() const {return messageSize;}
     const DistributionElement& getMessageTimeInterval() const {return timeInterval;}
+    bool getForwardMessageSize(int& size) const;
     TYPE getType() const {return type;}
     bool isAppProtoEnabled() const {return appProtoEnabled;}
     bool isReliable() const {return reliable;}
     bool isReturnedToSender() const {return returnToSender;}
     double getClientsOfInterest() const {return clientsOfInterest;}
+
     void setMessageName(const QString&);
     void setMessageType(int);
     void setAppProtoEnabled(bool enabled);
@@ -60,7 +62,7 @@ public:
     void setReturnToSender(bool);
     bool setMessageSize(DistributionElement*);
     bool setTimeInterval(DistributionElement*);
-    void setForwardMessageSize(Distribution, QList<double>);  //TODO: this needs to be changed?
+    void setForwardMessageSize(int size, bool useRecvSize);
     void setClientsOfInterest(double);
 
 private:
@@ -72,7 +74,8 @@ private:
     bool returnToSender;
     DistributionElement messageSize;
     DistributionElement timeInterval;
-    DistributionElement forwardMessageSize;
+    bool useReceivedMessageSize;
+    uint forwardMessageSize;
     double clientsOfInterest;
 
     static int messageTypeCount;

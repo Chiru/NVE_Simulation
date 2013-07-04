@@ -10,12 +10,13 @@ MessageTemplate::MessageTemplate(QWidget *parent, bool appProtoEnabled)
       type(ClientToServer),
       appProtoEnabled(appProtoEnabled),
       reliable(false),
-      returnToSender(false)
+      returnToSender(false),
+      useReceivedMessageSize(true),
+      forwardMessageSize(0)
 {
 
     messageSize.setDist(None);
     timeInterval.setDist(None);
-    forwardMessageSize.setDist(None);
     clientsOfInterest = 100;
 
 }
@@ -29,6 +30,7 @@ MessageTemplate::MessageTemplate(const MessageTemplate &c)
       returnToSender(c.returnToSender),
       messageSize(c.messageSize),
       timeInterval(c.timeInterval),
+      useReceivedMessageSize(c.useReceivedMessageSize),
       forwardMessageSize(c.forwardMessageSize),
       clientsOfInterest(c.clientsOfInterest)
 
@@ -61,6 +63,7 @@ void MessageTemplate::setReturnToSender(bool returnToSender)
     this->returnToSender = returnToSender;
 }
 
+//returns false if elem is 0
 bool MessageTemplate::setMessageSize(DistributionElement* elem)
 {
     if(elem == 0)
@@ -81,10 +84,18 @@ bool MessageTemplate::setTimeInterval(DistributionElement* elem)
     return true;
 }
 
-void MessageTemplate::setForwardMessageSize(Distribution dist, QList<double> params)
+void MessageTemplate::setForwardMessageSize(int size, bool useRecvSize)
 {
-    this->forwardMessageSize.setDist(dist);
-    this->forwardMessageSize.setParams(params);
+    if(useRecvSize)
+    {
+        useReceivedMessageSize = true;
+        this->forwardMessageSize = 0;
+    }
+    else
+    {
+        useReceivedMessageSize = false;
+        this->forwardMessageSize = size;
+    }
 }
 
 
@@ -93,6 +104,14 @@ void MessageTemplate::setClientsOfInterest(double percentage)
     clientsOfInterest = percentage;
 }
 
+
+//returns true if message size of received message is used, otherwise returns false and sets size
+bool MessageTemplate::getForwardMessageSize(int &size) const
+{
+    size = forwardMessageSize;
+
+    return useReceivedMessageSize;
+}
 
 DistributionElement::DistributionElement()
     :dist(Constant)
