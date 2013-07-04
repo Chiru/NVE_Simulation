@@ -43,11 +43,13 @@ class XmlSerializer
 
 public:
     XmlSerializer(QString fileName);
-    void writeToFile();
+    bool writeToFile();
 
 private:
 
     QString fileName;
+    QList<XmlElement*> elements;
+
     void writeValue();
 
 };

@@ -1,4 +1,5 @@
 #include "XmlSerializer.h"
+#include <QFile>
 
 XmlSerializer::XmlSerializer(QString fileName)
     : fileName(fileName)
@@ -7,10 +8,25 @@ XmlSerializer::XmlSerializer(QString fileName)
 }
 
 
-void XmlSerializer::writeToFile()
+bool XmlSerializer::writeToFile()
 {
 
+    QFile file(fileName);
 
+    if(!file.open(QIODevice::WriteOnly | QIODevice::Text | QIODevice::Truncate))
+        return false;
+
+    XmlElement* elem;
+    QString contents("");
+
+    foreach(elem, elements)
+        contents = elem->getElementString();
+
+    file.write(contents.toAscii());
+
+    file.close();
+
+    return true;
 }
 
 
