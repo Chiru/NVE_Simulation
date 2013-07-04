@@ -15,12 +15,14 @@ SOURCES += main.cpp\
     ClientWidget.cpp \
     StreamWidget.cpp \
     MessageTemplate.cpp \
-    DistributionWidget.cpp
+    DistributionWidget.cpp \
+    XmlSerializer.cpp
 
 HEADERS  += mainwindow.h \
     ClientWidget.h \
     StreamWidget.h \
     MessageTemplate.h \
-    DistributionWidget.h
+    DistributionWidget.h \
+    XmlSerializer.h
 
 FORMS    += mainwindow.ui
