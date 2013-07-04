@@ -52,8 +52,6 @@ MainWindow::MainWindow(QWidget *parent) :
     QObject::connect(ui->addStreamButton, SIGNAL(clicked()), this, SLOT(addStream()));
     QObject::connect(ui->removeStreamButton, SIGNAL(clicked()), this, SLOT(removeStream()));
 
-    //QObject::connect(ui->message_configMessageSize, SIGNAL(clicked()), this, SLOT(createDistributionDialog()));
-
     palette = new QPalette();
     palette->setColor(QPalette::WindowText, QColor(255,0,0));
     ui->message_errorLabel->setPalette(*palette);
@@ -163,8 +161,9 @@ void MainWindow::setMessage(const MessageTemplate * msg, StreamWidget* caller)
 
     ui->message_returnToSender->setChecked(msg->isReturnedToSender());
 
-    ui->message_sizeDistribution->setText(msg->getMessageSize().getDistributionString());
-    ui->message_timeIntervalDistribution->setText(msg->getMessageTimeInterval().getDistributionString());
+    timeInterval->setValue(new DistributionElement(msg->getMessageTimeInterval()));
+    messageSize->setValue(new DistributionElement(msg->getMessageSize()));
+
     ui->message_clientsOfInterestSpinBox->setValue(msg->getClientsOfInterest());
 
     QObject::connect(ui->message_add, SIGNAL(clicked()), caller, SLOT(newMessageAdded()));
@@ -228,6 +227,9 @@ bool MainWindow::configMessageFromEditor(MessageTemplate* msg)
        return false;
 
     if((msg->setTimeInterval(timeInterval->getCopyOfDistributionElement())) == 0)
+        return false;
+
+    if(msg->getMessageTimeInterval().getDist() == None || msg->getMessageSize().getDist() == None)
         return false;
 
     //TODO: add also forwardmessagesize configuration

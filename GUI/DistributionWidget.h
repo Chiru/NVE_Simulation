@@ -25,6 +25,7 @@ public:
     DistributionWidget(QLabel* label, QPushButton* button, QLineEdit* resultDist, QLayout* layout, QWidget* parent = 0);
     ~DistributionWidget();
     DistributionElement* getCopyOfDistributionElement();
+    void setValue(DistributionElement*);
 
     void enableWidget(bool enabled);
 
@@ -39,7 +40,6 @@ private:
 
 private slots:
     void createDistributionDialog();
-
 
 };
 

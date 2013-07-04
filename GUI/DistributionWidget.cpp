@@ -87,6 +87,14 @@ DistributionElement* DistributionWidget::getCopyOfDistributionElement()
 }
 
 
+void DistributionWidget::setValue(DistributionElement* dist)
+{
+    delete distribution;
+    distribution = dist;
+    distributionName->setText(dist->getDistributionString());
+}
+
+
 DistributionDialog::DistributionDialog(bool alreadySplit)
   :   QDialog(),
       splitDistributionButton(0),
