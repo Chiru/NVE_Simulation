@@ -30,9 +30,9 @@
        <property name="geometry">
         <rect>
          <x>0</x>
-         <y>0</y>
+         <y>-149</y>
          <width>1161</width>
-         <height>914</height>
+         <height>960</height>
         </rect>
        </property>
        <layout class="QGridLayout" name="gridLayout_5">
@@ -239,8 +239,8 @@ p, li { white-space: pre-wrap; }
                <rect>
                 <x>0</x>
                 <y>0</y>
-                <width>750</width>
-                <height>444</height>
+                <width>768</width>
+                <height>490</height>
                </rect>
               </property>
              </widget>
@@ -447,20 +447,7 @@ p, li { white-space: pre-wrap; }
                 </layout>
                </widget>
               </item>
-              <item row="6" column="0">
-               <widget class="QCheckBox" name="message_returnToSender">
-                <property name="enabled">
-                 <bool>false</bool>
-                </property>
-                <property name="toolTip">
-                 <string>Defines whether the receiver returns the message.</string>
-                </property>
-                <property name="text">
-                 <string>Return to sender</string>
-                </property>
-               </widget>
-              </item>
-              <item row="7" column="0" colspan="2">
+              <item row="8" column="0" colspan="2">
                <widget class="QFrame" name="message_forwardMessageSizeFrame">
                 <property name="toolTip">
                  <string>The size of the forwarded (or returned) message in bytes.</string>
@@ -471,8 +458,8 @@ p, li { white-space: pre-wrap; }
                 <property name="frameShadow">
                  <enum>QFrame::Raised</enum>
                 </property>
-                <layout class="QGridLayout" name="gridLayout_4">
-                 <item row="0" column="0">
+                <layout class="QFormLayout" name="formLayout_5">
+                 <item row="1" column="0">
                   <widget class="QLabel" name="message_forwardMessageSize">
                    <property name="enabled">
                     <bool>false</bool>
@@ -482,58 +469,37 @@ p, li { white-space: pre-wrap; }
                    </property>
                   </widget>
                  </item>
-                 <item row="0" column="1">
-                  <widget class="QPushButton" name="message_configForwardMessageSize">
-                   <property name="text">
-                    <string>Configure</string>
-                   </property>
-                  </widget>
-                 </item>
-                 <item row="1" column="0" colspan="2">
-                  <widget class="QLabel" name="label_9">
-                   <property name="text">
-                    <string/>
-                   </property>
-                  </widget>
-                 </item>
-                </layout>
-               </widget>
-              </item>
-              <item row="8" column="0" colspan="2">
-               <widget class="QFrame" name="message_clientsOfInterestFrame">
-                <property name="enabled">
-                 <bool>false</bool>
-                </property>
-                <property name="toolTip">
-                 <string>Defines the percentage of the other clients that receive the  forwarded message from the server. </string>
-                </property>
-                <property name="frameShape">
-                 <enum>QFrame::StyledPanel</enum>
-                </property>
-                <property name="frameShadow">
-                 <enum>QFrame::Raised</enum>
-                </property>
-                <layout class="QFormLayout" name="formLayout_4">
-                 <item row="0" column="0">
-                  <widget class="QLabel" name="message_clientsOfInterest">
-                   <property name="enabled">
-                    <bool>false</bool>
-                   </property>
+                 <item row="2" column="0">
+                  <widget class="QRadioButton" name="message_forwardMessageSizeRadioButton_received">
                    <property name="toolTip">
-                    <string/>
+                    <string>Use size similar to the received message.</string>
                    </property>
                    <property name="text">
-                    <string>Clients of interest (%):</string>
+                    <string>Use received message size</string>
                    </property>
                   </widget>
                  </item>
-                 <item row="0" column="1">
-                  <widget class="QDoubleSpinBox" name="message_clientsOfInterestSpinBox"/>
+                 <item row="3" column="0">
+                  <widget class="QRadioButton" name="message_forwardMessageSizeRadioButton_constant">
+                   <property name="toolTip">
+                    <string>Use constant size regardless of the received message size.</string>
+                   </property>
+                   <property name="text">
+                    <string>Use constant size</string>
+                   </property>
+                  </widget>
+                 </item>
+                 <item row="3" column="1">
+                  <widget class="QSpinBox" name="message_forwardMessageSpinBox">
+                   <property name="toolTip">
+                    <string>Defines a constant forward message size.</string>
+                   </property>
+                  </widget>
                  </item>
                 </layout>
                </widget>
               </item>
-              <item row="9" column="0" colspan="2">
+              <item row="10" column="0" colspan="2">
                <widget class="QLabel" name="message_errorLabel">
                 <property name="palette">
                  <palette>
@@ -955,7 +921,7 @@ p, li { white-space: pre-wrap; }
                 </property>
                </widget>
               </item>
-              <item row="10" column="0">
+              <item row="11" column="0">
                <widget class="QPushButton" name="message_add">
                 <property name="enabled">
                  <bool>false</bool>
@@ -965,11 +931,65 @@ p, li { white-space: pre-wrap; }
                 </property>
                </widget>
               </item>
-              <item row="10" column="1">
+              <item row="11" column="1">
                <widget class="QPushButton" name="message_cancel">
                 <property name="text">
                  <string>Cancel</string>
                 </property>
+               </widget>
+              </item>
+              <item row="7" column="0" colspan="2">
+               <widget class="QFrame" name="message_clientsOfInterestFrame">
+                <property name="enabled">
+                 <bool>false</bool>
+                </property>
+                <property name="toolTip">
+                 <string/>
+                </property>
+                <property name="frameShape">
+                 <enum>QFrame::StyledPanel</enum>
+                </property>
+                <property name="frameShadow">
+                 <enum>QFrame::Raised</enum>
+                </property>
+                <layout class="QFormLayout" name="formLayout_4">
+                 <property name="fieldGrowthPolicy">
+                  <enum>QFormLayout::AllNonFixedFieldsGrow</enum>
+                 </property>
+                 <item row="1" column="0">
+                  <widget class="QLabel" name="message_clientsOfInterest">
+                   <property name="enabled">
+                    <bool>false</bool>
+                   </property>
+                   <property name="toolTip">
+                    <string>Defines the percentage of the clients that receive the forwarded message from the server. </string>
+                   </property>
+                   <property name="text">
+                    <string>Clients of interest (%):</string>
+                   </property>
+                  </widget>
+                 </item>
+                 <item row="1" column="1">
+                  <widget class="QDoubleSpinBox" name="message_clientsOfInterestSpinBox">
+                   <property name="toolTip">
+                    <string>Defines the percentage of the other clients that receive the  forwarded message from the server. </string>
+                   </property>
+                  </widget>
+                 </item>
+                 <item row="0" column="0">
+                  <widget class="QCheckBox" name="message_returnToSender">
+                   <property name="enabled">
+                    <bool>false</bool>
+                   </property>
+                   <property name="toolTip">
+                    <string>Defines whether the receiver returns the message.</string>
+                   </property>
+                   <property name="text">
+                    <string>Return to sender</string>
+                   </property>
+                  </widget>
+                 </item>
+                </layout>
                </widget>
               </item>
              </layout>
