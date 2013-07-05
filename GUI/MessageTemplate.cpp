@@ -12,7 +12,9 @@ MessageTemplate::MessageTemplate(QWidget *parent, bool appProtoEnabled)
       reliable(false),
       returnToSender(false),
       useReceivedMessageSize(true),
-      forwardMessageSize(0)
+      forwardMessageSize(0),
+      timeRequirementClient(0),
+      timeRequirementServer(0)
 {
 
     messageSize.setDist(None);
@@ -32,7 +34,9 @@ MessageTemplate::MessageTemplate(const MessageTemplate &c)
       timeInterval(c.timeInterval),
       useReceivedMessageSize(c.useReceivedMessageSize),
       forwardMessageSize(c.forwardMessageSize),
-      clientsOfInterest(c.clientsOfInterest)
+      clientsOfInterest(c.clientsOfInterest),
+      timeRequirementClient(0),
+      timeRequirementServer(0)
 
 {
 }

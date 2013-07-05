@@ -41,6 +41,9 @@ private:
 
 class MessageTemplate : public QGroupBox
 {
+
+    friend class XmlSerializer;
+
 public:
     typedef enum {ClientToServer, ServerToClient} TYPE;
     MessageTemplate( QWidget* parent = 0, bool appProtoEnabled = false);
@@ -77,6 +80,8 @@ private:
     bool useReceivedMessageSize;
     uint forwardMessageSize;
     double clientsOfInterest;
+    int timeRequirementClient;
+    int timeRequirementServer;
 
     static int messageTypeCount;
 

@@ -16,6 +16,8 @@ class StreamWidget : public QGroupBox
 {
     Q_OBJECT
 
+    friend class XmlSerializer;
+
 public:
     StreamWidget(int number, MainWindow* mw,QWidget* parent = 0);
     ~StreamWidget();
