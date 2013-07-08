@@ -8,6 +8,9 @@
 
 class ClientWidget : public QGroupBox
 {
+
+    friend class XmlSerializer;
+
 public:
     ClientWidget(int number, QWidget* parent = 0, const ClientWidget* previous = 0);
 
@@ -24,7 +27,6 @@ private:
     QSpinBox* exit;
     QCheckBox* pcap;
     QCheckBox* graph;
-
 
 };
 

@@ -4,6 +4,7 @@
 #include <QString>
 #include <QList>
 #include "StreamWidget.h"
+#include "ClientWidget.h"
 
 
 class XmlElement
@@ -49,10 +50,11 @@ class XmlSerializer
 
 public:
     XmlSerializer(QString fileName);
+    ~XmlSerializer();
     bool writeToFile();
-    void addClientsElement(XmlElement*);
-    void addAppProtoElement(XmlElement*);
-    void addStreamElement(StreamWidget* stream);
+    void addClientsElement(const ClientWidget *);
+    void addAppProtoElement(uint ackSize, uint delayedAck, uint retransmit, uint headerSize);
+    void addStreamElement(const StreamWidget *stream);
     void addSimulationParam(XmlElement*);
 
 private:
@@ -60,12 +62,13 @@ private:
     QString fileName;
     QList<XmlElement*> elements; //TODO: remove?
     QList<XmlElement*> clients;
-    XmlElement* appProto;
+    XmlStruct* appProto;
     QList<XmlElement*> streams;
     QList<XmlElement*> simulationParams;
+    int clientCount;
 
     void gatherElements();
-    void addMessages(XmlStruct* stream, QList<MessageTemplate*> messages);
+    void addMessages(XmlStruct *stream, const QList<MessageTemplate *>& messages);
 
 };
 

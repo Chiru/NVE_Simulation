@@ -12,7 +12,8 @@ MainWindow::MainWindow(QWidget *parent) :
     QMainWindow(parent),
     ui(new Ui::MainWindow),
     numberOfClients(1),
-    numberOfStreams(1)
+    numberOfStreams(1),
+    serializer(XmlSerializer("configuration.txt"))
 {
 
     ui->setupUi(this);
@@ -51,6 +52,7 @@ MainWindow::MainWindow(QWidget *parent) :
     QObject::connect(ui->addStreamButton, SIGNAL(clicked()), this, SLOT(addStream()));
     QObject::connect(ui->removeStreamButton, SIGNAL(clicked()), this, SLOT(removeStream()));
     QObject::connect(ui->message_forwardMessageSizeRadioButton_received, SIGNAL(toggled(bool)), ui->message_forwardMessageSpinBox, SLOT(setDisabled(bool)));
+    QObject::connect(ui->executeButton, SIGNAL(clicked()), this, SLOT(configurationFinished()));
 
     ui->message_forwardMessageSpinBox->setMaximum(10000);
     ui->message_forwardMessageSpinBox->setMinimum(1);
@@ -298,4 +300,18 @@ void MainWindow::setMsgConfigErrorMessage(const QString &error)
 }
 
 
+void MainWindow::configurationFinished()
+{
+    ClientWidget* client;
+
+    foreach(client, previousClients)
+        serializer.addClientsElement(client);
+
+    serializer.addAppProtoElement(ui->appProto_ackSize->value(), ui->appProto_delAck->value(), ui->appProto_RTO->value(), ui->appProto_headerSize->value());
+
+    StreamWidget* stream;
+
+    foreach(stream, previousStreams)
+        serializer.addStreamElement(stream);
+}
 

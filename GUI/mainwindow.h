@@ -8,6 +8,7 @@
 #include <QScrollArea>
 #include "MessageTemplate.h"
 #include "DistributionWidget.h"
+#include "XmlSerializer.h"
 
 class ClientWidget;
 class StreamWidget;
@@ -38,18 +39,21 @@ private:
     QPalette* palette;
     DistributionWidget* messageSize;
     DistributionWidget* timeInterval;
+    XmlSerializer serializer;
 
     void enableMessageEditor(bool enabled);
 
 
-
 public slots:
+    void finishEditor();
+
+private slots:
     void addClientWidgetToScrollArea();
     void removeClient();
     void addStream();
     void removeStream();
     void setMessage(const MessageTemplate* msg, StreamWidget* caller);
-    void finishEditor();
+    void configurationFinished();
 };
 
 

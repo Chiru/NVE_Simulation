@@ -1,6 +1,7 @@
 #include "XmlSerializer.h"
 #include "StreamWidget.h"
 #include <QFile>
+#include <iostream>
 
 
 XmlElement::XmlElement(const QString &name)
@@ -65,33 +66,81 @@ QString XmlValue::getElementString(int intend) const
     for(int i = 0; i < intend; i++)
         result.append("\t");
 
-    result.append("<" + elementName + "\"" + value + "\"/\n");
+    result.append("<" + elementName + "=\"" + value + "\"/>\n");
 
     return result;
 }
 
 
 XmlSerializer::XmlSerializer(QString fileName)
-    : fileName(fileName)
+    : fileName(fileName),
+      appProto(0),
+      clientCount(1)
 {
-
 }
 
 
-void XmlSerializer::addClientsElement(XmlElement* client)
+XmlSerializer::~XmlSerializer()
 {
-    this->clients.append(client);
+
+    delete appProto;
+
+    XmlElement* elem;
+
+    foreach(elem, clients)
+        delete elem;
+
+    foreach(elem, streams)
+        delete elem;
+
+}
+
+void XmlSerializer::addClientsElement(const ClientWidget *client)
+{
+    XmlStruct* elem = new XmlStruct("client");
+
+    QString number("");
+
+    if(client->clientCount->value() == 1)
+    {
+        number = QString::number(clientCount);
+    }
+    else
+    {
+        number = QString::number(clientCount);
+        number.append(":");
+        number.append(QString::number(client->clientCount->value()));
+    }
+
+    elem->addElement(new XmlValue("no", number));
+
+    clientCount += client->clientCount->value();
+
+    elem->addElement(new XmlValue("delay", QString::number(client->delay->value())));
+    elem->addElement(new XmlValue("uplink", QString::number(client->uplink->value())));
+    elem->addElement(new XmlValue("downlink", QString::number(client->downlink->value())));
+    elem->addElement(new XmlValue("loss", QString::number(client->loss->value())));
+
+
+    clients.append(elem);
 }
 
 
-void XmlSerializer::addAppProtoElement(XmlElement* appProto)
+void XmlSerializer::addAppProtoElement(uint ackSize, uint delayedAck, uint retransmit, uint headerSize)
 {
-    this->appProto = appProto;
+    delete appProto;
+    appProto = new XmlStruct("appProto");
+
+    appProto->addElement(new XmlValue("acksize", QString::number(ackSize)));
+    appProto->addElement(new XmlValue("delayedAck", QString::number(delayedAck)));
+    appProto->addElement(new XmlValue("retransmit", QString::number(retransmit)));
+    appProto->addElement(new XmlValue("headerSize", QString::number(headerSize)));
 }
 
 
-void XmlSerializer::addStreamElement(StreamWidget* stream)
+void XmlSerializer::addStreamElement(const StreamWidget* stream)
 {
+
     XmlStruct* streamElement = new XmlStruct("stream");
 
     if(stream->tcpUsed())
@@ -109,10 +158,12 @@ void XmlSerializer::addStreamElement(StreamWidget* stream)
 
     addMessages(streamElement, stream->messages);
 
+    streams.append(streamElement);
+
 }
 
 
-void XmlSerializer::addMessages(XmlStruct* stream, QList<MessageTemplate*> messages)
+void XmlSerializer::addMessages(XmlStruct* stream, const QList<MessageTemplate*>& messages)
 {
     XmlStruct* messageStruct = new XmlStruct("messages");
 

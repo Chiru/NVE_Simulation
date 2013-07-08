@@ -1,4 +1,5 @@
 #include "StreamWidget.h"
+#include "mainwindow.h"
 #include <QGridLayout>
 #include <QLabel>
 #include <QVBoxLayout>

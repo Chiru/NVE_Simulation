@@ -30,9 +30,9 @@
        <property name="geometry">
         <rect>
          <x>0</x>
-         <y>-257</y>
+         <y>0</y>
          <width>1161</width>
-         <height>1040</height>
+         <height>1073</height>
         </rect>
        </property>
        <layout class="QGridLayout" name="gridLayout_5">
@@ -53,7 +53,7 @@
                 <x>0</x>
                 <y>0</y>
                 <width>790</width>
-                <height>264</height>
+                <height>297</height>
                </rect>
               </property>
              </widget>
@@ -120,6 +120,13 @@
                <widget class="QSpinBox" name="simTime">
                 <property name="toolTip">
                  <string>Defines the simulation execution time.</string>
+                </property>
+               </widget>
+              </item>
+              <item row="1" column="0">
+               <widget class="QPushButton" name="executeButton">
+                <property name="text">
+                 <string>Run simulation</string>
                 </property>
                </widget>
               </item>
@@ -239,7 +246,7 @@ p, li { white-space: pre-wrap; }
                <rect>
                 <x>0</x>
                 <y>0</y>
-                <width>722</width>
+                <width>718</width>
                 <height>570</height>
                </rect>
               </property>
@@ -539,7 +546,7 @@ p, li { white-space: pre-wrap; }
                     <string>Use constant size regardless of the received message size.</string>
                    </property>
                    <property name="text">
-                    <string>Use constant size</string>
+                    <string>Use constant size:</string>
                    </property>
                   </widget>
                  </item>
@@ -1021,7 +1028,7 @@ p, li { white-space: pre-wrap; }
                     <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Time limit for this message to reach client in milliseconds.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
                    </property>
                    <property name="text">
-                    <string>Time requirement to reach client (ms)</string>
+                    <string>Time requirement to reach client (ms):</string>
                    </property>
                   </widget>
                  </item>
@@ -1031,7 +1038,7 @@ p, li { white-space: pre-wrap; }
                     <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Time limit for this message to reach server in milliseconds.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
                    </property>
                    <property name="text">
-                    <string>Time requirement to reach server (ms)</string>
+                    <string>Time requirement to reach server (ms):</string>
                    </property>
                   </widget>
                  </item>

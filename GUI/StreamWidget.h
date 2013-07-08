@@ -10,7 +10,8 @@
 #include <QPushButton>
 #include <QLabel>
 #include "MessageTemplate.h"
-#include "mainwindow.h"
+
+class MainWindow;
 
 class StreamWidget : public QGroupBox
 {
