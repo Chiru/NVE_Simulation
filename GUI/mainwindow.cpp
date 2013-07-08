@@ -56,6 +56,9 @@ MainWindow::MainWindow(QWidget *parent) :
     ui->message_forwardMessageSpinBox->setMinimum(1);
     ui->message_forwardMessageSizeRadioButton_received->setChecked(true);
 
+    ui->message_timeReqClientSpinBox->setMaximum(10000);
+    ui->message_timeReqServerSpinBox->setMaximum(10000);
+
     palette = new QPalette();
     palette->setColor(QPalette::WindowText, QColor(255,0,0));
     ui->message_errorLabel->setPalette(*palette);
@@ -190,6 +193,10 @@ void MainWindow::setMessage(const MessageTemplate * msg, StreamWidget* caller)
     if(ui->message_forwardMessageSizeRadioButton_received->isChecked())
         ui->message_forwardMessageSpinBox->setEnabled(false);
 
+    ui->message_timeReqClientSpinBox->setValue(msg->getTimeReqClient());
+    ui->message_timeReqServerSpinBox->setValue(msg->getTimeReqServer());
+
+
     QObject::connect(ui->message_add, SIGNAL(clicked()), caller, SLOT(newMessageAdded()));
     QObject::connect(ui->message_cancel, SIGNAL(clicked()), caller, SLOT(editorClosed()));
 
@@ -210,6 +217,8 @@ void MainWindow::finishEditor()
 
     ui->message_clientsOfInterestSpinBox->clear();
     ui->message_forwardMessageSpinBox->clear();
+    ui->message_timeReqClientSpinBox->clear();
+    ui->message_timeReqServerSpinBox->clear();
 
 }
 
@@ -239,6 +248,12 @@ void MainWindow::enableMessageEditor(bool enabled)
     ui->addStreamButton->setEnabled(!enabled);
     ui->removeStreamButton->setEnabled(!enabled);
 
+    ui->message_timeRequirementFrame->setEnabled(enabled);
+    ui->message_timeReqClient->setEnabled(enabled);
+    ui->message_timeReqServer->setEnabled(enabled);
+    ui->message_timeReqClientSpinBox->setEnabled(enabled);
+    ui->message_timeReqServerSpinBox->setEnabled(enabled);
+
     messageSize->enableWidget(enabled);
     timeInterval->enableWidget(enabled);
 
@@ -267,6 +282,10 @@ bool MainWindow::configMessageFromEditor(MessageTemplate* msg)
 
     msg->setForwardMessageSize(ui->message_forwardMessageSpinBox->value(), ui->message_forwardMessageSizeRadioButton_received->isChecked());
     msg->setClientsOfInterest(ui->message_clientsOfInterestSpinBox->value());
+
+    msg->setTimeRequirementClient(ui->message_timeReqClientSpinBox->value());
+    msg->setTimeRequirementServer(ui->message_timeReqServerSpinBox->value());
+
 
     return true;
 

@@ -35,8 +35,8 @@ MessageTemplate::MessageTemplate(const MessageTemplate &c)
       useReceivedMessageSize(c.useReceivedMessageSize),
       forwardMessageSize(c.forwardMessageSize),
       clientsOfInterest(c.clientsOfInterest),
-      timeRequirementClient(0),
-      timeRequirementServer(0)
+      timeRequirementClient(c.timeRequirementClient),
+      timeRequirementServer(c.timeRequirementServer)
 
 {
 }
@@ -116,6 +116,19 @@ bool MessageTemplate::getForwardMessageSize(int &size) const
 
     return useReceivedMessageSize;
 }
+
+
+void MessageTemplate::setTimeRequirementClient(int req)
+{
+    this->timeRequirementClient = req;
+}
+
+
+void MessageTemplate::setTimeRequirementServer(int req)
+{
+    this->timeRequirementServer = req;
+}
+
 
 DistributionElement::DistributionElement()
     :dist(Constant)

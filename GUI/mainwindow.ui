@@ -30,9 +30,9 @@
        <property name="geometry">
         <rect>
          <x>0</x>
-         <y>-149</y>
+         <y>-257</y>
          <width>1161</width>
-         <height>960</height>
+         <height>1040</height>
         </rect>
        </property>
        <layout class="QGridLayout" name="gridLayout_5">
@@ -239,8 +239,8 @@ p, li { white-space: pre-wrap; }
                <rect>
                 <x>0</x>
                 <y>0</y>
-                <width>768</width>
-                <height>490</height>
+                <width>722</width>
+                <height>570</height>
                </rect>
               </property>
              </widget>
@@ -443,6 +443,60 @@ p, li { white-space: pre-wrap; }
                  </item>
                  <item row="1" column="0" colspan="2">
                   <widget class="QLineEdit" name="message_timeIntervalDistribution"/>
+                 </item>
+                </layout>
+               </widget>
+              </item>
+              <item row="7" column="0" colspan="2">
+               <widget class="QFrame" name="message_clientsOfInterestFrame">
+                <property name="enabled">
+                 <bool>false</bool>
+                </property>
+                <property name="toolTip">
+                 <string/>
+                </property>
+                <property name="frameShape">
+                 <enum>QFrame::StyledPanel</enum>
+                </property>
+                <property name="frameShadow">
+                 <enum>QFrame::Raised</enum>
+                </property>
+                <layout class="QFormLayout" name="formLayout_4">
+                 <property name="fieldGrowthPolicy">
+                  <enum>QFormLayout::AllNonFixedFieldsGrow</enum>
+                 </property>
+                 <item row="1" column="0">
+                  <widget class="QLabel" name="message_clientsOfInterest">
+                   <property name="enabled">
+                    <bool>false</bool>
+                   </property>
+                   <property name="toolTip">
+                    <string>Defines the percentage of the clients that receive the forwarded message from the server. </string>
+                   </property>
+                   <property name="text">
+                    <string>Clients of interest (%):</string>
+                   </property>
+                  </widget>
+                 </item>
+                 <item row="1" column="1">
+                  <widget class="QDoubleSpinBox" name="message_clientsOfInterestSpinBox">
+                   <property name="toolTip">
+                    <string>Defines the percentage of the other clients that receive the  forwarded message from the server. </string>
+                   </property>
+                  </widget>
+                 </item>
+                 <item row="0" column="0">
+                  <widget class="QCheckBox" name="message_returnToSender">
+                   <property name="enabled">
+                    <bool>false</bool>
+                   </property>
+                   <property name="toolTip">
+                    <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Defines whether the receiver returns the message back to the sender.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+                   </property>
+                   <property name="text">
+                    <string>Return to sender</string>
+                   </property>
+                  </widget>
                  </item>
                 </layout>
                </widget>
@@ -938,54 +992,46 @@ p, li { white-space: pre-wrap; }
                 </property>
                </widget>
               </item>
-              <item row="7" column="0" colspan="2">
-               <widget class="QFrame" name="message_clientsOfInterestFrame">
-                <property name="enabled">
-                 <bool>false</bool>
-                </property>
-                <property name="toolTip">
-                 <string/>
-                </property>
+              <item row="9" column="0" colspan="2">
+               <widget class="QFrame" name="message_timeRequirementFrame">
                 <property name="frameShape">
                  <enum>QFrame::StyledPanel</enum>
                 </property>
                 <property name="frameShadow">
                  <enum>QFrame::Raised</enum>
                 </property>
-                <layout class="QFormLayout" name="formLayout_4">
-                 <property name="fieldGrowthPolicy">
-                  <enum>QFormLayout::AllNonFixedFieldsGrow</enum>
-                 </property>
-                 <item row="1" column="0">
-                  <widget class="QLabel" name="message_clientsOfInterest">
-                   <property name="enabled">
-                    <bool>false</bool>
-                   </property>
+                <layout class="QGridLayout" name="gridLayout_4">
+                 <item row="1" column="1">
+                  <widget class="QSpinBox" name="message_timeReqServerSpinBox">
                    <property name="toolTip">
-                    <string>Defines the percentage of the clients that receive the forwarded message from the server. </string>
-                   </property>
-                   <property name="text">
-                    <string>Clients of interest (%):</string>
+                    <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Time limit for this message to reach server in milliseconds.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
                    </property>
                   </widget>
                  </item>
-                 <item row="1" column="1">
-                  <widget class="QDoubleSpinBox" name="message_clientsOfInterestSpinBox">
+                 <item row="0" column="1">
+                  <widget class="QSpinBox" name="message_timeReqClientSpinBox">
                    <property name="toolTip">
-                    <string>Defines the percentage of the other clients that receive the  forwarded message from the server. </string>
+                    <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Time limit for this message to reach client in milliseconds.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
                    </property>
                   </widget>
                  </item>
                  <item row="0" column="0">
-                  <widget class="QCheckBox" name="message_returnToSender">
-                   <property name="enabled">
-                    <bool>false</bool>
-                   </property>
+                  <widget class="QLabel" name="message_timeReqClient">
                    <property name="toolTip">
-                    <string>Defines whether the receiver returns the message.</string>
+                    <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Time limit for this message to reach client in milliseconds.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
                    </property>
                    <property name="text">
-                    <string>Return to sender</string>
+                    <string>Time requirement to reach client (ms)</string>
+                   </property>
+                  </widget>
+                 </item>
+                 <item row="1" column="0">
+                  <widget class="QLabel" name="message_timeReqServer">
+                   <property name="toolTip">
+                    <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Time limit for this message to reach server in milliseconds.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+                   </property>
+                   <property name="text">
+                    <string>Time requirement to reach server (ms)</string>
                    </property>
                   </widget>
                  </item>

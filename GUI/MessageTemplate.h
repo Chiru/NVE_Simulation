@@ -57,6 +57,8 @@ public:
     bool isReliable() const {return reliable;}
     bool isReturnedToSender() const {return returnToSender;}
     double getClientsOfInterest() const {return clientsOfInterest;}
+    int getTimeReqClient() const {return timeRequirementClient;}
+    int getTimeReqServer() const {return timeRequirementServer;}
 
     void setMessageName(const QString&);
     void setMessageType(int);
@@ -67,6 +69,8 @@ public:
     bool setTimeInterval(DistributionElement*);
     void setForwardMessageSize(int size, bool useRecvSize);
     void setClientsOfInterest(double);
+    void setTimeRequirementClient(int);
+    void setTimeRequirementServer(int);
 
 private:
 
