@@ -55,17 +55,19 @@ public:
     void addClientsElement(const ClientWidget *);
     void addAppProtoElement(uint ackSize, uint delayedAck, uint retransmit, uint headerSize);
     void addStreamElement(const StreamWidget *stream);
-    void addSimulationParam(XmlElement*);
+    void addSimulationParam(uint simTime, bool animation);
 
 private:
 
     QString fileName;
-    QList<XmlElement*> elements; //TODO: remove?
+    QList<XmlElement*> elements;
     QList<XmlElement*> clients;
     XmlStruct* appProto;
     QList<XmlElement*> streams;
     QList<XmlElement*> simulationParams;
-    int clientCount;
+    uint clientCount;
+    uint simulationTime;
+    bool enableAnimation;
 
     void gatherElements();
     void addMessages(XmlStruct *stream, const QList<MessageTemplate *>& messages);

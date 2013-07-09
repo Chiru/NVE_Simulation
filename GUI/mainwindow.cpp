@@ -302,6 +302,9 @@ void MainWindow::setMsgConfigErrorMessage(const QString &error)
 
 void MainWindow::configurationFinished()
 {
+
+    serializer.addSimulationParam(ui->simTime->value(), ui->animationCheckBox->isChecked());
+
     ClientWidget* client;
 
     foreach(client, previousClients)
@@ -313,5 +316,7 @@ void MainWindow::configurationFinished()
 
     foreach(stream, previousStreams)
         serializer.addStreamElement(stream);
+
+    serializer.writeToFile();
 }
 
