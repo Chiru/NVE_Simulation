@@ -334,7 +334,7 @@ bool MainWindow::loadConfigurationFile(QString fileName)
 
     QString contents(file.readAll());
 
-    parser.getElement();
+    //parser.getElement();
 
     file.close();
 
