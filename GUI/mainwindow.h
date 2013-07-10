@@ -42,7 +42,7 @@ private:
     XmlSerializer serializer;
 
     void enableMessageEditor(bool enabled);
-
+    bool loadConfigurationFile(QString fileName);
 
 public slots:
     void finishEditor();

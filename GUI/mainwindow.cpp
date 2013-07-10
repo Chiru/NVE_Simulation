@@ -3,9 +3,11 @@
 #include "ClientWidget.h"
 #include "StreamWidget.h"
 #include "MessageTemplate.h"
+#include "../XML_parser.h"
 #include <QBoxLayout>
 #include <QScrollBar>
 #include <iostream>
+#include <QFile>
 
 
 MainWindow::MainWindow(QWidget *parent) :
@@ -319,4 +321,24 @@ void MainWindow::configurationFinished()
 
     serializer.writeToFile();
 }
+
+
+bool MainWindow::loadConfigurationFile(QString fileName)
+{
+    XMLParser parser();
+
+    QFile file(fileName);
+
+    if(!file.open(QIODevice::ReadOnly | QIODevice::Text))
+        return false;
+
+    QString contents(file.readAll());
+
+    parser.getElement();
+
+    file.close();
+
+    return true;
+}
+
 
