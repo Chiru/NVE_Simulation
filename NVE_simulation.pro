@@ -25,7 +25,8 @@ SOURCES += GUI/main.cpp\
     RScriptGenerator.cpp \
     Server.cpp \
     StatisticCollector.cpp \
-    XML_Parser.cpp
+    XML_Parser.cpp \
+    Client.cpp
 
 HEADERS  += GUI/mainwindow.h \
     GUI/ClientWidget.h \
@@ -50,3 +51,4 @@ OTHER_FILES += \
     .gitignore
 
 INCLUDEPATH += ../build
+
