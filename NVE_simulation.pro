@@ -17,7 +17,15 @@ SOURCES += GUI/main.cpp\
     GUI/MessageTemplate.cpp \
     GUI/DistributionWidget.cpp \
     GUI/XmlSerializer.cpp \
-    nve_simulator.cc
+    nve_simulator.cc \
+    Messages.cpp \
+    ApplicationProtocol.cpp \
+    DataGenerator.cpp \
+    DataSender.cpp \
+    RScriptGenerator.cpp \
+    Server.cpp \
+    StatisticCollector.cpp \
+    XML_Parser.cpp
 
 HEADERS  += GUI/mainwindow.h \
     GUI/ClientWidget.h \
@@ -40,3 +48,5 @@ FORMS    += GUI/mainwindow.ui
 
 OTHER_FILES += \
     .gitignore
+
+INCLUDEPATH += ../build

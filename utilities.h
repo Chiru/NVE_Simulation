@@ -1,10 +1,12 @@
 #ifndef UTILITIES_H
 #define UTILITIES_H
 
-using namespace ns3;
+
 #include <string>
 #include <ns3/socket.h>
 #include "ns3/address.h"
+
+using namespace ns3;
 
 #define PRINT_RESULT(a) (std::cout << a)
 #define PRINT_INFO(a) (StatisticsCollector::getVerbose() == true ? std::cout << a : std::cout << "")
