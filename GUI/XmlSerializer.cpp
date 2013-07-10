@@ -83,16 +83,35 @@ XmlSerializer::XmlSerializer(QString fileName)
 XmlSerializer::~XmlSerializer()
 {
 
-    delete appProto;
-
     XmlElement* elem;
 
-    foreach(elem, clients)
-        delete elem;
+    if(elements.empty())
+    {
+        delete appProto;
 
-    foreach(elem, streams)
-        delete elem;
+        foreach(elem, clients)
+        {
+            delete elem;
+            elem = 0;
+        }
 
+        foreach(elem, streams)
+        {
+            delete elem;
+            elem = 0;
+        }
+
+        foreach(elem, simulationParams)
+        {
+            delete elem;
+            elem = 0;
+        }
+    }
+    else
+    {
+        foreach(elem, elements)
+            delete elem;
+    }
 }
 
 void XmlSerializer::addClientsElement(const ClientWidget *client)
@@ -120,7 +139,10 @@ void XmlSerializer::addClientsElement(const ClientWidget *client)
     elem->addElement(new XmlValue("uplink", QString::number(client->uplink->value())));
     elem->addElement(new XmlValue("downlink", QString::number(client->downlink->value())));
     elem->addElement(new XmlValue("loss", QString::number(client->loss->value())));
-
+    elem->addElement(new XmlValue("jointime", QString::number(client->arrive->value())));
+    elem->addElement(new XmlValue("exittime", QString::number(client->exit->value())));
+    elem->addElement(new XmlValue("pcap", client->pcap->isChecked() ? "yes" : "no"));
+    elem->addElement(new XmlValue("graphs", client->graph->isChecked() ? "yes" : "no"));
 
     clients.append(elem);
 }
@@ -196,9 +218,10 @@ void XmlSerializer::addMessages(XmlStruct* stream, const QList<MessageTemplate*>
 }
 
 
-void XmlSerializer::addSimulationParam(XmlElement* param)
+void XmlSerializer::addSimulationParam(uint simTime, bool animation)
 {
-    this->simulationParams.append(param);
+    this->simulationParams.append(new XmlValue("runningtime", QString::number(simTime)));
+    this->simulationParams.append(new XmlValue("animation", animation ? "yes" : "no"));
 }
 
 
@@ -240,7 +263,7 @@ bool XmlSerializer::writeToFile()
     gatherElements();
 
     foreach(elem, elements)
-        contents = elem->getElementString(1);  //TODO: write separate xml-values?
+        contents.append(elem->getElementString(1));
 
     contents.append("</xml>");
 
