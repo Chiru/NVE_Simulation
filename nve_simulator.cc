@@ -45,7 +45,7 @@
 void printAddresses(NetDeviceContainer *deviceContainer, Ipv4InterfaceContainer *ipv4Container,  int count);
 void printHelpAndQuit();
 
-int main(int argc, char** argv){
+int start(int argc, char** argv){
 
    // LogComponentEnable("nve_simulator", LOG_LEVEL_INFO);
 
