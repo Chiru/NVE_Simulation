@@ -88,14 +88,14 @@ bool DataSender::flushTcpBuffer(bool isClient){
     if(isClient){
         for(std::vector<MessageInfo>::iterator msgIt = clientMessagesInTcpBuffer.begin(); msgIt != clientMessagesInTcpBuffer.end(); msgIt++){
 
-            interval = getMessageSendInterval(msgIt->messageNumber, true, msgIt->name);
+            interval = getMessageSendInterval( msgIt->name);
             StatisticsCollector::updateMessageTimeIntervalSentFromClient(msgIt->messageNumber, msgIt->streamNumber, interval);
         }
         clientMessagesInTcpBuffer.clear();
     }else{
         for(std::vector<MessageInfo>::iterator msgIt = serverMessagesInTcpBuffer.begin(); msgIt != serverMessagesInTcpBuffer.end(); msgIt++){
 
-            interval = getMessageSendInterval(msgIt->messageNumber, false, msgIt->name);
+            interval = getMessageSendInterval(msgIt->name);
             StatisticsCollector::updateMessageTimeIntervalSentFromServer(msgIt->messageNumber, msgIt->streamNumber, interval);
         }
         serverMessagesInTcpBuffer.clear();
@@ -125,14 +125,14 @@ bool DataSender::flushUdpBuffer(Ptr<Socket> sock, bool isClient){
     if(isClient){
         for(std::vector<MessageInfo>::iterator it = clientMessagesInUdpBuffer.begin(); it != clientMessagesInUdpBuffer.end(); it++){
 
-            interval = getMessageSendInterval(it->messageNumber, true, it->name);
+            interval = getMessageSendInterval(it->name);
             StatisticsCollector::updateMessageTimeIntervalSentFromClient(it->messageNumber, it->streamNumber, interval);
         }
         clientMessagesInUdpBuffer.clear();
     }else{
         for(std::vector<MessageInfo>::iterator it = serverMessagesInUdpBuffer.begin(); it != serverMessagesInUdpBuffer.end(); it++){
 
-            interval = getMessageSendInterval(it->messageNumber, false, it->name);
+            interval = getMessageSendInterval(it->name);
             StatisticsCollector::updateMessageTimeIntervalSentFromServer(it->messageNumber, it->streamNumber, interval);
         }
         serverMessagesInUdpBuffer.clear();
@@ -194,7 +194,7 @@ int DataSender::sendAndFragment(Ptr<Socket> socket, uint8_t *buffer, uint16_t si
     return -1;  //we should never get here
 }
 
-Time DataSender::getMessageSendInterval(int messageNumber, bool isClient, const std::string& name){
+Time DataSender::getMessageSendInterval(const std::string& name){
 
     Time interval;
 

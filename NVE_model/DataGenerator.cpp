@@ -840,6 +840,7 @@ void ServerDataGenerator::moreBufferSpaceAvailable(Ptr<Socket> sock, uint32_t si
 
 bool ServerDataGenerator::connectionRequest(Ptr<Socket> sock, const Address &addr){
 
+    (void)sock;
     SERVER_INFO("Connection request from: " << addr << std::endl);   //TODO: getting ip-addresses impossible???
     return true;
 

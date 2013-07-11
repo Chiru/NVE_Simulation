@@ -87,7 +87,7 @@ private:
     void resendCheckClient(uint32_t reliableMsgNumber);   //resend data without an ack before the timer runs out
     void resendCheckServer(std::map<const Address, uint32_t>& reliableMsgNumber, const Address& addr);
     void addAppProtoHeader(char* buffer, bool reliable, const Address* addr = 0);
-    AppProtoPacketType parseAppProtoHeader(uint8_t* buffer, const Address& addr, Ptr<Socket> sock, uint32_t& msgNumber);
+    AppProtoPacketType parseAppProtoHeader(uint8_t* buffer, const Address& addr, uint32_t& msgNumber);
     bool sendAck(int* messagesToAck, uint16_t numberOfMessages, const Address& addr, Ptr<Socket> sock);
     uint16_t createAck(char* ack, int* numbers, uint16_t numberOfMessages);
     void ackAllPackets();

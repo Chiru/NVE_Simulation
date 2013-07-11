@@ -242,7 +242,7 @@ uint16_t UserActionMessage::getForwardMessageSize(int msgNumber) const{
     }
 }
 
-void UserActionMessage::printStats(std::ostream &out, const Message &msg) const{
+void UserActionMessage::printStats(std::ostream &out) const{
 
     out << "UserActionMessage  " << "  ID:" << messageID <<  "  Name: " << name << "  Reliable: " << (reliable == true ? "yes" : "no")
            << "  Size: " << messageSize << " TimeInterval: " <<  timeInterval <<  "  ClientOfInterest: "
@@ -402,7 +402,7 @@ uint16_t OtherDataMessage::getForwardMessageSize(int msgNumber) const{
     }
 }
 
-void OtherDataMessage::printStats(std::ostream &out, const Message &msg) const{
+void OtherDataMessage::printStats(std::ostream &out) const{
 
     out << "OtherDataMessage  " << "  ID:" << messageID << "  Name: " << name << "  Reliable: " << (reliable == true ? "yes" : "no")
         << "  Size: " << messageSize << " TimeInterval: " <<  timeInterval;
@@ -428,6 +428,7 @@ void OtherDataMessage::scheduleSendEvent(Callback<bool, Message*, uint8_t*> send
 }
 
 void OtherDataMessage::messageReceivedServer(std::string& messageName){
+    (void)messageName;
     //do nothing, this is only forwarded back
 }
 

@@ -230,7 +230,7 @@ bool XMLParser::parseStream(std::string &streamElement, DataGenerator* &clientSt
     static uint16_t stream_number = 0;
     DataGenerator::Protocol proto = DataGenerator::UDP;
     ApplicationProtocol* appProto;
-    uint16_t position;
+    int position;
     std::string type;
     std::string nagle("");
     std::string useAppProto("");

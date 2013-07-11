@@ -27,7 +27,7 @@ bool ApplicationProtocol::sendFromClient(const Message *msg, uint8_t *buffer, Pt
         this->socket = socket;
     }
 
-    uint16_t bytesSent = 0;
+    int bytesSent = 0;
 
     char msgContents[30 + headerSize];
     msgContents[0] = '\0';
@@ -115,7 +115,7 @@ void ApplicationProtocol::recv(Ptr<Socket> socket){
     uint32_t msgNumber;
     ReliablePacket* packet = 0;
 
-    switch(parseAppProtoHeader(buffer, addr, socket, msgNumber)){
+    switch(parseAppProtoHeader(buffer, addr, msgNumber)){
 
     case UNRELIABLE:
     case RELIABLE:
@@ -185,7 +185,7 @@ bool ApplicationProtocol::sendFromServer(uint8_t *buffer, const Message* msg, co
     if(this->socket == 0)
         this->socket = socket;
 
-    uint16_t bytesSent = 0;
+    int bytesSent = 0;
 
     char msgContents[30 + headerSize]; //TODO: hard-coded message size
 
@@ -324,7 +324,7 @@ void ApplicationProtocol::addAppProtoHeader(char *buffer, bool reliable, const A
     strncpy(buffer, str.str().c_str(), headerSize);
 }
 
-ApplicationProtocol::AppProtoPacketType ApplicationProtocol::parseAppProtoHeader(uint8_t* buffer, const Address& addr, Ptr<Socket> sock, uint32_t& msgNumber){
+ApplicationProtocol::AppProtoPacketType ApplicationProtocol::parseAppProtoHeader(uint8_t* buffer, const Address& addr, uint32_t &msgNumber){
 
     if(strncmp((char*)buffer, "\"app:0\"", 7) == 0)
         return UNRELIABLE;

@@ -43,7 +43,7 @@ private:
     std::map<std::string, Time, Message::StringComparator> lastSendTimes;   //collect time inter-departure times for each message type in this stream
 
     int sendAndFragment(Ptr<Socket> socket, uint8_t *buffer, uint16_t size, bool reliable, const Address *const addr = 0);
-    Time getMessageSendInterval(int messageNumber, bool isClient, const std::string& name);
+    Time getMessageSendInterval(const std::string& name);
 
 };
 

@@ -30,7 +30,7 @@ enum MessageType{USER_ACTION, OTHER_DATA};
 class Message{
 
     friend std::ostream& operator<<( std::ostream& out, const Message& msg){
-        msg.printStats(out, msg);
+        msg.printStats(out);
         return out;
     }
 
@@ -70,7 +70,7 @@ public:
 
   protected:
     Message(const Message&);
-    virtual void printStats(std::ostream& out, const Message& msg)const = 0;
+    virtual void printStats(std::ostream& out)const = 0;
 
     std::string name;
     bool reliable;
@@ -141,7 +141,7 @@ private:
     uint32_t clientTimeRequirement;  //time requirement for messages to travel from client to client
     uint32_t serverTimeRequirement;  //time requirement for messages to reach server
     void sendData();
-    void printStats(std::ostream& out, const Message& msg) const;
+    void printStats(std::ostream& out) const;
     static int newMessageNumber(uint16_t streamNumber);
 
 };
@@ -184,7 +184,7 @@ private:
     uint16_t clientTimeRequirement;
 
     void sendData();
-    void printStats(std::ostream& out, const Message& msg)const;
+    void printStats(std::ostream& out)const;
     static int newMessageNumber(uint16_t streamNumber);
 
 };
