@@ -2,6 +2,8 @@
 *moc_*
 *NVE.creator*
 
+NVE_simulation.pro.user
+
 GUI/Makefile
 GUI/NVE_simulation
 GUI/NVE_simulation.pro.user
