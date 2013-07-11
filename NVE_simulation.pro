@@ -54,7 +54,7 @@ OTHER_FILES += \
 INCLUDEPATH += NVE_model \
     ../build
 
-LIBS +=  -L /home/ville/ns3/ns-3-allinone/ns-3.17/build/ \
+LIBS +=  -L ../build/ \
     -lns3.17-core-debug \
     -lns3.17-internet-debug \
     -lns3.17-network-debug \
