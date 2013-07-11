@@ -3,7 +3,7 @@
 #include "ClientWidget.h"
 #include "StreamWidget.h"
 #include "MessageTemplate.h"
-#include "../XML_parser.h"
+#include "XML_parser.h"
 #include <QBoxLayout>
 #include <QScrollBar>
 #include <iostream>

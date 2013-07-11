@@ -11,7 +11,7 @@ TEMPLATE = app
 
 
 SOURCES += GUI/main.cpp\
-        GUI/mainwindow.cpp \
+    GUI/mainwindow.cpp \
     GUI/ClientWidget.cpp \
     GUI/StreamWidget.cpp \
     GUI/MessageTemplate.cpp \
@@ -26,9 +26,10 @@ SOURCES += GUI/main.cpp\
     NVE_model/Server.cpp \
     NVE_model/StatisticCollector.cpp \
     NVE_model/XML_Parser.cpp \
-    NVE_model/Client.cpp
+    NVE_model/Client.cpp \
 
-HEADERS  += GUI/mainwindow.h \
+
+HEADERS += GUI/mainwindow.h \
     GUI/ClientWidget.h \
     GUI/StreamWidget.h \
     GUI/MessageTemplate.h \
@@ -43,12 +44,25 @@ HEADERS  += GUI/mainwindow.h \
     NVE_model/Messages.h \
     NVE_model/DataSender.h \
     NVE_model/DataGenerator.h \
-    NVE_model/Client.h
+    NVE_model/Client.h \
 
 FORMS    += GUI/mainwindow.ui
 
 OTHER_FILES += \
     .gitignore
 
-INCLUDEPATH += ../build
+INCLUDEPATH += NVE_model \
+    ../build
 
+LIBS +=  -L /home/ville/ns3/ns-3-allinone/ns-3.17/build/ \
+    -lns3.17-core-debug \
+    -lns3.17-internet-debug \
+    -lns3.17-network-debug \
+    -lns3.17-flow-monitor-debug \
+    -lns3.17-point-to-point-debug \
+    -lns3.17-mpi-debug \
+    -lns3.17-bridge-debug
+
+
+DEFINES += NS3_LOG_ENABLE
+DEFINES += NS3_ASSERT_ENABLE

@@ -1,6 +1,6 @@
 *.o
 *moc_*
-*NVE.*
+*NVE.creator*
 
 GUI/Makefile
 GUI/NVE_simulation
