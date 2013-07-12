@@ -175,6 +175,11 @@ void XmlSerializer::addStreamElement(const StreamWidget* stream)
     else
         streamElement->addElement(new XmlValue("appproto", "no"));
 
+    if(stream->ordered->isChecked())
+        streamElement->addElement(new XmlValue("ordered", "yes"));
+    else
+        streamElement->addElement(new XmlValue("ordered", "no"));
+
     streamElement->addElement(new XmlValue("servergametick", QString::number(stream->serverGameTick->value())));
     streamElement->addElement(new XmlValue("clientgametick", QString::number(stream->clientGameTick->value())));
 
