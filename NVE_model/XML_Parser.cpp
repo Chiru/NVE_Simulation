@@ -119,7 +119,7 @@ template <class T> bool XMLParser::readValue(const std::string &file, const std:
     return true;
 }
 
-bool XMLParser::getRunningValue(const std::string &value, uint16_t &from, uint16_t &to){
+bool XMLParser::getRunningValue(const std::string &value, uint16_t &from, uint16_t &to) const{
 
     std::stringstream stream;
     char delim;

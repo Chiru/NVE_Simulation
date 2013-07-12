@@ -13,11 +13,11 @@ class ClientWidget : public QGroupBox
 
 public:
     ClientWidget(int number, QWidget* parent = 0, const ClientWidget* previous = 0);
+    ClientWidget(int number, int count, int delay, double loss, double uplink, double downlink, int arriveTime, int exitTime, bool pcap, bool graph, QWidget* parent = 0);
 
 private:
 
     int clientNumber;
-
     QSpinBox* clientCount;
     QSpinBox* delay;
     QDoubleSpinBox* loss;
@@ -27,6 +27,8 @@ private:
     QSpinBox* exit;
     QCheckBox* pcap;
     QCheckBox* graph;
+
+    void configClientWidget();
 
 };
 

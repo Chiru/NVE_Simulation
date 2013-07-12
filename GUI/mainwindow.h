@@ -9,6 +9,7 @@
 #include "MessageTemplate.h"
 #include "DistributionWidget.h"
 #include "XmlSerializer.h"
+#include "XML_parser.h"
 
 class ClientWidget;
 class StreamWidget;
@@ -40,9 +41,15 @@ private:
     DistributionWidget* messageSize;
     DistributionWidget* timeInterval;
     XmlSerializer serializer;
+    XMLParser parser;
 
     void enableMessageEditor(bool enabled);
     bool loadConfigurationFile(QString fileName);
+    void configureClients(const std::string& element);
+    void configureClient(const std::string& element);
+    void configureAppProto(const std::string& element);
+    void configureStreams(const std::string& element);
+    void configureMessages(const std::string& element);
 
 public slots:
     void finishEditor();

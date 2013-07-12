@@ -3,7 +3,6 @@
 #include "ClientWidget.h"
 #include "StreamWidget.h"
 #include "MessageTemplate.h"
-#include "XML_parser.h"
 #include <QBoxLayout>
 #include <QScrollBar>
 #include <iostream>
@@ -25,12 +24,16 @@ MainWindow::MainWindow(QWidget *parent) :
 
     ui->clientScrollArea->setWidget(widget);
 
+    loadConfigurationFile("configuration.txt");
+
     widget = new QWidget(ui->streamScrollArea);
     widget->setLayout(new QBoxLayout(QBoxLayout::TopToBottom, ui->streamScrollArea));
 
     ui->streamScrollArea->setWidget(widget);
 
-    addClientWidgetToScrollArea();
+    if(previousClients.empty())
+        addClientWidgetToScrollArea();
+
     addStream();
 
     ui->appProto_ackSize->setMaximum(500);
@@ -325,20 +328,169 @@ void MainWindow::configurationFinished()
 
 bool MainWindow::loadConfigurationFile(QString fileName)
 {
-    XMLParser parser();
 
     QFile file(fileName);
 
     if(!file.open(QIODevice::ReadOnly | QIODevice::Text))
         return false;
 
-    QString contents(file.readAll());
+    std::string contents(file.readAll());
+    std::string result("");
 
-    //parser.getElement();
+    if(parser.getElement(contents, 0, "<clients>", "</clients>", result))
+    {
+        configureClients(result);
+    }
+
+    if(parser.getElement(contents, 0, "<appProto>", "</appProto>", result))
+    {
+        configureAppProto(result);
+    }
+
+    if(parser.getElement(contents, 0, "<streams>", "</streams>", result))
+    {
+        configureStreams(result);
+    }
+
+
 
     file.close();
 
     return true;
 }
+
+
+void MainWindow::configureClients(const std::string &element)
+{
+        std::cout << element << std::endl;
+        int position = 0;
+        std::string result("");
+            //parser.getElement(contents, 0, "<clients>", "</clients>", result)
+        while(parser.getElement(element, position, "<client>", "</client>", result))
+        {
+            position += result.length();
+            configureClient(result);
+        }
+
+}
+//if(!readValue<double>(token, "loss", tempClient->loss, latest_token)){
+  //  template <class T> bool readValue(const std::string& file, const std::string& variable, T& result, size_t position = 0) const;
+
+
+void MainWindow::configureClient(const std::string &element)
+{
+
+    uint16_t from = 0, to = 0;
+    int count = 0;
+    int delay = 0;
+    double loss = 0;
+    double uplink = 0;
+    double downlink = 0;
+    int arriveTime = 0;
+    int exitTime = 0;
+    bool pcap = false;
+    bool graph = false;
+    std::string boolValue("");
+
+    std::string clientCount("");
+    if(parser.readValue<std::string>(element, "no", clientCount))
+    {
+        if(parser.getRunningValue(clientCount, from, to))
+        {
+            count = to - from;
+        }
+        else
+        {
+            count = from;
+        }
+    }
+
+    if(!parser.readValue<int>(element, "delay", delay))
+    {
+        delay = 0;
+    }
+
+    if(!parser.readValue<double>(element, "loss", loss))
+    {
+        loss = 0;
+    }
+
+    if(!parser.readValue<double>(element, "uplink", uplink))
+    {
+        uplink = 0;
+    }
+
+    if(!parser.readValue<double>(element, "downlink", downlink))
+    {
+        downlink = 0;
+    }
+
+    if(!parser.readValue<int>(element, "jointime", arriveTime))
+    {
+        arriveTime = 0;
+    }
+
+    if(!parser.readValue<int>(element, "exittime", exitTime))
+    {
+        exitTime = 0;
+    }
+
+    if(!parser.readValue<std::string>(element, "pcap", boolValue))
+    {
+        pcap = false;
+    }
+    else
+    {
+        if(boolValue.compare("yes") == 0)
+            pcap = true;
+        else
+            pcap = false;
+    }
+
+    if(!parser.readValue<std::string>(element, "graph", boolValue))
+    {
+        graph = false;
+    }
+    else
+    {
+        if(boolValue.compare("yes") == 0)
+            graph = true;
+        else
+            graph = false;
+    }
+
+    ClientWidget* client = new ClientWidget(numberOfClients++, count, delay, loss, uplink, downlink, arriveTime, exitTime, pcap, graph, this);
+    QFrame* line = new QFrame(ui->clientScrollArea->widget());
+
+
+    ui->clientScrollArea->widget()->layout()->addWidget(client);
+    previousClients.push_back(client);
+    line->setFrameStyle(QFrame::HLine | QFrame::Plain);
+    ui->clientScrollArea->widget()->layout()->addWidget(line);
+    previousClientsLines.push_back(line);
+
+}
+
+
+void MainWindow::configureAppProto(const std::string &element)
+{
+        std::cout << element << std::endl;
+
+}
+
+
+void MainWindow::configureStreams(const std::string &element)
+{
+
+        std::cout << element << std::endl;
+}
+
+
+void MainWindow::configureMessages(const std::string &element)
+{
+        std::cout << element << std::endl;
+}
+
+
 
 

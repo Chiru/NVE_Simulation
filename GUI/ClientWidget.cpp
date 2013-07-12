@@ -6,11 +6,48 @@ ClientWidget::ClientWidget(int number, QWidget *parent, const ClientWidget* prev
     : QGroupBox(parent),
       clientNumber(number)
 {
+    configClientWidget();
+
+
+    if(previous != 0)
+    {
+        delay->setValue(previous->delay->value());
+        loss->setValue(previous->loss->value());
+        uplink->setValue(previous->uplink->value());
+        downlink->setValue(previous->downlink->value());
+        arrive->setValue(previous->arrive->value());
+        exit->setValue(previous->exit->value());
+        pcap->setChecked(previous->pcap->isChecked());
+        graph->setChecked(previous->graph->isChecked());
+        clientCount->setValue(previous->clientCount->value());
+    }
+
+}
+
+ClientWidget::ClientWidget(int number, int count, int delay, double loss, double uplink, double downlink, int arriveTime, int exitTime, bool pcap, bool graph, QWidget *parent)
+    : QGroupBox(parent),
+      clientNumber(number)
+{
+    configClientWidget();
+
+    this->delay->setValue(delay);
+    this->loss->setValue(loss);
+    this->uplink->setValue(uplink);
+    this->downlink->setValue(downlink);
+    this->arrive->setValue(arriveTime);
+    this->exit->setValue(exitTime);
+    this->pcap->setChecked(pcap);
+    this->graph->setChecked(graph);
+    this->clientCount->setValue(count);
+
+}
+
+void ClientWidget::configClientWidget()
+{
 
     QGridLayout* layout = new QGridLayout(this);
 
     this->setTitle("Client type " + QString::number(clientNumber));
-
     this->setLayout(layout);
 
     layout->addWidget(new QLabel("Number of clients:", this), 1,1);
@@ -33,18 +70,6 @@ ClientWidget::ClientWidget(int number, QWidget *parent, const ClientWidget* prev
 
     clientCount->setValue(1);
     clientCount->setMinimum(1);
-
-    if(previous != 0)
-    {
-        delay->setValue(previous->delay->value());
-        loss->setValue(previous->loss->value());
-        uplink->setValue(previous->uplink->value());
-        downlink->setValue(previous->downlink->value());
-        arrive->setValue(previous->arrive->value());
-        exit->setValue(previous->exit->value());
-        pcap->setChecked(previous->pcap->isChecked());
-        graph->setChecked(previous->graph->isChecked());
-    }
 
     layout->addWidget(clientCount, 1, 2);
     layout->addWidget(delay, 2,2);
