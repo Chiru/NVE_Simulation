@@ -45,6 +45,7 @@ private:
 
     void enableMessageEditor(bool enabled);
     bool loadConfigurationFile(QString fileName);
+    void configureSimulationParams(const std::string& element);
     void configureClients(const std::string& element);
     void configureClient(const std::string& element);
     void configureAppProto(const std::string& element);

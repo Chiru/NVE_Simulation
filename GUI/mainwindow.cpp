@@ -24,17 +24,8 @@ MainWindow::MainWindow(QWidget *parent) :
 
     ui->clientScrollArea->setWidget(widget);
 
-    loadConfigurationFile("configuration.txt");
-
     widget = new QWidget(ui->streamScrollArea);
     widget->setLayout(new QBoxLayout(QBoxLayout::TopToBottom, ui->streamScrollArea));
-
-    ui->streamScrollArea->setWidget(widget);
-
-    if(previousClients.empty())
-        addClientWidgetToScrollArea();
-
-    addStream();
 
     ui->appProto_ackSize->setMaximum(500);
     ui->appProto_delAck->setMaximum(10000);
@@ -65,6 +56,14 @@ MainWindow::MainWindow(QWidget *parent) :
 
     ui->message_timeReqClientSpinBox->setMaximum(10000);
     ui->message_timeReqServerSpinBox->setMaximum(10000);
+
+    ui->streamScrollArea->setWidget(widget);
+
+    loadConfigurationFile("configuration.txt");
+    if(previousClients.empty())
+        addClientWidgetToScrollArea();
+
+    addStream();
 
     palette = new QPalette();
     palette->setColor(QPalette::WindowText, QColor(255,0,0));
@@ -342,17 +341,17 @@ bool MainWindow::loadConfigurationFile(QString fileName)
         configureClients(result);
     }
 
-    if(parser.getElement(contents, 0, "<appProto>", "</appProto>", result))
+    if(parser.getElement(contents, 0, "<appproto>", "</appproto>", result))
     {
         configureAppProto(result);
     }
+
+    configureSimulationParams(contents);
 
     if(parser.getElement(contents, 0, "<streams>", "</streams>", result))
     {
         configureStreams(result);
     }
-
-
 
     file.close();
 
@@ -474,7 +473,67 @@ void MainWindow::configureClient(const std::string &element)
 
 void MainWindow::configureAppProto(const std::string &element)
 {
-        std::cout << element << std::endl;
+    int ackSize = 0;
+    int headerSize = 0;
+    int delAck = 0;
+    int retransmission = 0;
+
+    if(!parser.readValue<int>(element, "acksize", ackSize))
+    {
+        ackSize = 0;
+    }
+
+
+    if(!parser.readValue<int>(element, "headersize", headerSize))
+    {
+        headerSize = 0;
+    }
+
+    if(!parser.readValue<int>(element, "delayedack", delAck))
+    {
+        delAck = 0;
+    }
+
+    if(!parser.readValue<int>(element, "retransmit", retransmission))
+    {
+        retransmission = 0;
+    }
+
+    ui->appProto_ackSize->setValue(ackSize);
+    ui->appProto_delAck->setValue(delAck);
+    ui->appProto_headerSize->setValue(headerSize);
+    ui->appProto_RTO->setValue(retransmission);
+
+    std::cout << element << std::endl;
+
+}
+
+
+void MainWindow::configureSimulationParams(const std::string &element)
+{
+    int simTime = 0;
+    std::string boolValue("");
+    bool animation = false;
+
+    if(!parser.readValue<int>(element, "runningtime", simTime))
+    {
+        simTime = 0;
+    }
+
+    if(!parser.readValue<std::string>(element, "animation", boolValue))
+    {
+        animation = false;
+    }
+    else
+    {
+        if(boolValue.compare("yes") == 0)
+            animation = true;
+        else
+            animation = false;
+    }
+
+    ui->simTime->setValue(simTime);
+    ui->animationCheckBox->setChecked(animation);
 
 }
 

@@ -151,12 +151,12 @@ void XmlSerializer::addClientsElement(const ClientWidget *client)
 void XmlSerializer::addAppProtoElement(uint ackSize, uint delayedAck, uint retransmit, uint headerSize)
 {
     delete appProto;
-    appProto = new XmlStruct("appProto");
+    appProto = new XmlStruct("appproto");
 
     appProto->addElement(new XmlValue("acksize", QString::number(ackSize)));
-    appProto->addElement(new XmlValue("delayedAck", QString::number(delayedAck)));
+    appProto->addElement(new XmlValue("delayedack", QString::number(delayedAck)));
     appProto->addElement(new XmlValue("retransmit", QString::number(retransmit)));
-    appProto->addElement(new XmlValue("headerSize", QString::number(headerSize)));
+    appProto->addElement(new XmlValue("headersize", QString::number(headerSize)));
 }
 
 
