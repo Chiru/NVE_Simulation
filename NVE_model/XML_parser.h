@@ -43,14 +43,16 @@ public:
     XMLParser(std::string filename);
     ~XMLParser();
 
-    bool isFileCorrect(){return correctFile;}
+    bool isFileCorrect() const{return correctFile;}
     uint16_t getNumberOfClients()const {return numberOfClients;}
-    bool getStreams(DataGenerator**&, bool client, uint16_t clientNumber = 0);
+    bool getStreams(DataGenerator**&, bool client, uint16_t clientNumber = 0) const;
     uint16_t getNumberOfStreams()const {return numberOfStreams;}
-    bool getApplicationProtocol(ApplicationProtocol*&);
-    bool getClientStats(uint16_t clientIndex, uint16_t &clientNumber, int &delay, double &uplink, double &downlink, double &loss);
+    bool getApplicationProtocol(ApplicationProtocol*&) const;
+    bool getClientStats(uint16_t clientIndex, uint16_t &clientNumber, int &delay, double &uplink, double &downlink, double &loss) const;
     uint16_t getRunningTime() const{return runningTime;}
-    bool getElement(const std::string& file, size_t position,const  std::string& start, const std::string& end, std::string &result);
+    bool getElement(const std::string& file, size_t position,const  std::string& start, const std::string& end, std::string &result) const;
+    template <class T> bool readValue(const std::string& file, const std::string& variable, T& result, size_t position = 0) const;
+
 
 
 private:
@@ -106,7 +108,6 @@ private:
     bool parseGameTick(std::string& streamElement, int& serverGameTick, int& clientGameTick);
     bool parseRunningTime(std::string& file);
     uint16_t countStreams(std::string& file);
-    template <class T> bool readValue(const std::string& file, const std::string& variable, T& result, size_t position = 0);
     bool getRunningValue(const std::string& value, uint16_t &from, uint16_t &to);
     bool readRandomVariable(const std::string& element, RandomVariable*& ranvar, DistributionEnum& distribution, const std::string& variableName);
 

@@ -6,6 +6,12 @@
 
 //this constructor is for GUI
 XMLParser::XMLParser()
+    : appProto(0),
+      clientStreams(0),
+      serverStreams(0),
+      numberOfClients(0),
+      numberOfStreams(0),
+      clients(0)
 {
 
 }
@@ -47,10 +53,9 @@ XMLParser::XMLParser(std::string filename): filename(filename), correctFile(true
 
 XMLParser::~XMLParser(){
 
-    std::vector<XMLParser::Client*>::iterator it = clients.begin();
-    while(it != clients.end()){
+    for(std::vector<XMLParser::Client*>::iterator it = clients.begin(); it != clients.end(); it++)
+    {
         delete (*it);
-        it++;
     }
 
     for(int i = 0; i < numberOfStreams; i++){
@@ -65,7 +70,8 @@ XMLParser::~XMLParser(){
 
 }
 
-bool XMLParser::getElement(const std::string &file, size_t position, const std::string &start, const std::string &end, std::string &result){
+bool XMLParser::getElement(const std::string &file, size_t position, const std::string &start, const std::string &end, std::string &result) const
+{
 
     size_t end_position;
     end_position = file.find(end, position);
@@ -86,7 +92,7 @@ bool XMLParser::getElement(const std::string &file, size_t position, const std::
     return true;
 }
 
-template <class T> bool XMLParser::readValue(const std::string &file, const std::string &variable, T &result, size_t position){
+template <class T> bool XMLParser::readValue(const std::string &file, const std::string &variable, T &result, size_t position) const{
 
     std::string tempVariable = "";
     std::stringstream stream;
@@ -543,7 +549,7 @@ bool XMLParser::parseApplicationProtocol(std::string &file){
 
 }
 
-bool XMLParser::getStreams(DataGenerator** &streams, bool isClient, uint16_t clientNumber){
+bool XMLParser::getStreams(DataGenerator** &streams, bool isClient, uint16_t clientNumber) const{
 
     streams = new DataGenerator*[numberOfStreams];
 
@@ -566,9 +572,10 @@ bool XMLParser::getStreams(DataGenerator** &streams, bool isClient, uint16_t cli
 }
 
 
-bool XMLParser::getClientStats(uint16_t clientIndex, uint16_t &clientNumber, int &delay, double &uplink, double &downlink, double &loss){
+bool XMLParser::getClientStats(uint16_t clientIndex, uint16_t &clientNumber, int &delay, double &uplink, double &downlink, double &loss) const
+{
 
-    std::vector<XMLParser::Client*>::iterator it;
+    std::vector<XMLParser::Client*>::const_iterator it;
     int i;
 
     for(it = clients.begin(), i = 1; it != clients.end(); it++, i++){
@@ -612,7 +619,7 @@ bool XMLParser::parseRunningTime(std::string &file){
     return true;
 }
 
- bool XMLParser::getApplicationProtocol(ApplicationProtocol* &proto){
+ bool XMLParser::getApplicationProtocol(ApplicationProtocol* &proto) const{
 
     if(appProto == 0)
         return false;
