@@ -128,7 +128,7 @@ void XmlSerializer::addClientsElement(const ClientWidget *client)
     {
         number = QString::number(clientCount);
         number.append(":");
-        number.append(QString::number(client->clientCount->value()));
+        number.append(QString::number(clientCount + client->clientCount->value() - 1));
     }
 
     elem->addElement(new XmlValue("no", number));

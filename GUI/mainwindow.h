@@ -50,7 +50,10 @@ private:
     void configureClient(const std::string& element);
     void configureAppProto(const std::string& element);
     void configureStreams(const std::string& element);
+    void configureStream(const std::string& element);
     void configureMessages(const std::string& element);
+    void configureMessage(const std::string& element);
+
 
 public slots:
     void finishEditor();

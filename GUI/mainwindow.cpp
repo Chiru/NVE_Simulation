@@ -364,16 +364,14 @@ void MainWindow::configureClients(const std::string &element)
         std::cout << element << std::endl;
         int position = 0;
         std::string result("");
-            //parser.getElement(contents, 0, "<clients>", "</clients>", result)
+
         while(parser.getElement(element, position, "<client>", "</client>", result))
         {
-            position += result.length();
+            position = element.find("</client>", position);
+            position++;
             configureClient(result);
         }
-
 }
-//if(!readValue<double>(token, "loss", tempClient->loss, latest_token)){
-  //  template <class T> bool readValue(const std::string& file, const std::string& variable, T& result, size_t position = 0) const;
 
 
 void MainWindow::configureClient(const std::string &element)
@@ -389,14 +387,13 @@ void MainWindow::configureClient(const std::string &element)
     int exitTime = 0;
     bool pcap = false;
     bool graph = false;
-    std::string boolValue("");
 
     std::string clientCount("");
     if(parser.readValue<std::string>(element, "no", clientCount))
     {
         if(parser.getRunningValue(clientCount, from, to))
         {
-            count = to - from;
+            count = to - from + 1;
         }
         else
         {
@@ -434,29 +431,9 @@ void MainWindow::configureClient(const std::string &element)
         exitTime = 0;
     }
 
-    if(!parser.readValue<std::string>(element, "pcap", boolValue))
-    {
-        pcap = false;
-    }
-    else
-    {
-        if(boolValue.compare("yes") == 0)
-            pcap = true;
-        else
-            pcap = false;
-    }
+    pcap = parser.readBoolVariable(element, "pcap", false);
 
-    if(!parser.readValue<std::string>(element, "graph", boolValue))
-    {
-        graph = false;
-    }
-    else
-    {
-        if(boolValue.compare("yes") == 0)
-            graph = true;
-        else
-            graph = false;
-    }
+    graph = parser.readBoolVariable(element, "graphs", false);
 
     ClientWidget* client = new ClientWidget(numberOfClients++, count, delay, loss, uplink, downlink, arriveTime, exitTime, pcap, graph, this);
     QFrame* line = new QFrame(ui->clientScrollArea->widget());
@@ -520,17 +497,7 @@ void MainWindow::configureSimulationParams(const std::string &element)
         simTime = 0;
     }
 
-    if(!parser.readValue<std::string>(element, "animation", boolValue))
-    {
-        animation = false;
-    }
-    else
-    {
-        if(boolValue.compare("yes") == 0)
-            animation = true;
-        else
-            animation = false;
-    }
+    animation = parser.readBoolVariable(element, "animation", false);
 
     ui->simTime->setValue(simTime);
     ui->animationCheckBox->setChecked(animation);
@@ -540,8 +507,42 @@ void MainWindow::configureSimulationParams(const std::string &element)
 
 void MainWindow::configureStreams(const std::string &element)
 {
+    int position = 0;
+    std::string result("");
 
-        std::cout << element << std::endl;
+    while(parser.getElement(element, position, "<stream>", "</stream>", result))
+    {
+        position += result.length();
+        configureStream(result);
+    }
+
+}
+
+void MainWindow::configureStream(const std::string &element)
+{
+    bool tcpUsed = false;
+    bool appProto = true;
+    bool ordered = true;
+    std::string boolValue("");
+    int serverGameTick = 100;
+    int clientGameTick = 100;
+
+    if(!parser.readValue<std::string>(element, "type", boolValue))
+    {
+        tcpUsed = false;
+    }
+    else
+    {
+        if(boolValue.compare("tcp") == 0)
+            tcpUsed = true;
+        else
+            tcpUsed = false;
+    }
+
+    appProto = parser.readBoolVariable(element, "appproto", true);
+
+    ordered = parser.readBoolVariable(element, "ordered", true);
+
 }
 
 
@@ -551,5 +552,10 @@ void MainWindow::configureMessages(const std::string &element)
 }
 
 
+void MainWindow::configureMessage(const std::string &element)
+{
+
+
+}
 
 
