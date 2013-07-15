@@ -60,10 +60,12 @@ MainWindow::MainWindow(QWidget *parent) :
     ui->streamScrollArea->setWidget(widget);
 
     loadConfigurationFile("configuration.txt");
+
     if(previousClients.empty())
         addClientWidgetToScrollArea();
 
-    addStream();
+    if(previousStreams.empty())
+        addStream();
 
     palette = new QPalette();
     palette->setColor(QPalette::WindowText, QColor(255,0,0));
@@ -361,7 +363,6 @@ bool MainWindow::loadConfigurationFile(QString fileName)
 
 void MainWindow::configureClients(const std::string &element)
 {
-        std::cout << element << std::endl;
         int position = 0;
         std::string result("");
 
@@ -481,8 +482,6 @@ void MainWindow::configureAppProto(const std::string &element)
     ui->appProto_headerSize->setValue(headerSize);
     ui->appProto_RTO->setValue(retransmission);
 
-    std::cout << element << std::endl;
-
 }
 
 
@@ -511,8 +510,9 @@ void MainWindow::configureStreams(const std::string &element)
     std::string result("");
 
     while(parser.getElement(element, position, "<stream>", "</stream>", result))
-    {
-        position += result.length();
+    {         
+        position = element.find("</stream>", position);
+        position++;
         configureStream(result);
     }
 
@@ -523,6 +523,7 @@ void MainWindow::configureStream(const std::string &element)
     bool tcpUsed = false;
     bool appProto = true;
     bool ordered = true;
+    bool nagle = true;
     std::string boolValue("");
     int serverGameTick = 100;
     int clientGameTick = 100;
@@ -543,12 +544,55 @@ void MainWindow::configureStream(const std::string &element)
 
     ordered = parser.readBoolVariable(element, "ordered", true);
 
+    nagle = parser.readBoolVariable(element, "nagle", true);
+
+    if(!parser.readValue<int>(element, "clientgametick", clientGameTick))
+    {
+        clientGameTick = 0;
+    }
+
+    if(!parser.readValue<int>(element, "servergametick", serverGameTick))
+    {
+        serverGameTick = 0;
+    }
+
+    std::string messages("");
+
+    if(parser.getElement(element, 0, "<messages>", "</messages>", messages))
+    {
+        configureMessages(messages);
+    }
+
+    StreamWidget* stream = new StreamWidget(numberOfStreams++, this, tcpUsed, appProto, ordered, nagle, serverGameTick, clientGameTick, ui->streamScrollArea->widget());
+
+    QObject::connect(stream, SIGNAL(setupMessageEditor(const MessageTemplate*, StreamWidget*)),
+                     this, SLOT(setMessage(const MessageTemplate*, StreamWidget*)));
+
+    QFrame* line = new QFrame(ui->streamScrollArea->widget());
+
+    ui->streamScrollArea->widget()->layout()->addWidget(stream);
+    previousStreams.push(stream);
+
+    line->setFrameStyle(QFrame::HLine | QFrame::Plain);
+    ui->streamScrollArea->widget()->layout()->addWidget(line);
+    previousStreamsLines.push(line);
+
+
 }
 
 
 void MainWindow::configureMessages(const std::string &element)
 {
-        std::cout << element << std::endl;
+        int position = 0;
+        std::string result("");
+
+        while(parser.getElement(element, position, "<message>", "</message>", result))
+        {
+            position = element.find("</message>", position);
+            position++;
+            configureMessage(result);
+        }
+
 }
 
 

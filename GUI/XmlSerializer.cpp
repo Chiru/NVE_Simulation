@@ -170,6 +170,11 @@ void XmlSerializer::addStreamElement(const StreamWidget* stream)
     else
         streamElement->addElement(new XmlValue("type", "udp"));
 
+    if(stream->nagle->isChecked())
+        streamElement->addElement(new XmlValue("nagle", "yes"));
+    else
+        streamElement->addElement(new XmlValue("nagle", "no"));
+
     if(stream->appProto->isChecked())
         streamElement->addElement(new XmlValue("appproto", "yes"));
     else

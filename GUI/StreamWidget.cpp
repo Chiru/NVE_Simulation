@@ -5,7 +5,6 @@
 #include <QVBoxLayout>
 #include <QHBoxLayout>
 #include <iostream>
-#include <typeinfo>
 
 QList<QString> StreamWidget::messageNames;
 
@@ -19,7 +18,46 @@ StreamWidget::StreamWidget(int number, MainWindow* mw, QWidget *parent)
       editButtonEnabled(false),
       removeButtonEnabled(false),
       mw(mw)
+{
+    configureStream();
 
+    udp->setChecked(true);
+    nagle->setDisabled(true);
+    nagle->setChecked(false);
+}
+
+
+StreamWidget::StreamWidget(int number, MainWindow *mw, bool tcpUsed, bool appProto, bool ordered, bool nagle, int serverGameTick, int clientGameTick, QWidget *parent)
+    : QGroupBox(parent),
+      messages(QList<MessageTemplate*>()),
+      messageInEditor(0),
+      previousMessageName(""),
+      streamNumber(number),
+      editButtonEnabled(false),
+      removeButtonEnabled(false),
+      mw(mw)
+{
+    configureStream();
+
+    if(tcpUsed)
+    {
+        tcp->setChecked(true);
+        this->nagle->setChecked(nagle);
+    }
+    else
+    {
+        udp->setChecked(true);
+        this->ordered->setChecked(ordered);
+        this->appProto->setChecked(appProto);
+        this->nagle->setEnabled(false);
+    }
+
+    this->clientGameTick->setValue(clientGameTick);
+    this->serverGameTick->setValue(serverGameTick);
+}
+
+
+void StreamWidget::configureStream()
 {
     QGridLayout* layout = new QGridLayout(this);
 
@@ -51,6 +89,7 @@ StreamWidget::StreamWidget(int number, MainWindow* mw, QWidget *parent)
     listButtons->addWidget(addMessage);
     listButtons->addWidget(removeMessage);
     listButtons->addWidget(editMessage);
+
 
     editMessage->setEnabled(false);
     removeMessage->setEnabled(false);
@@ -86,10 +125,6 @@ StreamWidget::StreamWidget(int number, MainWindow* mw, QWidget *parent)
     QObject::connect(appProto, SIGNAL(toggled(bool)), ordered, SLOT(setChecked(bool)));
     QObject::connect(messageList, SIGNAL(currentRowChanged(int)), this, SLOT(rowFocusChanged(int)));
 
-    udp->setChecked(true);
-    nagle->setDisabled(true);
-    nagle->setChecked(false);
-
     clientGameTick->setMaximum(10000);
     serverGameTick->setMaximum(10000);
 
@@ -110,8 +145,8 @@ StreamWidget::StreamWidget(int number, MainWindow* mw, QWidget *parent)
     QObject::connect(addMessage, SIGNAL(clicked()), this, SLOT(addNewMessage()));
     QObject::connect(editMessage, SIGNAL(clicked()), this, SLOT(editExistingMessage()));
     QObject::connect(removeMessage, SIGNAL(clicked()), this, SLOT(removeMessageFromList()));
-
 }
+
 
 StreamWidget::~StreamWidget()
 {
