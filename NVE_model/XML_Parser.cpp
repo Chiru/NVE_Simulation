@@ -119,6 +119,22 @@ template <class T> bool XMLParser::readValue(const std::string &file, const std:
     return true;
 }
 
+bool XMLParser::readBoolVariable(const std::string &file, const std::string &variable, bool defaultValue, size_t position) const
+{
+    std::string result("");
+
+    if(readValue<std::string>(file, variable, result, position))
+    {
+        if(result.compare("yes") == 0)
+            return true;
+        if(result.compare("no") == 0)
+            return false;
+    }
+
+    return defaultValue;
+
+}
+
 bool XMLParser::getRunningValue(const std::string &value, uint16_t &from, uint16_t &to) const{
 
     std::stringstream stream;

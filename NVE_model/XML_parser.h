@@ -53,6 +53,7 @@ public:
     bool getElement(const std::string& file, size_t position,const  std::string& start, const std::string& end, std::string &result) const;
     template <class T> bool readValue(const std::string& file, const std::string& variable, T& result, size_t position = 0) const;
     bool getRunningValue(const std::string& value, uint16_t &from, uint16_t &to) const;
+    bool readBoolVariable(const std::string& file, const std::string& variable, bool defaultValue, size_t position = 0) const;  //does the same as readValue<bool>
 
 
 
