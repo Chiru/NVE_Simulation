@@ -71,12 +71,6 @@ QString XmlValue::getElementString(int intend) const
     return result;
 }
 
-XmlSerializer::XmlSerializer()
-    : fileName(""),
-      appProto(0),
-      clientCount(1)
-{
-}
 
 XmlSerializer::XmlSerializer(QString fileName)
     : fileName(fileName),
@@ -144,7 +138,7 @@ void XmlSerializer::addClientsElement(const ClientWidget *client)
     elem->addElement(new XmlValue("delay", QString::number(client->delay->value())));
     elem->addElement(new XmlValue("uplink", QString::number(client->uplink->value())));
     elem->addElement(new XmlValue("downlink", QString::number(client->downlink->value())));
-    elem->addElement(new XmlValue("loss", QString::number(client->loss->value())));
+    elem->addElement(new XmlValue("loss", QString::number(client->loss->value() / 100)));
     elem->addElement(new XmlValue("jointime", QString::number(client->arrive->value())));
     elem->addElement(new XmlValue("exittime", QString::number(client->exit->value())));
     elem->addElement(new XmlValue("pcap", client->pcap->isChecked() ? "yes" : "no"));

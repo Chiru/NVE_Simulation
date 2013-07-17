@@ -15,7 +15,7 @@ MainWindow::MainWindow(QWidget *parent) :
     ui(new Ui::MainWindow),
     numberOfClients(1),
     numberOfStreams(1),
-    serializer(XmlSerializer())
+    serializer(XmlSerializer("configuration.txt"))
 {
 
     ui->setupUi(this);
@@ -61,9 +61,7 @@ MainWindow::MainWindow(QWidget *parent) :
     ui->streamScrollArea->setWidget(widget);
 
     if(executeFileDialog())
-        serializer = XmlSerializer(fileName);
-
-    loadConfigurationFile(fileName);
+        loadConfigurationFile(fileName);
 
     if(previousClients.empty())
         addClientWidgetToScrollArea();
@@ -470,6 +468,8 @@ void MainWindow::configureClient(const std::string &element)
         loss = 0;
     }
 
+    loss *= 100;
+
     if(!parser.readValue<double>(element, "uplink", uplink))
     {
         uplink = 0;
@@ -740,6 +740,8 @@ MessageTemplate* MainWindow::configureMessage(const std::string &element, bool a
     {
         clientsOfInterest = 1;
     }
+
+    clientsOfInterest *= 100;
 
     if(StreamWidget::getMessageNames().contains(QString(name.c_str())))
             return 0;

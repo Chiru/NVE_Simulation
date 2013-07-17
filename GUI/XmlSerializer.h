@@ -49,7 +49,6 @@ class XmlSerializer
 {
 
 public:
-    XmlSerializer();
     XmlSerializer(QString fileName);
     ~XmlSerializer();
     bool writeToFile();
