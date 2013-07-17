@@ -71,6 +71,12 @@ QString XmlValue::getElementString(int intend) const
     return result;
 }
 
+XmlSerializer::XmlSerializer()
+    : fileName(""),
+      appProto(0),
+      clientCount(1)
+{
+}
 
 XmlSerializer::XmlSerializer(QString fileName)
     : fileName(fileName),

@@ -7,6 +7,7 @@
 #include <QScrollBar>
 #include <iostream>
 #include <QFile>
+#include <QFileDialog>
 
 
 MainWindow::MainWindow(QWidget *parent) :
@@ -14,7 +15,7 @@ MainWindow::MainWindow(QWidget *parent) :
     ui(new Ui::MainWindow),
     numberOfClients(1),
     numberOfStreams(1),
-    serializer(XmlSerializer("configuration.txt"))
+    serializer(XmlSerializer())
 {
 
     ui->setupUi(this);
@@ -59,7 +60,10 @@ MainWindow::MainWindow(QWidget *parent) :
 
     ui->streamScrollArea->setWidget(widget);
 
-    loadConfigurationFile("configuration.txt");
+    if(executeFileDialog())
+        serializer = XmlSerializer(fileName);
+
+    loadConfigurationFile(fileName);
 
     if(previousClients.empty())
         addClientWidgetToScrollArea();
@@ -79,6 +83,54 @@ MainWindow::~MainWindow()
 {
     delete ui;
     delete palette;
+}
+
+bool MainWindow::executeFileDialog()
+{
+    configuration = new QDialog();
+    QPushButton* open = new QPushButton("Open configuration file", configuration);
+    QPushButton* defaultConf = new QPushButton("Use previous configuration", configuration);
+    QPushButton* cancel = new QPushButton("Cancel", configuration);
+
+    open->setToolTip("Load initial values from an existing configuration file");
+    defaultConf->setToolTip("Load initial values from the latest simulation executed");
+    cancel->setToolTip("Do not use any initial values");
+
+    defaultConf->setDefault(true);
+
+    configuration->setLayout(new QHBoxLayout(configuration));
+    configuration->layout()->addWidget(defaultConf);
+    configuration->layout()->addWidget(open);
+    configuration->layout()->addWidget(cancel);
+
+    QObject::connect(open, SIGNAL(clicked()), this, SLOT(chooseConfigurationFile()));
+    QObject::connect(defaultConf, SIGNAL(clicked()), this, SLOT(usePreviousConfiguration()));
+    QObject::connect(cancel, SIGNAL(clicked()), configuration, SLOT(close()));
+
+    configuration->exec();
+
+    delete configuration;
+    configuration = 0;
+}
+
+
+void MainWindow::chooseConfigurationFile()
+{
+    fileName = QFileDialog::getOpenFileName(this, "Open configuration");
+    configuration->done(1);
+}
+
+
+void MainWindow::usePreviousConfiguration()
+{
+    fileName = "configuration.txt";
+    configuration->done(1);
+}
+
+
+void MainWindow::cancelConfigurationDialog()
+{
+    configuration->done(0);
 }
 
 

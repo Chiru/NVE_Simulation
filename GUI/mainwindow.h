@@ -42,7 +42,10 @@ private:
     DistributionWidget* timeInterval;
     XmlSerializer serializer;
     XMLParser parser;
+    QString fileName;
+    QDialog* configuration;
 
+    bool executeFileDialog();
     void enableMessageEditor(bool enabled);
     bool loadConfigurationFile(QString fileName);
     void configureSimulationParams(const std::string& element);
@@ -59,6 +62,9 @@ public slots:
     void finishEditor();
 
 private slots:
+    void chooseConfigurationFile();
+    void usePreviousConfiguration();
+    void cancelConfigurationDialog();
     void addClientWidgetToScrollArea();
     void removeClient();
     void addStream();
