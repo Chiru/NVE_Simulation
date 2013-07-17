@@ -106,11 +106,15 @@ template <class T> bool XMLParser::readValue(const std::string &file, const std:
 
     variable_begin += tempVariable.length();
     while(file.at(variable_begin) != '\"'){
-        stream << file.at(variable_begin);
+
+        if(!iswspace(file.at(variable_begin)))
+            stream << file.at(variable_begin);
+
         variable_begin++;
     }
 
     stream >> result;
+
     PRINT_INFO(tempVariable <<  " " <<  result << std::endl);
 
     if(stream.fail())

@@ -78,21 +78,32 @@ void DistributionWidget::createDistributionDialog()
 }
 
 
-DistributionElement* DistributionWidget::getCopyOfDistributionElement()
-{
-    if(distribution == 0)
-        return 0;
-
-    return new DistributionElement(*distribution);
-}
-
-
 void DistributionWidget::setValue(DistributionElement* dist)
 {
     delete distribution;
     distribution = dist;
     distributionName->setText(dist->getDistributionString());
 }
+
+
+bool DistributionWidget::getDistributionName(QString& name) const
+{
+    if(distribution)
+    {
+        name = distribution->getDistributionString();
+    }
+    else
+    {
+        name = distributionName->text();
+    }
+
+    if(name == "")
+        return false;
+
+    return true;
+
+}
+
 
 
 DistributionDialog::DistributionDialog(bool alreadySplit)
@@ -474,4 +485,5 @@ void DistributionDialog::updateSplitDistribution()
     numberOfDistributionsSplit++;
     addParamWidgetsToDialog();
 }
+
 

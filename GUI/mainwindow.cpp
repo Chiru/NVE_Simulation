@@ -271,6 +271,9 @@ void MainWindow::enableMessageEditor(bool enabled)
 bool MainWindow::configMessageFromEditor(MessageTemplate* msg)
 {
 
+    QString sizeDistributionName("");
+    QString timeIntervalDistributionName("");
+
     if(ui->message_name->text() == "")
         return false;
 
@@ -279,14 +282,17 @@ bool MainWindow::configMessageFromEditor(MessageTemplate* msg)
     msg->setReliable(ui->message_reliable->isChecked());
     msg->setReturnToSender(ui->message_returnToSender->isChecked());
 
-    if((msg->setMessageSize(messageSize->getCopyOfDistributionElement())) == 0)
-       return false;
-
-    if((msg->setTimeInterval(timeInterval->getCopyOfDistributionElement())) == 0)
+    if(!messageSize->getDistributionName(sizeDistributionName))
         return false;
 
-    if(msg->getMessageTimeInterval().getDist() == None || msg->getMessageSize().getDist() == None)
+    if(!timeInterval->getDistributionName(timeIntervalDistributionName))
         return false;
+
+    msg->setMessageSize(sizeDistributionName);
+    msg->setTimeInterval(timeIntervalDistributionName);
+
+   // if(msg->getMessageTimeInterval().getDist() == None || msg->getMessageSize().getDist() == None)
+      //  return false;
 
     msg->setForwardMessageSize(ui->message_forwardMessageSpinBox->value(), ui->message_forwardMessageSizeRadioButton_received->isChecked());
     msg->setClientsOfInterest(ui->message_clientsOfInterestSpinBox->value());
@@ -558,12 +564,14 @@ void MainWindow::configureStream(const std::string &element)
 
     std::string messages("");
 
+    QList<MessageTemplate*> messageList;
+
     if(parser.getElement(element, 0, "<messages>", "</messages>", messages))
     {
-        configureMessages(messages);
+        configureMessages(messages, (!tcpUsed && appProto), messageList);
     }
 
-    StreamWidget* stream = new StreamWidget(numberOfStreams++, this, tcpUsed, appProto, ordered, nagle, serverGameTick, clientGameTick, ui->streamScrollArea->widget());
+    StreamWidget* stream = new StreamWidget(numberOfStreams++, this, tcpUsed, appProto, ordered, nagle, serverGameTick, clientGameTick, messageList, ui->streamScrollArea->widget());
 
     QObject::connect(stream, SIGNAL(setupMessageEditor(const MessageTemplate*, StreamWidget*)),
                      this, SLOT(setMessage(const MessageTemplate*, StreamWidget*)));
@@ -581,25 +589,124 @@ void MainWindow::configureStream(const std::string &element)
 }
 
 
-void MainWindow::configureMessages(const std::string &element)
+void MainWindow::configureMessages(const std::string &element, bool appProtoEnabled, QList<MessageTemplate*>& messages)
 {
-        int position = 0;
-        std::string result("");
+    int position = 0;
+    std::string result("");
+    MessageTemplate* msg;
 
-        while(parser.getElement(element, position, "<message>", "</message>", result))
-        {
-            position = element.find("</message>", position);
-            position++;
-            configureMessage(result);
-        }
+    while(parser.getElement(element, position, "<message>", "</message>", result))
+    {
+        position = element.find("</message>", position);
+        position++;
+        msg = configureMessage(result, appProtoEnabled);
+        if(msg != 0)
+            messages.append(msg);
+    }
 
 }
 
 
-void MainWindow::configureMessage(const std::string &element)
+MessageTemplate* MainWindow::configureMessage(const std::string &element, bool appProtoEnabled)
 {
+    MessageTemplate::TYPE type = MessageTemplate::ClientToServer;
+    std::string name("");
+    std::string sizeDistribution("");
+    std::string timeIntervalDistribution("");
+    bool reliable = false;
+    bool returnToSender = false;
+    bool useRcvSize = true;
+    int forwardMsgSize = 0;
+    int timeRequirementClient = 0;
+    int timeRequirementServer = 0;
+    double clientsOfInterest = 1;
+    std::string tempValue("");
 
+    if(!parser.readValue<std::string>(element, "type", tempValue))
+    {
+        type = MessageTemplate::ClientToServer;
+    }
+    else
+    {
+        if(tempValue.compare("odt") == 0)
+            type = MessageTemplate::ServerToClient;
+        else
+            type = MessageTemplate::ClientToServer;
+    }
 
+    if(!parser.readValue<std::string>(element, "name", name))
+    {
+        name = "";
+    }
+
+    if(!parser.readValue<std::string>(element, "size", sizeDistribution))
+    {
+        sizeDistribution = "";
+    }
+
+    if(!parser.readValue<std::string>(element, "timeinterval", timeIntervalDistribution))
+    {
+        timeIntervalDistribution = "";
+    }
+
+    reliable = parser.readBoolVariable(element, "reliable", false);
+
+    returnToSender = parser.readBoolVariable(element, "returntosender", false);
+
+    if(!parser.readValue<std::string>(element, "forwardmessagesize", tempValue))
+    {
+        useRcvSize = true;
+    }
+    else
+    {
+        if(tempValue.compare("rcv") == 0)
+            useRcvSize = true;
+        else
+        {
+            if(!parser.readValue<int>(element, "forwardmessagesize", forwardMsgSize))
+            {
+                useRcvSize = true;
+            }
+            else
+            {
+                useRcvSize = false;
+            }
+        }
+    }
+
+    if(!parser.readValue<int>(element, "timerequirementclient", timeRequirementClient))
+    {
+        timeRequirementClient = 0;
+    }
+
+    if(!parser.readValue<int>(element, "timerequirementserver", timeRequirementServer))
+    {
+        timeRequirementServer = 0;
+    }
+
+    if(!parser.readValue<double>(element, "clientsofinterest", clientsOfInterest))
+    {
+        clientsOfInterest = 1;
+    }
+
+    if(StreamWidget::getMessageNames().contains(QString(name.c_str())))
+            return 0;
+
+    MessageTemplate* msg = new MessageTemplate(this, appProtoEnabled);
+
+    msg->setMessageName(QString(name.c_str()));
+    msg->setMessageType(type);
+    msg->setReliable(reliable);
+    msg->setReturnToSender(returnToSender);
+    msg->setMessageSize(sizeDistribution.c_str());
+    msg->setTimeInterval(timeIntervalDistribution.c_str());
+    msg->setForwardMessageSize(forwardMsgSize, useRcvSize);
+    msg->setClientsOfInterest(clientsOfInterest);
+    msg->setTimeRequirementClient(timeRequirementClient);
+    msg->setTimeRequirementServer(timeRequirementServer);
+    StreamWidget::addMessageName(QString(name.c_str()));
+
+    return msg;
 }
 
 

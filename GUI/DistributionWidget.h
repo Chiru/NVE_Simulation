@@ -24,8 +24,8 @@ public:
     DistributionWidget(const QString& label, QWidget* parent = 0);
     DistributionWidget(QLabel* label, QPushButton* button, QLineEdit* resultDist, QLayout* layout, QWidget* parent = 0);
     ~DistributionWidget();
-    DistributionElement* getCopyOfDistributionElement();
     void setValue(DistributionElement*);
+    bool getDistributionName(QString&) const;
 
     void enableWidget(bool enabled);
 

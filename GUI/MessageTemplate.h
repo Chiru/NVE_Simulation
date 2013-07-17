@@ -29,12 +29,14 @@ public:
     void addSplitDistribution(const DistributionElement* dist);
     void setSplitDistributionPercentages(const QList<QDoubleSpinBox*>& percentages);
     void setPercentage(double);
+    void setDistributionString(const QString& dist);
 
 private:
     Distribution dist;
     QList<double> params;
     QString filename;
     QList<DistributionElement*> splitDistributions;
+    QString distributionString;
     double percentage; //this is only for split distribution
 
 };
@@ -67,6 +69,8 @@ public:
     void setReturnToSender(bool);
     bool setMessageSize(DistributionElement*);
     bool setTimeInterval(DistributionElement*);
+    void setMessageSize(const QString&);
+    void setTimeInterval(const QString&);
     void setForwardMessageSize(int size, bool useRecvSize);
     void setClientsOfInterest(double);
     void setTimeRequirementClient(int);

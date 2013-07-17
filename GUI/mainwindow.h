@@ -51,8 +51,8 @@ private:
     void configureAppProto(const std::string& element);
     void configureStreams(const std::string& element);
     void configureStream(const std::string& element);
-    void configureMessages(const std::string& element);
-    void configureMessage(const std::string& element);
+    void configureMessages(const std::string& element, bool appProtoEnabled, QList<MessageTemplate*>& messages);
+    MessageTemplate *configureMessage(const std::string& element, bool appProtoEnabled);
 
 
 public slots:

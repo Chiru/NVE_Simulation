@@ -88,6 +88,19 @@ bool MessageTemplate::setTimeInterval(DistributionElement* elem)
     return true;
 }
 
+
+void MessageTemplate::setMessageSize(const QString& dist)
+{
+    this->messageSize.setDistributionString(dist);
+}
+
+
+void MessageTemplate::setTimeInterval(const QString& dist)
+{
+    this->timeInterval.setDistributionString(dist);
+}
+
+
 void MessageTemplate::setForwardMessageSize(int size, bool useRecvSize)
 {
     if(useRecvSize)
@@ -131,7 +144,8 @@ void MessageTemplate::setTimeRequirementServer(int req)
 
 
 DistributionElement::DistributionElement()
-    :dist(Constant)
+    :dist(Constant),
+      distributionString("")
 {
 }
 
@@ -143,6 +157,7 @@ DistributionElement::DistributionElement(const DistributionElement &c)
     this->filename = c.filename;
     this->percentage = c.percentage;
     this->copyDistributions(c.splitDistributions);
+    this->distributionString = c.distributionString;
 }
 
 DistributionElement::~DistributionElement()
@@ -161,6 +176,7 @@ DistributionElement& DistributionElement::operator=(const DistributionElement& e
     this->filename = elem.filename;
     this->percentage = elem.percentage;
     this->copyDistributions(elem.splitDistributions);
+    this->distributionString = elem.distributionString;
 
     return *this;
 }
@@ -191,8 +207,14 @@ void DistributionElement::copyDistributions(const QList<DistributionElement*>& s
 
 QString DistributionElement::getDistributionString() const
 {
-    QString text("");
 
+    if(!distributionString.isEmpty())
+    {
+        return distributionString;
+    }
+
+
+    QString text("");
 
     switch(dist)
     {
@@ -200,52 +222,52 @@ QString DistributionElement::getDistributionString() const
         return "";
     break;
     case Constant:
-        text = "Constant (";
+        text = "Constant(";
     break;
     case Uniform:
-        text = "Uniform (";
+        text = "Uniform(";
     break;
     case Sequential:
-        text = "Sequential (";
+        text = "Sequential(";
     break;
     case Exponential:
-        text = "Exponential (";
+        text = "Exponential(";
     break;
     case Pareto:
-        text = "Pareto (";
+        text = "Pareto(";
     break;
     case Weibull:
-        text = "Weibull (";
+        text = "Weibull(";
     break;
     case Normal:
-        text = "Normal (";
+        text = "Normal(";
     break;
     case Lognormal:
-        text = "Lognormal (";
+        text = "Lognormal(";
     break;
     case Gamma:
-        text = "Gamma (";
+        text = "Gamma(";
     break;
     case Erlang:
-        text = "Erlang (";
+        text = "Erlang(";
     break;
     case Zipf:
-        text = "Zipf (";
+        text = "Zipf(";
     break;
     case Zeta:
-        text = "Zeta (";
+        text = "Zeta(";
     break;
     case Triangular:
-        text = "Triangular (";
+        text = "Triangular(";
     break;
     case Extreme:
-        text = "Extreme (";
+        text = "Extreme(";
     break;
     case Empirical:
-        text = "Empirical (";
+        text = "Empirical(";
     break;
     case Split:
-        text = "Split (";
+        text = "Split(";
         break;
 
     }
@@ -257,7 +279,7 @@ QString DistributionElement::getDistributionString() const
         for(QList<double>::const_iterator it = params.begin(); it != params.end(); it++)
         {
             if(!first)
-                text.append(", ");
+                text.append(",");
             else
                 first = false;
 
@@ -315,5 +337,11 @@ void DistributionElement::setSplitDistributionPercentages(const QList<QDoubleSpi
 void DistributionElement::setPercentage(double percentage)
 {
     this->percentage = percentage;
+}
+
+
+void DistributionElement::setDistributionString(const QString &dist)
+{
+    distributionString = dist;
 }
 

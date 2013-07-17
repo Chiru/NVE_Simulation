@@ -27,9 +27,10 @@ StreamWidget::StreamWidget(int number, MainWindow* mw, QWidget *parent)
 }
 
 
-StreamWidget::StreamWidget(int number, MainWindow *mw, bool tcpUsed, bool appProto, bool ordered, bool nagle, int serverGameTick, int clientGameTick, QWidget *parent)
+StreamWidget::StreamWidget(int number, MainWindow *mw, bool tcpUsed, bool appProto, bool ordered, bool nagle, int serverGameTick, int clientGameTick,
+                           QList<MessageTemplate *> messages, QWidget *parent)
     : QGroupBox(parent),
-      messages(QList<MessageTemplate*>()),
+      messages(messages),
       messageInEditor(0),
       previousMessageName(""),
       streamNumber(number),
@@ -54,6 +55,14 @@ StreamWidget::StreamWidget(int number, MainWindow *mw, bool tcpUsed, bool appPro
 
     this->clientGameTick->setValue(clientGameTick);
     this->serverGameTick->setValue(serverGameTick);
+
+    MessageTemplate* messageName;
+
+    foreach(messageName, this->messages)
+    {
+        messageList->insertItem(messageList->count(), messageName->getMessageName());
+    }
+
 }
 
 
@@ -290,4 +299,17 @@ void StreamWidget::enableStreamWidgets(bool enabled)
         editMessage->setEnabled(false);
 
 }
+
+
+const QList<QString>& StreamWidget::getMessageNames()
+{
+    return messageNames;
+}
+
+void StreamWidget::addMessageName(const QString& name)
+{
+    messageNames.append(name);
+}
+
+
 
