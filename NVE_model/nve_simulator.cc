@@ -39,13 +39,34 @@
 #include <sys/stat.h>
 #include <fstream>
 #include <sstream>
+#include "simulation_interface.h"
+
+
+Args::Args(const std::string &fileName)
+    : verbose(false),
+      serverLog(false),
+      clientLog(false),
+      help(false),
+      fileName(fileName)
+{
+}
+
+
+Args::Args(bool verbose, bool clientLog, bool serverLog, bool help, const std::string &fileName)
+    : verbose(verbose),
+      serverLog(serverLog),
+      clientLog(clientLog),
+      help(help),
+      fileName(fileName)
+{
+}
 
 
 
 void printAddresses(NetDeviceContainer *deviceContainer, Ipv4InterfaceContainer *ipv4Container,  int count);
 void printHelpAndQuit();
 
-int start(int argc, char** argv){
+int start(Args args){
 
    // LogComponentEnable("nve_simulator", LOG_LEVEL_INFO);
 
@@ -62,7 +83,6 @@ int start(int argc, char** argv){
     StatisticsCollector* stats;
     uint16_t* serverPorts;
     bool verbose = false, clientLog = false, serverLog = false;
-    bool fileNameGiven = false;
     std::string XML_filename;
     Ptr<RateErrorModel>* packetLoss;
     FlowMonitorHelper flowMonHelper;
@@ -85,34 +105,34 @@ int start(int argc, char** argv){
 
     Config::SetDefault("ns3::DropTailQueue::MaxPackets", UintegerValue(2000));    //TODO: change to be configurable
 
-    for(i = 0; i < argc; i++){
-        if(strcmp(argv[i], "--verbose") == 0){
-            verbose = clientLog = serverLog = true;
-        }
-        if(strcmp(argv[i], "--serverLog") == 0){
-            serverLog = true;
-        }
-        if(strcmp(argv[i], "--clientLog") == 0){
-            clientLog = true;
-        }
-        if(strcmp(argv[i], "--filename") == 0){
-            if(++i >= argc){
-                PRINT_ERROR( "No filename given" << std::endl);
-                printHelpAndQuit();
-            }else{
-                XML_filename = std::string(argv[i]);
-                fileNameGiven = true;
-            }
-        }
-        if(strcmp(argv[i], "--help") == 0){
-            printHelpAndQuit();
-        }
+
+    if(args.isVerbose())
+    {
+        verbose = clientLog = serverLog = true;
     }
 
-    if(!fileNameGiven){
+    if(args.serverLoggingEnabled())
+    {
+        serverLog = true;
+    }
+
+    if(args.clientLoggingEnabled())
+    {
+        clientLog = true;
+    }
+
+    if(args.needHelp())
+    {
+        printHelpAndQuit();
+    }
+
+    if(args.getFileName() == "")
+    {
         PRINT_ERROR( "No filename given." << std::endl);
         printHelpAndQuit();
     }
+
+    XML_filename = args.getFileName();
 
     XMLParser parser = XMLParser(XML_filename);
 

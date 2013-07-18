@@ -3,6 +3,7 @@
 #include "ClientWidget.h"
 #include "StreamWidget.h"
 #include "MessageTemplate.h"
+#include "simulation_interface.h"
 #include <QBoxLayout>
 #include <QScrollBar>
 #include <iostream>
@@ -380,6 +381,10 @@ void MainWindow::configurationFinished()
         serializer.addStreamElement(stream);
 
     serializer.writeToFile();
+
+    Args args(fileName.toStdString());
+
+    start(args);
 }
 
 

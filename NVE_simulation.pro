@@ -45,6 +45,7 @@ HEADERS += GUI/mainwindow.h \
     NVE_model/DataSender.h \
     NVE_model/DataGenerator.h \
     NVE_model/Client.h \
+    NVE_model/simulation_interface.h
 
 FORMS    += GUI/mainwindow.ui
 
