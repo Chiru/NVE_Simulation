@@ -60,7 +60,6 @@ MainWindow::MainWindow(QWidget *parent) :
     ui->message_timeReqServerSpinBox->setMaximum(10000);
 
     ui->streamScrollArea->setWidget(widget);
-
     if(executeFileDialog())
         loadConfigurationFile(fileName);
 
@@ -73,6 +72,7 @@ MainWindow::MainWindow(QWidget *parent) :
     palette = new QPalette();
     palette->setColor(QPalette::WindowText, QColor(255,0,0));
     ui->message_errorLabel->setPalette(*palette);
+    ui->executionError->setPalette(*palette);
 
     enableMessageEditor(false);
 
@@ -347,9 +347,6 @@ bool MainWindow::configMessageFromEditor(MessageTemplate* msg)
     msg->setMessageSize(sizeDistributionName);
     msg->setTimeInterval(timeIntervalDistributionName);
 
-   // if(msg->getMessageTimeInterval().getDist() == None || msg->getMessageSize().getDist() == None)
-      //  return false;
-
     msg->setForwardMessageSize(ui->message_forwardMessageSpinBox->value(), ui->message_forwardMessageSizeRadioButton_received->isChecked());
     msg->setClientsOfInterest(ui->message_clientsOfInterestSpinBox->value());
 
@@ -391,8 +388,10 @@ void MainWindow::configurationFinished()
 
     Args args(fileName.toStdString());
 
-    if(start(args) == EXIT_SUCCESS)
-        ;
+    if(start(args) == EXIT_FAILURE)
+        ui->executionError->setText("Invalid configuration");
+    else
+        this->close();
 
 }
 

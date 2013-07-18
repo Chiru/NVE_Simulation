@@ -259,7 +259,6 @@ void XmlSerializer::flush()
 {
     XmlElement* elem;
 
-
     delete appProto;
     appProto = 0;
 

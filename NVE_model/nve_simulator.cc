@@ -95,6 +95,7 @@ int start(Args args){
     if((resultDir.st_mode & S_IFMT) != S_IFDIR || (scriptDir.st_mode& S_IFMT) != S_IFDIR ){
 
         if(system("mkdir ./results") == -1 || system("mkdir ./results/Rscripts") == 1){
+
             PRINT_ERROR("Can't create directories results and results/Rscripts, please create them." << std::endl);
 
         }
@@ -137,7 +138,8 @@ int start(Args args){
     XMLParser parser = XMLParser(XML_filename);
 
     if(!parser.isFileCorrect()){
-        PRINT_ERROR( "Terminating due to an incorrect XML file" << std::endl);
+        PRINT_ERROR( "Terminating due to an incorrect XML file: " << std::endl);
+
         return EXIT_FAILURE;
     }
 

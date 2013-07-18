@@ -1,6 +1,5 @@
 #include "XML_parser.h"
 
-
 //class XMLParser function definitions
 
 
@@ -32,7 +31,6 @@ XMLParser::XMLParser(std::string filename): filename(filename), correctFile(true
 
     while(!filestream.eof()){
         filestream >> token;
-
         xmlFile.append(token);
     }
 
@@ -1035,7 +1033,7 @@ RandomVariable* XMLParser::DistributionEnum::readSplitDistribution(const std::st
     double percentage = 0;
 
     stream >> c;
-std::cout << stream.str() << std::endl;
+
     if(c != '(' || stream.fail())
         return 0;
 
@@ -1094,6 +1092,11 @@ bool XMLParser::DistributionEnum::readAndRemovePercentage(std::string &dist, dou
         return false;
 
     char c;
+
+    stream >> c;
+
+    if(stream.fail() || c != '%')
+        return false;
 
     stream >> c;
 
