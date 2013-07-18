@@ -32,8 +32,11 @@ XMLParser::XMLParser(std::string filename): filename(filename), correctFile(true
 
     while(!filestream.eof()){
         filestream >> token;
+
         xmlFile.append(token);
     }
+
+    toLowerCase(xmlFile);
 
     filestream.close();
 
@@ -60,7 +63,6 @@ XMLParser::~XMLParser(){
 
     for(int i = 0; i < numberOfStreams; i++){
         delete clientStreams[i];
-      //  delete serverStreams[i];
     }
 
     delete[] serverStreams;
@@ -69,6 +71,13 @@ XMLParser::~XMLParser(){
     delete appProto;
 
 }
+
+
+void XMLParser::toLowerCase(std::string& token)
+{
+    std::transform(token.begin(), token.end(), token.begin(), ::tolower);
+}
+
 
 bool XMLParser::getElement(const std::string &file, size_t position, const std::string &start, const std::string &end, std::string &result) const
 {
@@ -393,7 +402,9 @@ bool XMLParser::parseMessages(std::string &messagesElement, std::vector<Message*
 
     size_t latest_token = 0;
     std::string messageElement("");
-    std::string type, reliable, name, forwardBack;
+    std::string type, reliable, name, returnToSender;
+    std::string forwardSizeStr("");
+    bool rcv = false;
     int size = 0, timeInterval = 0, clientTimeRequirement = 0, serverTimeRequirement = 0, forwardSize = 0;
     double clientsOfInterest;
     RandomVariable* ranvarTimeInterval = 0;
@@ -439,17 +450,30 @@ bool XMLParser::parseMessages(std::string &messagesElement, std::vector<Message*
             }
         }
 
-        if(!readValue<std::string>(messageElement, "forwardback", forwardBack, 0)){
-            PRINT_ERROR( "Error in forwardback specification." << std::endl);
+        if(!readValue<std::string>(messageElement, "returntosender", returnToSender, 0)){
+            PRINT_ERROR( "Error in returntosender specification." << std::endl);
             return false;
         }
 
-        if(!readRandomVariable(messageElement, ranvarForwardSize, distribution, "forwardmessagesize")){                  //if no distribution is specified, read simple timeinterval
-            if(!readValue<int>(messageElement, "forwardmessagesize", forwardSize, 0)){
-                PRINT_ERROR( "Error in message forwardmessagesize specification." << std::endl);
-                return false;
-            }
 
+        if(!readValue<std::string>(messageElement, "forwardmessagesize", forwardSizeStr, 0))
+        {
+            PRINT_ERROR( "Error in message forwardmessagesize specification." << std::endl);
+            return false;
+        }
+        else
+        {
+            if(forwardSizeStr == "rcv")           //if "rcv", use received message size, otherwise read distribution or constant value
+            {
+                rcv = true;
+            }
+            else
+            {
+                if(!readRandomVariable(messageElement, ranvarForwardSize, distribution, "forwardmessagesize"))
+                {
+                    readValue<int>(messageElement, "forwardmessagesize", forwardSize, 0);
+                }
+            }
         }
 
         if(size <= 0 && ranvarSize == 0){
@@ -491,8 +515,8 @@ bool XMLParser::parseMessages(std::string &messagesElement, std::vector<Message*
             }
 
            messages.push_back(new UserActionMessage(name, reliable.compare("no") == 0 ? false : true, timeInterval, size, clientsOfInterest, clientTimeRequirement,
-                                                         serverTimeRequirement, stream_number, forwardSize, forwardBack.compare("no") == 0 ? false : true,
-                                                         ranvarTimeInterval, ranvarSize, ranvarForwardSize));
+                                                         serverTimeRequirement, stream_number, forwardSize, returnToSender.compare("no") == 0 ? false : true,
+                                                         rcv, ranvarTimeInterval, ranvarSize, ranvarForwardSize));
         }
 
         else if(type.compare("odt") == 0){
@@ -503,7 +527,8 @@ bool XMLParser::parseMessages(std::string &messagesElement, std::vector<Message*
             }
 
            messages.push_back(new OtherDataMessage(name, reliable.compare("no") == 0 ? false : true, timeInterval, size, stream_number, forwardSize,
-                                                   forwardBack.compare("no") == 0 ? false : true, clientTimeRequirement, ranvarTimeInterval, ranvarSize, ranvarForwardSize));
+                                                   returnToSender.compare("no") == 0 ? false : true, rcv,clientTimeRequirement, ranvarTimeInterval, ranvarSize,
+                                                   ranvarForwardSize));
         }
 
         else{
@@ -1010,7 +1035,7 @@ RandomVariable* XMLParser::DistributionEnum::readSplitDistribution(const std::st
     double percentage = 0;
 
     stream >> c;
-
+std::cout << stream.str() << std::endl;
     if(c != '(' || stream.fail())
         return 0;
 

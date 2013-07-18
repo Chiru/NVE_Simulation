@@ -6,15 +6,15 @@
 uint16_t Message::messagesCreated = 0;
 std::map<uint16_t, std::map<MessageType, std::vector<Message::NumbersAndSizes> > >Message::numbersAndSizes;
 
-Message::Message(std::string name, bool reliable, int timeInterval, uint16_t size, uint16_t streamNumber, uint16_t forwardSize, bool forwardBack,
-                 RandomVariable* ranvarTimeInterval, RandomVariable* ranvarSize, RandomVariable* ranvarForwardSize)
+Message::Message(std::string name, bool reliable, int timeInterval, uint16_t size, uint16_t streamNumber, uint16_t forwardSize, bool rcvSize,
+                 bool forwardBack, RandomVariable* ranvarTimeInterval, RandomVariable* ranvarSize, RandomVariable *ranvarForwardSize)
     : name(name), reliable(reliable), timeInterval(timeInterval), messageSize(size), streamNumber(streamNumber),
-      ranvarTimeInterval(ranvarTimeInterval), ranvarSize(ranvarSize), ranvarForwardSize(ranvarForwardSize), forwardSize(forwardSize), forwardBack(forwardBack){
+      ranvarTimeInterval(ranvarTimeInterval), ranvarSize(ranvarSize), ranvarForwardSize(ranvarForwardSize), forwardSize(forwardSize), useRcvSize(rcvSize), forwardBack(forwardBack){
 
 }
 
 Message::Message(const Message &msg): name(msg.getName()), reliable(msg.getReliable()), timeInterval(msg.getTimeInterval()), messageSize(msg.getMessageSize()),
-    type(msg.getType()), streamNumber(msg.getStreamNumber()), forwardSize(msg.getForwardMessageSize()), forwardBack(msg.doForwardBack()){
+    type(msg.getType()), streamNumber(msg.getStreamNumber()), forwardSize(msg.getForwardMessageSize()), useRcvSize(msg.useRcvSize), forwardBack(msg.doForwardBack()) {
 
     if(msg.ranvarTimeInterval != 0)
         this->ranvarTimeInterval = new RandomVariable(*msg.ranvarTimeInterval);
@@ -91,8 +91,8 @@ std::map< std::string, uint16_t, Message::StringComparator> UserActionMessage::u
 
 UserActionMessage::UserActionMessage(std::string name, bool reliable, int timeInterval, uint16_t messageSize, double clientsOfInterest,
                                      uint32_t clientRequirement,  uint32_t serverRequirement, uint16_t streamNumber, uint16_t forwardSize, bool forwardBack,
-                                     RandomVariable* ranvarTimeInterval, RandomVariable* ranvarSize, RandomVariable* ranvarForwardSize)
-    :Message(name, reliable, timeInterval, messageSize, streamNumber, forwardSize, forwardBack, ranvarTimeInterval, ranvarSize, ranvarForwardSize), clientsOfInterest(clientsOfInterest),
+                                     bool rcvSize, RandomVariable* ranvarTimeInterval, RandomVariable* ranvarSize, RandomVariable *ranvarForwardSize)
+    :Message(name, reliable, timeInterval, messageSize, streamNumber, forwardSize, rcvSize, forwardBack, ranvarTimeInterval,ranvarSize, ranvarForwardSize), clientsOfInterest(clientsOfInterest),
       clientTimeRequirement(clientRequirement), serverTimeRequirement(serverRequirement){
 
     if(userActionMessageNameMap.find(name) == userActionMessageNameMap.end()){
@@ -178,8 +178,12 @@ void UserActionMessage::sendData(){
 
     fillMessageContents(buffer, messageNumber);
 
+
     if(ranvarSize == 0){
-        stats.size = this->getMessageSize();
+        if(useRcvSize)
+            stats.forwardSize = this->messageSize;
+        else
+            stats.forwardSize = this->forwardSize;
     }
     else{
         stats.size = ranvarSize->GetInteger();
@@ -272,8 +276,11 @@ std::map< std::string, uint16_t, Message::StringComparator> OtherDataMessage::ot
 
 
 OtherDataMessage::OtherDataMessage(std::string name, bool reliable, int timeInterval, uint16_t messageSize, uint16_t streamNumber, uint16_t forwardSize,
-                                   bool forwardBack, uint16_t req, RandomVariable* ranvarTimeInterval, RandomVariable* ranvarSize, RandomVariable* ranvarforwardSize)
-    : Message(name, reliable, timeInterval, messageSize, streamNumber, forwardSize, forwardBack, ranvarTimeInterval, ranvarSize, ranvarforwardSize), clientTimeRequirement(req){
+                                   bool forwardBack, bool rcvSize, uint16_t timeReq, RandomVariable* ranvarTimeInterval, RandomVariable* ranvarSize,
+                                   RandomVariable *ranvarForwardSize)
+    : Message(name, reliable, timeInterval, messageSize, streamNumber, forwardSize, rcvSize, forwardBack, ranvarTimeInterval, ranvarSize, ranvarForwardSize), clientTimeRequirement(timeReq)
+
+{
 
     if(otherDataMessageNameMap.find(name) == otherDataMessageNameMap.end()){
         otherDataMessageNameMap.insert(std::make_pair<std::string, uint16_t>(name, otherDataMessageNameMap.size()));   //every message name has an unique index
@@ -347,9 +354,14 @@ void OtherDataMessage::sendData(){
         stats.size = ranvarSize->GetInteger();
     }
 
-    if(ranvarForwardSize == 0){
-        stats.forwardSize = this->getForwardMessageSize();
-    }else{
+    if(ranvarForwardSize == 0)
+    {
+        if(useRcvSize)
+            stats.forwardSize = this->messageSize;
+        else
+            stats.forwardSize = this->forwardSize;
+    }
+    else{
         stats.forwardSize = ranvarForwardSize->GetInteger();
     }
 

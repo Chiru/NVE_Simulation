@@ -112,6 +112,7 @@ private:
     bool parseRunningTime(std::string& file);
     uint16_t countStreams(std::string& file);
     bool readRandomVariable(const std::string& element, RandomVariable*& ranvar, DistributionEnum& distribution, const std::string& variableName);
+    void toLowerCase(std::string& token);
 
     std::string filename;
     bool correctFile;

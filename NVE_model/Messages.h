@@ -47,7 +47,8 @@ public:
         }
     };
 
-    Message(std::string, bool, int, uint16_t, uint16_t, uint16_t forwardSize, bool forwardBack, RandomVariable* ranvarTimeInterval = 0, RandomVariable* ranvarSize = 0, RandomVariable* ranvarForwardSize = 0);
+    Message(std::string, bool, int, uint16_t, uint16_t, uint16_t forwardSize, bool rcvSize,
+            bool forwardBack, RandomVariable* ranvarTimeInterval = 0, RandomVariable* ranvarSize = 0, RandomVariable* ranvarForwardSize = 0);
     virtual ~Message();
     virtual Message* copyMessage()  = 0;
     virtual void scheduleSendEvent(Callback<bool, Message*, uint8_t*>) = 0;
@@ -86,6 +87,7 @@ public:
     RandomVariable* ranvarSize;
     RandomVariable* ranvarForwardSize;
     uint16_t forwardSize;
+    bool useRcvSize;
     bool forwardBack;
 
     typedef struct{    //these must be remembered in order to get messagesizes when they are generated with random values
@@ -134,8 +136,9 @@ public:
     }
 
 private:
-    UserActionMessage(std::string name, bool reliable, int timeInterval, uint16_t messageSize, double clientsOfInterest, uint32_t clientRequirement, uint32_t serverRequirement,
-                      uint16_t streamNumber, uint16_t forwardSize, bool forwardBack, RandomVariable* ranvarTimeInterval = 0, RandomVariable* ranvarSize = 0, RandomVariable* ranvarForwardSize = 0);
+    UserActionMessage(std::string name, bool reliable, int timeInterval, uint16_t messageSize, double clientsOfInterest, uint32_t clientRequirement,
+                      uint32_t serverRequirement, uint16_t streamNumber, uint16_t forwardSize, bool forwardBack, bool rcvSize, RandomVariable* ranvarTimeInterval = 0,
+                      RandomVariable* ranvarSize = 0, RandomVariable* ranvarForwardSize = 0);
 
     double clientsOfInterest;
     uint32_t clientTimeRequirement;  //time requirement for messages to travel from client to client
@@ -178,8 +181,9 @@ public:
     }
 
 private:
-    OtherDataMessage(std::string name, bool reliable, int timeInterval, uint16_t messageSize, uint16_t streamNumber, uint16_t forwardSize, bool forwardBack, uint16_t timeReq,
-                     RandomVariable* ranvarTimeInterval = 0, RandomVariable* ranvarSize = 0, RandomVariable* ranvarForwardSize = 0);
+    OtherDataMessage(std::string name, bool reliable, int timeInterval, uint16_t messageSize, uint16_t streamNumber, uint16_t forwardSize,
+                     bool forwardBack, bool rcvSize, uint16_t timeReq, RandomVariable* ranvarTimeInterval = 0, RandomVariable* ranvarSize = 0,
+                     RandomVariable* ranvarForwardSize = 0);
 
     uint16_t clientTimeRequirement;
 
