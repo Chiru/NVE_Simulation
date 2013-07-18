@@ -86,6 +86,8 @@ MainWindow::~MainWindow()
 
 bool MainWindow::executeFileDialog()
 {
+    bool retval;
+
     configuration = new QDialog();
     QPushButton* open = new QPushButton("Open configuration file", configuration);
     QPushButton* defaultConf = new QPushButton("Use previous configuration", configuration);
@@ -104,12 +106,14 @@ bool MainWindow::executeFileDialog()
 
     QObject::connect(open, SIGNAL(clicked()), this, SLOT(chooseConfigurationFile()));
     QObject::connect(defaultConf, SIGNAL(clicked()), this, SLOT(usePreviousConfiguration()));
-    QObject::connect(cancel, SIGNAL(clicked()), configuration, SLOT(close()));
+    QObject::connect(cancel, SIGNAL(clicked()), this, SLOT(cancelConfigurationDialog()));
 
-    configuration->exec();
+    retval = configuration->exec();
 
     delete configuration;
     configuration = 0;
+
+    return retval;
 }
 
 
@@ -129,6 +133,7 @@ void MainWindow::usePreviousConfiguration()
 
 void MainWindow::cancelConfigurationDialog()
 {
+    fileName = "configuration.txt";
     configuration->done(0);
 }
 
@@ -366,6 +371,8 @@ void MainWindow::setMsgConfigErrorMessage(const QString &error)
 void MainWindow::configurationFinished()
 {
 
+    serializer.flush();
+
     serializer.addSimulationParam(ui->simTime->value(), ui->animationCheckBox->isChecked());
 
     ClientWidget* client;
@@ -384,7 +391,9 @@ void MainWindow::configurationFinished()
 
     Args args(fileName.toStdString());
 
-    start(args);
+    if(start(args) == EXIT_SUCCESS)
+        ;
+
 }
 
 

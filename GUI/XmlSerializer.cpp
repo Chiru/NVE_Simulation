@@ -82,36 +82,7 @@ XmlSerializer::XmlSerializer(QString fileName)
 
 XmlSerializer::~XmlSerializer()
 {
-
-    XmlElement* elem;
-
-    if(elements.empty())
-    {
-        delete appProto;
-
-        foreach(elem, clients)
-        {
-            delete elem;
-            elem = 0;
-        }
-
-        foreach(elem, streams)
-        {
-            delete elem;
-            elem = 0;
-        }
-
-        foreach(elem, simulationParams)
-        {
-            delete elem;
-            elem = 0;
-        }
-    }
-    else
-    {
-        foreach(elem, elements)
-            delete elem;
-    }
+    flush();
 }
 
 void XmlSerializer::addClientsElement(const ClientWidget *client)
@@ -150,7 +121,6 @@ void XmlSerializer::addClientsElement(const ClientWidget *client)
 
 void XmlSerializer::addAppProtoElement(uint ackSize, uint delayedAck, uint retransmit, uint headerSize)
 {
-    delete appProto;
     appProto = new XmlStruct("appproto");
 
     appProto->addElement(new XmlValue("acksize", QString::number(ackSize)));
@@ -283,3 +253,41 @@ bool XmlSerializer::writeToFile()
 
     return true;
 }
+
+
+void XmlSerializer::flush()
+{
+    XmlElement* elem;
+
+
+    delete appProto;
+    appProto = 0;
+
+    foreach(elem, clients)
+    {
+        delete elem;
+        clients.removeOne(elem);
+    }
+
+    foreach(elem, streams)
+    {
+        delete elem;
+        streams.removeOne(elem);
+    }
+
+    foreach(elem, simulationParams)
+    {
+        delete elem;
+        simulationParams.removeOne(elem);
+    }
+
+    if(!elements.empty())
+    {
+        foreach(elem, elements)
+        {
+            elements.removeOne(elem);
+        }
+
+    }
+}
+

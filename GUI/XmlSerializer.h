@@ -56,6 +56,7 @@ public:
     void addAppProtoElement(uint ackSize, uint delayedAck, uint retransmit, uint headerSize);
     void addStreamElement(const StreamWidget *stream);
     void addSimulationParam(uint simTime, bool animation);
+    void flush();
 
 private:
 
