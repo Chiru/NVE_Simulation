@@ -3,7 +3,6 @@
 
 //Class StatisticsCollector function definitions
 
-bool StatisticsCollector::collectorCreated = false;
 bool StatisticsCollector::verbose = false;
 bool StatisticsCollector::clientLog = false;
 bool StatisticsCollector::serverLog = false;
@@ -14,16 +13,6 @@ std::string&(*StatisticsCollector::odm_fnptr)(uint16_t) = 0;
 uint16_t StatisticsCollector::userActionmessageCount = 0;
 uint16_t StatisticsCollector::otherDataMessageCount = 0;
 
-StatisticsCollector* StatisticsCollector::createStatisticsCollector(bool verbose, bool clientLog, bool serverLog, uint16_t streamCount, int runningTime){
-
-    if(!collectorCreated)
-        return new StatisticsCollector(verbose, clientLog, serverLog, streamCount, runningTime);
-
-    else {
-        PRINT_ERROR( "Already one StatisticsCollector exists." << std::endl);
-        return NULL;
-    }
-}
 
 StatisticsCollector::StatisticsCollector(bool verbose, bool clientLog, bool serverLog, uint16_t numberOfStreams, int runningTime): streamCount(numberOfStreams), runningTime(runningTime),
     scriptSourceFile("results/rscriptfile.R"), scriptResultPdfFile("results/resultgraphs.pdf"), scriptResultTextFile("results/results.txt"){

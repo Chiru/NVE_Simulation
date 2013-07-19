@@ -105,7 +105,7 @@ private:
 
     bool parseClients(std::string& file);
     bool parseStreams(std::string& file);
-    bool parseStream(std::string& streamElement, DataGenerator*& clientStream, DataGenerator*& serverStream);
+    bool parseStream(std::string& streamElement, DataGenerator*& clientStream, DataGenerator*& serverStream, int streamNumber);
     bool parseMessages(std::string& messagesElement, std::vector<Message*>& messages, uint16_t stream_number);
     bool parseApplicationProtocol(std::string& file);
     bool parseGameTick(std::string& streamElement, int& serverGameTick, int& clientGameTick);

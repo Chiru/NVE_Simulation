@@ -258,9 +258,8 @@ uint16_t XMLParser::countStreams(std::string &file){
 
 }
 
-bool XMLParser::parseStream(std::string &streamElement, DataGenerator* &clientStream, DataGenerator* &serverStream){
+bool XMLParser::parseStream(std::string &streamElement, DataGenerator* &clientStream, DataGenerator* &serverStream, int streamNumber){
 
-    static uint16_t stream_number = 0;
     DataGenerator::Protocol proto = DataGenerator::UDP;
     ApplicationProtocol* appProto;
     int position;
@@ -272,10 +271,8 @@ bool XMLParser::parseStream(std::string &streamElement, DataGenerator* &clientSt
     std::vector<Message*> messages;
     int serverGameTick = 0, clientGameTick = 0;
 
-    stream_number++;
-
     if(!readValue<std::string>(streamElement, "type", type, 0)){
-        PRINT_ERROR( "No stream type specified in stream number: " << stream_number << std::endl);
+        PRINT_ERROR( "No stream type specified in stream number: " << streamNumber << std::endl);
         return false;
     }
 
@@ -287,7 +284,7 @@ bool XMLParser::parseStream(std::string &streamElement, DataGenerator* &clientSt
     }else if(type.compare("udp") == 0)
         proto = DataGenerator::UDP;
     else {
-        PRINT_ERROR( "Invalid type in stream number: " << stream_number << std::endl);
+        PRINT_ERROR( "Invalid type in stream number: " << streamNumber << std::endl);
     }
 
     readValue<std::string>(streamElement, "appproto", useAppProto, 0);
@@ -298,7 +295,7 @@ bool XMLParser::parseStream(std::string &streamElement, DataGenerator* &clientSt
         }
 
         if(!readValue<std::string>(streamElement, "ordered", ordered, 0)){
-            PRINT_ERROR("Error in ordering specification in stream number " << stream_number << std::endl);
+            PRINT_ERROR("Error in ordering specification in stream number " << streamNumber << std::endl);
             return false;
         }
 
@@ -311,19 +308,19 @@ bool XMLParser::parseStream(std::string &streamElement, DataGenerator* &clientSt
     }
 
     if((position = streamElement.find("<messages>")) == std::string::npos){
-        PRINT_ERROR( "No messages specified in stream number " << stream_number << std::endl);
+        PRINT_ERROR( "No messages specified in stream number " << streamNumber << std::endl);
         delete appProto;
         return false;
     }
 
     if(!getElement(streamElement, position, "<messages>", "</messages>", messagesElement)){
         PRINT_ERROR( streamElement << std::endl);
-        PRINT_ERROR( "Incorrect format in message specification in stream number " << stream_number << std::endl);
+        PRINT_ERROR( "Incorrect format in message specification in stream number " << streamNumber << std::endl);
         delete appProto;
         return false;
     }
 
-    if(!parseMessages(messagesElement, messages, stream_number)){
+    if(!parseMessages(messagesElement, messages, streamNumber)){
         PRINT_ERROR( "Incorrect format in message specifications." << std::endl);
         delete appProto;
         for(std::vector<Message*>::iterator it = messages.begin(); it != messages.end(); it++){
@@ -332,25 +329,25 @@ bool XMLParser::parseStream(std::string &streamElement, DataGenerator* &clientSt
         return false;
     }
 
-    clientStream = new ClientDataGenerator(stream_number, proto, appProto, messages, clientGameTick, (ordered.compare("yes") == 0));
-    serverStream = new ServerDataGenerator(stream_number, proto, appProto, messages, serverGameTick, (ordered.compare("yes") == 0));
+    clientStream = new ClientDataGenerator(streamNumber, proto, appProto, messages, clientGameTick, (ordered.compare("yes") == 0));
+    serverStream = new ServerDataGenerator(streamNumber, proto, appProto, messages, serverGameTick, (ordered.compare("yes") == 0));
 
     return true;
 }
 
 bool XMLParser::parseStreams(std::string &file){
 
-    size_t latest_token = 0, temp_position = 0;
+    size_t latestToken = 0, temp_position = 0;
     int count = 0;
     std::string streams;
     std::string streamElement;
 
-    if((latest_token = file.find("<streams>")) == std::string::npos){
+    if((latestToken = file.find("<streams>")) == std::string::npos){
         PRINT_ERROR( "Incorrect format in XML file: no <streams> tag found" << std::endl);
         return false;
     }
 
-    if(!getElement(file, latest_token, "<streams>", "</streams>", streams)){
+    if(!getElement(file, latestToken, "<streams>", "</streams>", streams)){
         PRINT_ERROR( "Incorrect format in streams specifications" << std::endl);
         return false;
     }
@@ -364,25 +361,27 @@ bool XMLParser::parseStreams(std::string &file){
         this->serverStreams[i] = 0;
     }
 
-    latest_token = 0;
+    latestToken = 0;
+    int streamNumber = 1;
 
-    while((temp_position = streams.find("<stream>", latest_token+1)) != std::string::npos){
-        latest_token = temp_position;
-        if(!getElement(streams, latest_token, "<stream>", "</stream>", streamElement)){
+    while((temp_position = streams.find("<stream>", latestToken+1)) != std::string::npos){
+        latestToken = temp_position;
+        if(!getElement(streams, latestToken, "<stream>", "</stream>", streamElement)){
             PRINT_ERROR( "Incorrect format in stream specifications." << std::endl);
             return false;
         }
 
-        if(!parseStream(streamElement, this->clientStreams[count], this->serverStreams[count])){
+        if(!parseStream(streamElement, this->clientStreams[count], this->serverStreams[count], streamNumber)){
             PRINT_ERROR( "Incorrect format in stream specification." << std::endl);
             return false;
         }
 
+        streamNumber++;
         count++;
 
     }
 
-    if((latest_token = file.find("</streams>", latest_token)) == std::string::npos){
+    if((latestToken = file.find("</streams>", latestToken)) == std::string::npos){
         PRINT_ERROR( "Incorrect format in XML file: no </streams> tag found or streams defined after it" << std::endl);
         return false;
     }

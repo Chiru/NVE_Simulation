@@ -56,7 +56,7 @@ public:
     static bool getClientLog() {return clientLog;}
     static bool getServerLog() {return serverLog;}
     void addFlowMonitor(Ptr<FlowMonitor> flowMon, FlowMonitorHelper& helper);
-    static StatisticsCollector* createStatisticsCollector(bool, bool, bool, uint16_t, int);
+    StatisticsCollector(bool, bool, bool, uint16_t, int);
     static void logMessagesSentFromClient(int messageNumber, Time, uint16_t streamNumber, uint32_t clientTimeRequirement, uint32_t serverTimeRequirement,
                                           uint16_t messageNameIndex, uint16_t messageId, uint16_t size);//log times when user action messages are sent
     static void logUserActionMessageReceivedByServer(int messageNumber, Time, uint16_t streamNumber);    //log times when user action messages are received by the server
@@ -71,7 +71,6 @@ public:
     static uint16_t otherDataMessageCount;
 
 private:
-    StatisticsCollector(bool, bool, bool, uint16_t, int);
     void getStreamResults(std::vector<StatisticsCollector::MessageStats*>& clientStats, std::vector<StatisticsCollector::MessageStats*>& serverStats, uint16_t streamNumber, Time& clientToClientTimeResult,
                           Time& clientToServerTimeResult, Time& serverToClientTimeResult, uint32_t& clientToClientMsgCount,
                           uint32_t& clientToServerMsgCount, uint32_t& fromServerToClientCount, uint32_t& toServerInTime, uint32_t& formClientToClientInTime, uint32_t& fromServerToClientInTime,
@@ -91,7 +90,6 @@ private:
     static bool verbose;
     static bool clientLog;
     static bool serverLog;
-    static bool collectorCreated;
     static std::vector<MessageStats*> *userActionMessageLog;
     static std::vector<MessageStats*> *serverMessageLog;
 

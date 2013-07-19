@@ -39,6 +39,7 @@ Message::~Message(){
     delete ranvarTimeInterval;
     delete ranvarSize;
     delete ranvarForwardSize;
+    messagesCreated--;
 }
 
 void Message::cancelEvent(){

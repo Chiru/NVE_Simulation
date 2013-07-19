@@ -389,7 +389,7 @@ void MainWindow::configurationFinished()
     Args args(fileName.toStdString());
 
     if(start(args) == EXIT_FAILURE)
-        ui->executionError->setText("Invalid configuration");
+        ui->executionError->setText("Could not execute simulation!");
     else
         this->close();
 

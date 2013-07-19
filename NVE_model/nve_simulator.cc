@@ -145,12 +145,7 @@ int start(Args args){
 
     runningTime = parser.getRunningTime();
 
-    stats = StatisticsCollector::createStatisticsCollector(verbose, clientLog, serverLog, parser.getNumberOfStreams(), runningTime);
-
-    if(stats == NULL){
-        PRINT_ERROR( "Can't create statistics collector!" << std::endl);
-        return EXIT_FAILURE;
-    }
+    stats = new StatisticsCollector(verbose, clientLog, serverLog, parser.getNumberOfStreams(), runningTime);
 
     numberOfClients = parser.getNumberOfClients();
     totalNumberOfNodes = numberOfClients + 2;
