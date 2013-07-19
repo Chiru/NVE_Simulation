@@ -36,6 +36,8 @@ class XMLParser{
         double downlink;
         double loss;
         int delay;
+        bool pcap;
+        bool graph;
     };
 
 public:
@@ -48,7 +50,7 @@ public:
     bool getStreams(DataGenerator**&, bool client, uint16_t clientNumber = 0) const;
     uint16_t getNumberOfStreams()const {return numberOfStreams;}
     bool getApplicationProtocol(ApplicationProtocol*&) const;
-    bool getClientStats(uint16_t clientIndex, uint16_t &clientNumber, int &delay, double &uplink, double &downlink, double &loss) const;
+    bool getClientStats(uint16_t clientIndex, uint16_t &clientNumber, int &delay, double &uplink, double &downlink, double &loss, bool &pcap, bool &graphs) const;
     uint16_t getRunningTime() const{return runningTime;}
     bool getElement(const std::string& file, size_t position,const  std::string& start, const std::string& end, std::string &result) const;
     template <class T> bool readValue(const std::string& file, const std::string& variable, T& result, size_t position = 0) const;

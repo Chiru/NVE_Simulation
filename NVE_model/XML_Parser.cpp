@@ -220,6 +220,10 @@ bool XMLParser::parseClients(std::string &file){
                         PRINT_ERROR( "Incorrect format in client parameters" << std::endl);
                         return false;
                     }
+
+                    tempClient->pcap = readBoolVariable(token, "pcap", false);
+
+                    tempClient->graph = readBoolVariable(token, "graphs", false);
                 }
 
             }else{
@@ -614,7 +618,7 @@ bool XMLParser::getStreams(DataGenerator** &streams, bool isClient, uint16_t cli
 }
 
 
-bool XMLParser::getClientStats(uint16_t clientIndex, uint16_t &clientNumber, int &delay, double &uplink, double &downlink, double &loss) const
+bool XMLParser::getClientStats(uint16_t clientIndex, uint16_t &clientNumber, int &delay, double &uplink, double &downlink, double &loss, bool& pcap, bool& graphs) const
 {
 
     std::vector<XMLParser::Client*>::const_iterator it;
@@ -627,6 +631,8 @@ bool XMLParser::getClientStats(uint16_t clientIndex, uint16_t &clientNumber, int
             uplink = (*it)->uplink;
             downlink = (*it)->downlink;
             loss = (*it)->loss;
+            pcap = (*it)->pcap;
+            graphs = (*it)->graph;
             break;
         }
         if(it == clients.end())

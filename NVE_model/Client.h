@@ -48,6 +48,8 @@ public:
     std::string getUplinkBandwidthInMegabits() const;
     std::string getDownlinkBandwidthInMegabits() const;
     double getLossRate() const {return lossRate;}
+    bool pcapEnabled() const {return pcap;}
+    bool graphsEnabled() const {return graph;}
 
 private:
     XMLParser &parser;
@@ -61,6 +63,8 @@ private:
     int runningTime;
     Ptr<Node> node;
     Address* peerAddr;
+    bool pcap;
+    bool graph;
 
 };
 

@@ -10,7 +10,7 @@ Client::Client(XMLParser& parser, uint16_t no, int runningTime, Ptr<Node> node, 
    numberOfStreams = parser.getNumberOfStreams();
 
 
-   if(!parser.getClientStats(no, clientNumber, networkDelay, uplinkBandwidth, downlinkBandwidth, lossRate))
+   if(!parser.getClientStats(no, clientNumber, networkDelay, uplinkBandwidth, downlinkBandwidth, lossRate, pcap, graph))
        PRINT_ERROR( "Mysterious error while creating " << no << ". client." << std::endl);
 
    for(int i = 0; i < numberOfStreams; i++){

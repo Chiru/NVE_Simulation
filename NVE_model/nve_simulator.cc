@@ -164,7 +164,7 @@ int start(Args args){
 
     NodeContainer routerServerNodes = NodeContainer(allNodes.Get(numberOfClients), allNodes.Get(numberOfClients+1));
 
-    PointToPointHelper csma[numberOfClients + 1];    //point-to-point connection for each client-router connection and one for router-server connection
+    PointToPointHelper pointToPoint[numberOfClients + 1];    //point-to-point connection for each client-router connection and one for router-server connection
 
     //for(int i = 0; i<numberOfClients; i++)
       //  csma[i].SetChannelAttribute("DataRate", StringValue("5Mbps"));
@@ -176,10 +176,10 @@ int start(Args args){
     NetDeviceContainer clientRouterDevices[numberOfClients];
 
     for(i = 0; i < numberOfClients; i++){
-        clientRouterDevices[i] = csma[i].Install(clientRouterNodes[i]);
+        clientRouterDevices[i] = pointToPoint[i].Install(clientRouterNodes[i]);
     }
 
-    NetDeviceContainer routerServerDevices = csma[numberOfClients].Install(routerServerNodes);
+    NetDeviceContainer routerServerDevices = pointToPoint[numberOfClients].Install(routerServerNodes);
 
     InternetStackHelper stack;
     stack.Install(allNodes);
@@ -236,16 +236,22 @@ int start(Args args){
     }
 
     Ipv4GlobalRoutingHelper::PopulateRoutingTables();
+    std::stringstream pcapFileName;
 
-   //for(i = 0; i <= numberOfClients; i++){
-        csma[i].EnablePcapAll("results/node");
-       // csma[0].EnablePcap("results/node", clientRouterNodes[0]);
-       // csma[numberOfClients].EnablePcap("results/node", routerServerNodes);
-    //}
+    for(i = 0; i < numberOfClients; i++)
+    {
+        if(clients[i]->pcapEnabled())
+        {
+            pcapFileName.str("");
+            pcapFileName << "results/client-";
+            pcapFileName << i + 1;
+            pcapFileName << ".pcap";
+            pointToPoint[i].EnablePcap(pcapFileName.str(), clientRouterDevices[i].Get(0), false, true);
+        }
 
-    //pointToPoint[numberOfClients].EnablePcapAll("results/simulated");
-   // pointToPoint[numberOfClients].EnablePcap("results/simulated", routerServerDevices);
-    //pointToPoint[0].EnablePcap("results/simulated", clientRouterDevices[0]);
+    }
+
+    pointToPoint[numberOfClients].EnablePcap("results/server.pcap", routerServerDevices.Get(1), false, true);
 
     stats->addFlowMonitor(flowMonHelper.InstallAll(), flowMonHelper);   //TODO: something leaks memory in flow monitoring (ns-3 bug?)
 
