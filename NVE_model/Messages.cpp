@@ -179,19 +179,24 @@ void UserActionMessage::sendData(){
     fillMessageContents(buffer, messageNumber);
 
 
-    if(ranvarSize == 0){
-        if(useRcvSize)
-            stats.forwardSize = this->messageSize;
-        else
-            stats.forwardSize = this->forwardSize;
+    if(ranvarSize == 0)
+    {
+        stats.size = this->messageSize;
     }
-    else{
+    else
+    {
         stats.size = ranvarSize->GetInteger();
     }
 
-    if(ranvarForwardSize == 0){
-        stats.forwardSize = this->getForwardMessageSize();
-    }else{
+
+    if(ranvarForwardSize == 0)
+    {
+        if(useRcvSize)
+            stats.forwardSize = stats.size;
+        else
+            stats.forwardSize = this->forwardSize;
+    }else
+    {
         stats.forwardSize = ranvarForwardSize->GetInteger();
     }
 
@@ -347,17 +352,19 @@ void OtherDataMessage::sendData(){
 
     fillMessageContents(buffer, messageNumber);
 
-    if(ranvarSize == 0){
-        stats.size = this->getMessageSize();
+    if(ranvarSize == 0)
+    {
+        stats.size = this->messageSize;
     }
-    else{
+    else
+    {
         stats.size = ranvarSize->GetInteger();
-    }
+    }  
 
     if(ranvarForwardSize == 0)
     {
         if(useRcvSize)
-            stats.forwardSize = this->messageSize;
+            stats.forwardSize = stats.size;
         else
             stats.forwardSize = this->forwardSize;
     }
