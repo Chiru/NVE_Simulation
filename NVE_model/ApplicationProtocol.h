@@ -82,11 +82,15 @@ private:
     uint16_t maxDatagramSize;
     Callback<void, uint8_t*, uint16_t, Address&> forwardToApplication;
     bool ordered;
+    bool isClient;
     std::map<const Address, uint32_t> lastOrderedNumber;
 
     void resendCheckClient(uint32_t reliableMsgNumber);   //resend data without an ack before the timer runs out
     void resendCheckServer(std::map<const Address, uint32_t>& reliableMsgNumber, const Address& addr);
     void addAppProtoHeader(char* buffer, bool reliable, const Address* addr = 0);
+    void rememberReliablePacket(uint32_t msgNumber, uint16_t msgSize, uint8_t* msgContents, void (ApplicationProtocol::*fptr)(uint32_t));
+    void rememberReliablePacket(std::map<const Address, uint32_t>&, uint16_t messageSize, const uint8_t *messageContents, const Address& addr,
+                                                     void (ApplicationProtocol::*fptr)(std::map<const Address, uint32_t>&, const Address&));
     AppProtoPacketType parseAppProtoHeader(uint8_t* buffer, const Address& addr, uint32_t& msgNumber);
     bool sendAck(int* messagesToAck, uint16_t numberOfMessages, const Address& addr, Ptr<Socket> sock);
     uint16_t createAck(char* ack, int* numbers, uint16_t numberOfMessages);
