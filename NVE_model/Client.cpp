@@ -3,19 +3,18 @@
 
 //Class Client function definitions
 
-Client::Client(XMLParser& parser, uint16_t no, int runningTime, Ptr<Node> node, Address* peerAddr)
-    : parser(parser), streams(0), runningTime(runningTime), node(node), peerAddr(peerAddr){
+Client::Client(XMLParser& parser, uint16_t no, Ptr<Node> node, Address *peerAddr)
+    : parser(parser), streams(0), node(node), peerAddr(peerAddr){
 
    parser.getStreams(streams, true, no);
    numberOfStreams = parser.getNumberOfStreams();
 
-
-   if(!parser.getClientStats(no, clientNumber, networkDelay, uplinkBandwidth, downlinkBandwidth, lossRate, pcap, graph))
+   if(!parser.getClientStats(no, clientNumber, networkDelay, uplinkBandwidth, downlinkBandwidth, lossRate, pcap, graph, joinTime, exitTime))
        PRINT_ERROR( "Mysterious error while creating " << no << ". client." << std::endl);
 
    for(int i = 0; i < numberOfStreams; i++){
-       streams[i]->SetStartTime(Seconds(0));
-       streams[i]->SetStopTime(Seconds(runningTime));
+       streams[i]->SetStartTime(Seconds(joinTime));
+       streams[i]->SetStopTime(Seconds(exitTime));
        streams[i]->setupStream(node, peerAddr[i]);
        node->AddApplication(streams[i]);
    }

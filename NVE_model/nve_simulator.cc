@@ -210,7 +210,7 @@ int start(Args args){
     Server server = Server(parser, runningTime, routerServerNodes.Get(1), serverAddresses);
 
     for(uint16_t i = 0; i < numberOfClients; i++){
-        clients[i] = new Client(parser, i+1, runningTime, clientRouterNodes[i].Get(0), serverAddresses);
+        clients[i] = new Client(parser, i+1, clientRouterNodes[i].Get(0), serverAddresses);
         PRINT_INFO(*(clients[i]) << std::endl);
     }
 

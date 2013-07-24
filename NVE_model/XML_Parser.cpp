@@ -221,6 +221,16 @@ bool XMLParser::parseClients(std::string &file){
                         return false;
                     }
 
+                    if(!readValue<int>(token, "jointime", tempClient->joinTime, latest_token))
+                    {
+                        tempClient->joinTime = 0;
+                    }
+
+                    if(!readValue<int>(token, "exittime", tempClient->exitTime, latest_token))
+                    {
+                        tempClient->exitTime = 0;   //this means that client stays until the end of the simulation
+                    }
+
                     tempClient->pcap = readBoolVariable(token, "pcap", false);
 
                     tempClient->graph = readBoolVariable(token, "graphs", false);
@@ -618,7 +628,8 @@ bool XMLParser::getStreams(DataGenerator** &streams, bool isClient, uint16_t cli
 }
 
 
-bool XMLParser::getClientStats(uint16_t clientIndex, uint16_t &clientNumber, int &delay, double &uplink, double &downlink, double &loss, bool& pcap, bool& graphs) const
+bool XMLParser::getClientStats(uint16_t clientIndex, uint16_t &clientNumber, int &delay, double &uplink, double &downlink, double &loss, bool& pcap, bool& graphs,
+                               int &joinTime, int &exitTime) const
 {
 
     std::vector<XMLParser::Client*>::const_iterator it;
@@ -633,6 +644,13 @@ bool XMLParser::getClientStats(uint16_t clientIndex, uint16_t &clientNumber, int
             loss = (*it)->loss;
             pcap = (*it)->pcap;
             graphs = (*it)->graph;
+            joinTime = (*it)->joinTime;
+
+            if((*it)->exitTime != 0 && (*it)->exitTime > joinTime)
+                exitTime = (*it)->exitTime;
+            else
+                exitTime = runningTime;
+
             break;
         }
         if(it == clients.end())

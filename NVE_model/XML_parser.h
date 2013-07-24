@@ -38,6 +38,8 @@ class XMLParser{
         int delay;
         bool pcap;
         bool graph;
+        int joinTime;
+        int exitTime;
     };
 
 public:
@@ -50,7 +52,8 @@ public:
     bool getStreams(DataGenerator**&, bool client, uint16_t clientNumber = 0) const;
     uint16_t getNumberOfStreams()const {return numberOfStreams;}
     bool getApplicationProtocol(ApplicationProtocol*&) const;
-    bool getClientStats(uint16_t clientIndex, uint16_t &clientNumber, int &delay, double &uplink, double &downlink, double &loss, bool &pcap, bool &graphs) const;
+    bool getClientStats(uint16_t clientIndex, uint16_t &clientNumber, int &delay, double &uplink, double &downlink, double &loss, bool &pcap, bool &graphs,
+                        int& joinTime, int& exitTime) const;
     int getRunningTime() const{return runningTime;}
     bool useAnimation() const{return animation;}
     bool isServerPcapEnabled() const{return serverPcap;}
