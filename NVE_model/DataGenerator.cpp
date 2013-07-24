@@ -75,11 +75,12 @@ DataGenerator::ReadMsgNameReturnValue DataGenerator::readMessageName(std::string
     if(nameContinues){
         int i;
 
-        if(name.length() == 0)   //this means there's extra " in the beginning of the buffer
-            i = 1;
-        else i = 0;
+    /*    if(name.length() == 0){   //this means there's extra " in the beginning of the buffer, THIS IS PROBABLY NEVER NEEDED, BUT CAUSES A BUG WHEN USED
+            i = 0;
+        }
+        else i = 0;*/
 
-        for(; (char)buffer[i] != '\"'; i++){
+        for(i = 0; (char)buffer[i] != '\"'; i++){
             name += (char)buffer[i];
             if((i+1) == charLeft){
                 return NAME_CONTINUES;
