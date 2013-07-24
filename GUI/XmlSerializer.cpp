@@ -198,10 +198,11 @@ void XmlSerializer::addMessages(XmlStruct* stream, const QList<MessageTemplate*>
 }
 
 
-void XmlSerializer::addSimulationParam(uint simTime, bool animation)
+void XmlSerializer::addSimulationParam(uint simTime, bool animation, bool pcap)
 {
     this->simulationParams.append(new XmlValue("runningtime", QString::number(simTime)));
     this->simulationParams.append(new XmlValue("animation", animation ? "yes" : "no"));
+    this->simulationParams.append(new XmlValue("serverpcap", pcap ? "yes" : "no"));
 }
 
 

@@ -28,6 +28,7 @@ class Server{
 public:
     Server(XMLParser&, int, Ptr<Node>, Address*);
     ~Server();
+    bool pcapEnabled() const {return pcap;}
 
 private:
     XMLParser &parser;
@@ -36,6 +37,7 @@ private:
     int runningTime;
     Ptr<Node> node;
     Address* address;
+    bool pcap;
 
 };
 

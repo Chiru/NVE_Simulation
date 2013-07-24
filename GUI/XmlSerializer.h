@@ -55,7 +55,7 @@ public:
     void addClientsElement(const ClientWidget *);
     void addAppProtoElement(uint ackSize, uint delayedAck, uint retransmit, uint headerSize);
     void addStreamElement(const StreamWidget *stream);
-    void addSimulationParam(uint simTime, bool animation);
+    void addSimulationParam(uint simTime, bool animation, bool pcap);
     void flush();
 
 private:

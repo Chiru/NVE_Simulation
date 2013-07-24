@@ -73,6 +73,8 @@ MainWindow::MainWindow(QWidget *parent) :
     palette->setColor(QPalette::WindowText, QColor(255,0,0));
     ui->message_errorLabel->setPalette(*palette);
     ui->executionError->setPalette(*palette);
+    ui->serverPcapCheckbox->setChecked(true);
+    ui->serverPcapCheckbox->setToolTip("Enable pcap-file creation for the server");
 
     enableMessageEditor(false);
 
@@ -370,7 +372,7 @@ void MainWindow::configurationFinished()
 
     serializer.flush();
 
-    serializer.addSimulationParam(ui->simTime->value(), ui->animationCheckBox->isChecked());
+    serializer.addSimulationParam(ui->simTime->value(), ui->animationCheckBox->isChecked(), ui->serverPcapCheckbox->isChecked());
 
     ClientWidget* client;
 

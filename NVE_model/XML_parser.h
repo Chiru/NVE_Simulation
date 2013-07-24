@@ -51,13 +51,13 @@ public:
     uint16_t getNumberOfStreams()const {return numberOfStreams;}
     bool getApplicationProtocol(ApplicationProtocol*&) const;
     bool getClientStats(uint16_t clientIndex, uint16_t &clientNumber, int &delay, double &uplink, double &downlink, double &loss, bool &pcap, bool &graphs) const;
-    uint16_t getRunningTime() const{return runningTime;}
+    int getRunningTime() const{return runningTime;}
+    bool useAnimation() const{return animation;}
+    bool isServerPcapEnabled() const{return serverPcap;}
     bool getElement(const std::string& file, size_t position,const  std::string& start, const std::string& end, std::string &result) const;
     template <class T> bool readValue(const std::string& file, const std::string& variable, T& result, size_t position = 0) const;
     bool getRunningValue(const std::string& value, uint16_t &from, uint16_t &to) const;
     bool readBoolVariable(const std::string& file, const std::string& variable, bool defaultValue, size_t position = 0) const;  //does the same as readValue<bool>
-
-
 
 
 private:
@@ -111,7 +111,7 @@ private:
     bool parseMessages(std::string& messagesElement, std::vector<Message*>& messages, uint16_t stream_number);
     bool parseApplicationProtocol(std::string& file);
     bool parseGameTick(std::string& streamElement, int& serverGameTick, int& clientGameTick);
-    bool parseRunningTime(std::string& file);
+    bool parseSimulationParams(std::string& file);
     uint16_t countStreams(std::string& file);
     bool readRandomVariable(const std::string& element, RandomVariable*& ranvar, DistributionEnum& distribution, const std::string& variableName);
     void toLowerCase(std::string& token);
@@ -127,6 +127,8 @@ private:
     int serverGameTick;
     int clientGameTick;
     int runningTime;
+    bool animation;
+    bool serverPcap;
 
     std::vector<struct XMLParser::Client*> clients;
 

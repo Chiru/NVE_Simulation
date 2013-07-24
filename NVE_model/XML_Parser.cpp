@@ -48,7 +48,7 @@ XMLParser::XMLParser(std::string filename): filename(filename), correctFile(true
         return;
 
 
-    if(!(correctFile = parseRunningTime(xmlFile)))
+    if(!(correctFile = parseSimulationParams(xmlFile)))
         return;
 }
 
@@ -657,12 +657,17 @@ bool XMLParser::parseGameTick(std::string& streamElement, int& serverGameTick, i
     return true;
 }
 
-bool XMLParser::parseRunningTime(std::string &file){
+bool XMLParser::parseSimulationParams(std::string &file){
 
-    if(!readValue<int>(file, "<runningtime", runningTime) || runningTime <= 0){
+    if(!readValue<int>(file, "<runningtime", runningTime) || runningTime <= 0)
+    {
         PRINT_ERROR(" Incorrect runningtime value." << std::endl);
         return false;
     }
+
+    animation = readBoolVariable(file, "<animation", false);
+
+    serverPcap = readBoolVariable(file, "<serverpcap", true);
 
     return true;
 }

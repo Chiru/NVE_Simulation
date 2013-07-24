@@ -7,6 +7,7 @@ Server::Server(XMLParser& parser, int runningTime, Ptr<Node> node, Address* addr
 
     parser.getStreams(streams, false);
     numberOfStreams = parser.getNumberOfStreams();
+    pcap = parser.isServerPcapEnabled();
 
     for(int i = 0; i < numberOfStreams; i++){
         streams[i]->SetStartTime(Seconds(0));

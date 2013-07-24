@@ -30,6 +30,7 @@
 #include "ns3/error-model.h"
 #include "ns3/channel.h"
 #include "ns3/flow-monitor-helper.h"
+#include "ns3/netanim-module.h"
 #include "XML_parser.h"
 #include "Server.h"
 #include "StatisticsCollector.h"
@@ -101,7 +102,7 @@ int start(Args args){
         }
     }
 
-   // AnimationInterface anim = AnimationInterface("results/animation", true);
+
     DropTailQueue::GetTypeId();
 
     Config::SetDefault("ns3::DropTailQueue::MaxPackets", UintegerValue(2000));    //TODO: change to be configurable
@@ -251,12 +252,14 @@ int start(Args args){
 
     }
 
-    pointToPoint[numberOfClients].EnablePcap("results/server.pcap", routerServerDevices.Get(1), false, true);
+    if(server.pcapEnabled())
+         pointToPoint[numberOfClients].EnablePcap("results/server.pcap", routerServerDevices.Get(1), false, true);
 
     stats->addFlowMonitor(flowMonHelper.InstallAll(), flowMonHelper);   //TODO: something leaks memory in flow monitoring (ns-3 bug?)
 
+   // AnimationInterface anim = AnimationInterface("results/animation");  //TODO: use this or not?
 
-  //  anim.StartAnimation();
+   // anim.StartAnimation();
     Simulator::Stop(Seconds(runningTime));   //+1 second because of giving the connections time to finish
     Simulator::Run();
     Simulator::Destroy();
