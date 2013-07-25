@@ -283,12 +283,12 @@ void ApplicationProtocol::resendCheckClient(uint32_t reliableMsgNumber){
 
     for(std::list<ApplicationProtocol::ReliablePacket*>::const_iterator it = packetsWaitingAcks.begin(); it != packetsWaitingAcks.end(); it++){
         if((**it).msgNumber == reliableMsgNumber){
-            if(socket->GetTxAvailable() < (**it).msgSize + headerSize){
+            if(socket->GetTxAvailable() < (**it).msgSize){
                 Simulator::Schedule(Time(MilliSeconds(retransmit)), &ApplicationProtocol::resendCheckClient, this, reliableMsgNumber);
                 return;
             }
             //sendAndFragment(socket, (**it).buffer,(**it).msgSize + headerSize, true);
-            socket->Send((**it).buffer, (**it).msgSize + headerSize, 0);
+            socket->Send((**it).buffer, (**it).msgSize, 0);
             Simulator::Schedule(Time(MilliSeconds(retransmit)), &ApplicationProtocol::resendCheckClient, this, reliableMsgNumber);
             break;
         }
@@ -299,12 +299,12 @@ void ApplicationProtocol::resendCheckServer(std::map<const Address, uint32_t>& r
 
     for(std::list<ApplicationProtocol::ReliablePacket*>::const_iterator it = packetsWaitingAcks.begin(); it != packetsWaitingAcks.end(); it++){
         if((**it).msgNumber == reliableMsgNumber[addr] && (**it).addr == addr){
-            if(socket->GetTxAvailable() < (**it).msgSize + headerSize){
+            if(socket->GetTxAvailable() < (**it).msgSize){
                 Simulator::Schedule(Time(MilliSeconds(retransmit)), &ApplicationProtocol::resendCheckServer, this, reliableMsgNumber, addr);
                 return;
             }
             //sendAndFragment(socket, (**it).buffer, (**it).msgSize + headerSize, true, &(**it).addr);
-            socket->SendTo((**it).buffer, (**it).msgSize + headerSize, 0, (**it).addr);
+            socket->SendTo((**it).buffer, (**it).msgSize, 0, (**it).addr);
             Simulator::Schedule(Time(MilliSeconds(retransmit)), &ApplicationProtocol::resendCheckServer, this, reliableMsgNumber, addr);
             break;
         }

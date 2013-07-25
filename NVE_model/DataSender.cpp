@@ -104,7 +104,8 @@ bool DataSender::flushTcpBuffer(bool isClient){
     for(std::map<Ptr<Socket>, std::string>::iterator it = tcpBuffer.begin(); it != tcpBuffer.end(); it++){
 
         if(it->first->Send((uint8_t*)it->second.c_str(), it->second.length(), 0) == -1){
-            PRINT_ERROR("Problems with socket buffer1." << std::endl);
+
+            PRINT_ERROR("Problems with socket buffer. Error number: " << it->first->GetErrno()  << std::endl);
             return false;
         }
 

@@ -338,8 +338,9 @@ void ClientDataGenerator::dataReceivedTcp(Ptr<Socket> sock){
                         dataLeft = true;
                         bytesRead = bufferSize;
                     }
-                    else if(retVal == READ_FAILED)
+                    else if(retVal == READ_FAILED){
                         PRINT_ERROR("This should never happen, check message names!" <<std::endl);
+                    }
 
                 }
             }
@@ -388,8 +389,9 @@ void ClientDataGenerator::dataReceivedTcp(Ptr<Socket> sock){
                     bytesLeftToRead = 0;
                     bytesRead = bufferSize;
                 }
-                else if(retVal == READ_FAILED)
+                else if(retVal == READ_FAILED){
                     PRINT_ERROR("This should never happen, check message names!" << std::endl);
+                }
             }
         }
     }
@@ -655,7 +657,7 @@ void ServerDataGenerator::dataReceivedTcp(Ptr<Socket> sock){
                         else
                             messageSize = message->getMessageSize(msgId);
 
-                         if((bufferSize - bytesRead) <  messageSize -client->messageNamePart.length() - (client->nameLeft ==true ? 1 : 0)){   // -1 because of the "-character in the beginning of the name
+                        if((bufferSize - bytesRead) <  messageSize -client->messageNamePart.length() - (client->nameLeft ==true ? 1 : 0)){   // -1 because of the "-character in the beginning of the name
 
                              if(client->nameLeft)
                                 client->bytesLeftToRead = messageSize-(bufferSize - bytesRead) -( client->messageNamePart.length() +1);
@@ -679,6 +681,7 @@ void ServerDataGenerator::dataReceivedTcp(Ptr<Socket> sock){
                             message->messageReceivedServer(messageName);
                             client->dataLeft = false;
                             client->bytesLeftToRead = 0;
+                            client->messageNamePart.assign("");
                         }
 
                         messageName.assign("");
@@ -824,7 +827,7 @@ void ServerDataGenerator::readReceivedData(uint8_t *buffer, uint16_t bufferSize,
                 messageName.assign("");
             }
             else if(retVal == NAME_CONTINUES){
-                PRINT_ERROR("This should never happen!" << std::endl);
+                PRINT_ERROR("This should never happen! " << std::endl);
             }
             else if(retVal == READ_FAILED){ //this can happen if only second part of IP fragmented packet arrives
                 return;
