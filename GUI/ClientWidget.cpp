@@ -2,12 +2,14 @@
 #include <QGridLayout>
 #include <QLabel>
 
-ClientWidget::ClientWidget(int number, QWidget *parent, const ClientWidget* previous)
+
+ClientWidget::ClientWidget(int number, int simTime, QWidget *parent, const ClientWidget *previous)
     : QGroupBox(parent),
       clientNumber(number)
 {
     configClientWidget();
 
+    exit->setValue(simTime);
 
     if(previous != 0)
     {
@@ -44,6 +46,9 @@ ClientWidget::ClientWidget(int number, int count, int delay, double loss, double
 
 void ClientWidget::configClientWidget()
 {
+    autoValueChange = false;
+    lastConfiguredArriveValue = 0;
+    lastConfiguredExitValue = 0;
 
     QGridLayout* layout = new QGridLayout(this);
 
@@ -96,6 +101,47 @@ void ClientWidget::configClientWidget()
     arrive->setMaximum(100000);
     exit->setMaximum(100000);
 
+    QObject::connect(this->arrive, SIGNAL(valueChanged(int)), this, SLOT(arriveValueChangedManually(int)));
+    QObject::connect(this->exit, SIGNAL(valueChanged(int)), this, SLOT(exitValueChangedManually(int)));
+
 }
 
+
+void ClientWidget::exitValueChangedManually(int value)
+{
+    if(!autoValueChange)
+        lastConfiguredExitValue = value;
+}
+
+
+void ClientWidget::arriveValueChangedManually(int value)
+{
+    if(!autoValueChange)
+        lastConfiguredArriveValue = value;
+}
+
+
+
+void ClientWidget::simTimeChanged(int time)
+{
+    autoValueChange = true;
+
+    arrive->setMaximum(time);
+    exit->setMaximum(time);
+
+    if(lastConfiguredArriveValue >= time)
+        arrive->setValue(time);
+
+    if(lastConfiguredExitValue >= time)
+        exit->setValue(time);
+
+    if(lastConfiguredArriveValue <= time)
+        arrive->setValue(lastConfiguredArriveValue);
+
+    if(lastConfiguredExitValue <= time)
+        exit->setValue(lastConfiguredExitValue);
+
+
+    autoValueChange = false;
+}
 

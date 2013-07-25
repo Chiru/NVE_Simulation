@@ -36,6 +36,7 @@ MainWindow::MainWindow(QWidget *parent) :
 
     ui->simTime->setMaximum(100000);
     ui->simTime->setSingleStep(10);
+    ui->simTime->setValue(100);
 
     messageSize = new DistributionWidget(ui->message_size, ui->message_configMessageSize, ui->message_sizeDistribution,
                                          ui->message_sizeFrame->layout(), this);
@@ -51,6 +52,7 @@ MainWindow::MainWindow(QWidget *parent) :
     QObject::connect(ui->removeStreamButton, SIGNAL(clicked()), this, SLOT(removeStream()));
     QObject::connect(ui->message_forwardMessageSizeRadioButton_received, SIGNAL(toggled(bool)), ui->message_forwardMessageSpinBox, SLOT(setDisabled(bool)));
     QObject::connect(ui->executeButton, SIGNAL(clicked()), this, SLOT(configurationFinished()));
+    QObject::connect(ui->simTime, SIGNAL(valueChanged(int)), this, SLOT(simTimeChanged(int)));
 
     ui->message_forwardMessageSpinBox->setMaximum(10000);
     ui->message_forwardMessageSpinBox->setMinimum(1);
@@ -145,9 +147,9 @@ void MainWindow::addClientWidgetToScrollArea()
     ClientWidget* client;
 
     if(numberOfClients == 1)
-        client = new ClientWidget(numberOfClients++, ui->clientScrollArea->widget());
+        client = new ClientWidget(numberOfClients++, ui->simTime->value(), ui->clientScrollArea->widget());
     else
-        client = new ClientWidget(numberOfClients++, ui->clientScrollArea->widget(), previousClients.top());
+        client = new ClientWidget(numberOfClients++, ui->simTime->value(), ui->clientScrollArea->widget(), previousClients.top());
 
     QFrame* line = new QFrame(ui->clientScrollArea->widget());
 
@@ -377,7 +379,7 @@ void MainWindow::configurationFinished()
     ClientWidget* client;
 
     foreach(client, previousClients)
-        serializer.addClientsElement(client);
+        serializer.addClientsElement(client, ui->simTime->value());
 
     serializer.addAppProtoElement(ui->appProto_ackSize->value(), ui->appProto_delAck->value(), ui->appProto_RTO->value(), ui->appProto_headerSize->value());
 
@@ -456,7 +458,7 @@ void MainWindow::configureClient(const std::string &element)
     double uplink = 0;
     double downlink = 0;
     int arriveTime = 0;
-    int exitTime = 0;
+    int exitTime = ui->simTime->value();
     bool pcap = false;
     bool graph = false;
 
@@ -502,7 +504,7 @@ void MainWindow::configureClient(const std::string &element)
 
     if(!parser.readValue<int>(element, "exittime", exitTime))
     {
-        exitTime = 0;
+        exitTime = ui->simTime->value();
     }
 
     pcap = parser.readBoolVariable(element, "pcap", false);
@@ -778,4 +780,14 @@ MessageTemplate* MainWindow::configureMessage(const std::string &element, bool a
     return msg;
 }
 
+
+void MainWindow::simTimeChanged(int time)
+{
+    ClientWidget* client;
+
+    foreach(client, previousClients)
+    {
+        emit client->simTimeChanged(time);
+    }
+}
 

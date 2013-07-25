@@ -71,6 +71,7 @@ private slots:
     void removeStream();
     void setMessage(const MessageTemplate* msg, StreamWidget* caller);
     void configurationFinished();
+    void simTimeChanged(int);
 };
 
 
