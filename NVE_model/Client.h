@@ -41,7 +41,7 @@ class Client{
     }
 
 public:
-    Client(XMLParser&, uint16_t no, Ptr<Node> node, Address *peerAddr);
+    Client(XMLParser&, uint16_t no, Ptr<Node> node, Address *peerAddr, Ipv4Address clientAddr);
     ~Client();
 
     std::string getDelayInMilliseconds() const;
@@ -50,6 +50,8 @@ public:
     double getLossRate() const {return lossRate;}
     bool pcapEnabled() const {return pcap;}
     bool graphsEnabled() const {return graph;}
+    Ipv4Address getAddress() const {return addr;}
+    int getRunningTime() const;
 
 private:
     XMLParser &parser;
@@ -61,7 +63,7 @@ private:
     uint16_t clientNumber;
     uint16_t numberOfStreams;
     Ptr<Node> node;
-    Address* peerAddr;
+    Ipv4Address addr;
     bool pcap;
     bool graph;
     int joinTime;

@@ -353,6 +353,11 @@ void StatisticsCollector::addFlowMonitor(Ptr<FlowMonitor> flowMon, FlowMonitorHe
     this->flowMon->Stop(Time(runningTime));
 }
 
+void StatisticsCollector::addClientRunningTime(const Ipv4Address &addr, int runningTime)
+{
+    clientRunningTimes.insert(std::pair<Address, int>(addr, runningTime));
+}
+
 void StatisticsCollector::getBandwidthResults(){
 
     std::map<FlowId, FlowMonitor::FlowStats> flowStats;
@@ -363,6 +368,7 @@ void StatisticsCollector::getBandwidthResults(){
     std::map<Ipv4Address, std::pair<uint64_t, uint64_t> >::const_reverse_iterator revAddrIt;
     double averageClientUplink = 0, averageClientDownlink = 0, serverUplink = 0, serverDownlink = 0;
     int counter;
+    int runningTime;
 
     //flowMon->CheckForLostPackets();
     Ptr<Ipv4FlowClassifier> classifier = DynamicCast<Ipv4FlowClassifier> (helper.GetClassifier());
@@ -395,14 +401,18 @@ void StatisticsCollector::getBandwidthResults(){
 
     revAddrIt = nodesAndBandwidths.rbegin(); //this points to the server node
 
+
+
     for(addrIt = nodesAndBandwidths.begin(), counter = 0; addrIt != nodesAndBandwidths.end(); addrIt++){ //NOTE: network headers are not calculated into this average
 
         if(addrIt->first != revAddrIt->first){
+            runningTime = clientRunningTimes[addrIt->first];
             averageClientUplink +=  (addrIt->second.first + (nodesAndPackets[addrIt->first].first * 14))*8.0/ runningTime / 1024 /1024;    //add ethernet header sizes
             averageClientDownlink += (addrIt->second.second + (nodesAndPackets[addrIt->first].second * 14))*8.0 / runningTime /1024 /1024;
             counter++;
         }
         else{
+            runningTime = this->runningTime;
             serverUplink +=  (addrIt->second.first + (nodesAndPackets[addrIt->first].first * 14))*8.0/ runningTime / 1024 /1024;
             serverDownlink += (addrIt->second.second + (nodesAndPackets[addrIt->first].second * 14))*8.0 / runningTime /1024 /1024;
         }

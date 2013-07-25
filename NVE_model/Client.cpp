@@ -3,8 +3,8 @@
 
 //Class Client function definitions
 
-Client::Client(XMLParser& parser, uint16_t no, Ptr<Node> node, Address *peerAddr)
-    : parser(parser), streams(0), node(node), peerAddr(peerAddr){
+Client::Client(XMLParser& parser, uint16_t no, Ptr<Node> node, Address *peerAddr, Ipv4Address clientAddr)
+    : parser(parser), streams(0), node(node), addr(clientAddr){
 
    parser.getStreams(streams, true, no);
    numberOfStreams = parser.getNumberOfStreams();
@@ -64,4 +64,11 @@ std::string Client::getUplinkBandwidthInMegabits() const{
 
     return stream.str();
 }
+
+
+int Client::getRunningTime() const
+{
+    return exitTime - joinTime;
+}
+
 

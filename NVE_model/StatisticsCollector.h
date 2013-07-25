@@ -51,12 +51,13 @@ public:
     static std::string&(*uam_fnptr)(uint16_t);
     static std::string&(*odm_fnptr)(uint16_t);
 
+    StatisticsCollector(bool, bool, bool, uint16_t, int);
     ~StatisticsCollector();
     static bool getVerbose() {return verbose;}
     static bool getClientLog() {return clientLog;}
     static bool getServerLog() {return serverLog;}
     void addFlowMonitor(Ptr<FlowMonitor> flowMon, FlowMonitorHelper& helper);
-    StatisticsCollector(bool, bool, bool, uint16_t, int);
+    void addClientRunningTime(const Ipv4Address &addr, int runningTime);
     static void logMessagesSentFromClient(int messageNumber, Time, uint16_t streamNumber, uint32_t clientTimeRequirement, uint32_t serverTimeRequirement,
                                           uint16_t messageNameIndex, uint16_t messageId, uint16_t size);//log times when user action messages are sent
     static void logUserActionMessageReceivedByServer(int messageNumber, Time, uint16_t streamNumber);    //log times when user action messages are received by the server
@@ -86,6 +87,7 @@ private:
     std::string scriptSourceFile;
     std::string scriptResultPdfFile;
     std::string scriptResultTextFile;
+    std::map<Address, int> clientRunningTimes;
 
     static bool verbose;
     static bool clientLog;

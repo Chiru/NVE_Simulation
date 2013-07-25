@@ -200,7 +200,7 @@ int start(Args args){
     address.SetBase(str.str().c_str(), "255.255.255.0", "0.0.0.1");
     routerServerIpInterfaces = address.Assign(routerServerDevices);
 
-    Address serverAddresses[parser.getNumberOfStreams()];
+    Address serverAddresses[parser.getNumberOfStreams()];       //contains ip address and port number for each stream
 
     for(i = 0; i < parser.getNumberOfStreams(); i++){
         serverAddresses[i] = InetSocketAddress(routerServerIpInterfaces.GetAddress(1), 10000 + i);
@@ -210,8 +210,9 @@ int start(Args args){
     Server server = Server(parser, runningTime, routerServerNodes.Get(1), serverAddresses);
 
     for(uint16_t i = 0; i < numberOfClients; i++){
-        clients[i] = new Client(parser, i+1, clientRouterNodes[i].Get(0), serverAddresses);
+        clients[i] = new Client(parser, i+1, clientRouterNodes[i].Get(0), serverAddresses, clientRouterIpInterfaces[i].GetAddress(0));
         PRINT_INFO(*(clients[i]) << std::endl);
+        stats->addClientRunningTime(clients[i]->getAddress(), clients[i]->getRunningTime());
     }
 
     for(i = 0; i < numberOfClients; i++){
