@@ -40,6 +40,7 @@ private:
 private slots:
     void exitValueChangedManually(int);
     void arriveValueChangedManually(int);
+    void limitMaxJoinTime(int);
 
 };
 

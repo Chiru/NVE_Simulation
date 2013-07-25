@@ -103,6 +103,7 @@ void ClientWidget::configClientWidget()
 
     QObject::connect(this->arrive, SIGNAL(valueChanged(int)), this, SLOT(arriveValueChangedManually(int)));
     QObject::connect(this->exit, SIGNAL(valueChanged(int)), this, SLOT(exitValueChangedManually(int)));
+    QObject::connect(this->exit, SIGNAL(valueChanged(int)), this, SLOT(limitMaxJoinTime(int)));
 
 }
 
@@ -120,6 +121,11 @@ void ClientWidget::arriveValueChangedManually(int value)
         lastConfiguredArriveValue = value;
 }
 
+
+void ClientWidget::limitMaxJoinTime(int value)
+{
+    arrive->setMaximum(value);
+}
 
 
 void ClientWidget::simTimeChanged(int time)
