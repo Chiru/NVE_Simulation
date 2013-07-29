@@ -138,10 +138,10 @@ void DataGenerator::sendBackToSender(const Message* msg, const Address& addr, co
 //Class ClientDataGenerator function definitions
 
 ClientDataGenerator::ClientDataGenerator(uint16_t streamNumber, Protocol proto, ApplicationProtocol* appProto, std::vector<Message*> messages, int tick, bool ordered)
-    : DataGenerator(streamNumber, proto, appProto, messages, tick, ordered), ownerClient(0), bytesLeftToRead(0), dataLeft(false), nameLeft(false){
+    : DataGenerator(streamNumber, proto, appProto, messages, tick, ordered), ownerClient(0), bytesLeftToRead(0), dataLeft(false), nameLeft(false), connectionInitialized(false){
 }
 
-ClientDataGenerator::ClientDataGenerator(const DataGenerator& stream) : bytesLeftToRead(0), dataLeft(false), nameLeft(false){
+ClientDataGenerator::ClientDataGenerator(const DataGenerator& stream) : bytesLeftToRead(0), dataLeft(false), nameLeft(false), connectionInitialized(false){
 
     this->streamNumber = stream.getStreamNumber();
     this->ownerClient = (dynamic_cast<const ClientDataGenerator&>(stream)).getClientNumber();
@@ -188,6 +188,9 @@ void ClientDataGenerator::StartApplication(){
             if(!immediateSend)
                 Simulator::Schedule(Time(MilliSeconds(gameTick)), &DataSender::flushTcpBuffer, &sender, true);
             socket->SetRecvCallback(MakeCallback(&ClientDataGenerator::dataReceivedTcp, this));
+
+            startSendingData();
+
             break;
 
     case UDP:
@@ -201,9 +204,50 @@ void ClientDataGenerator::StartApplication(){
                 socket->SetRecvCallback(MakeCallback(&ClientDataGenerator::dataReceivedUdp, this));
 
             }
+
+            initializeUdpConnection();
             break;
     }
+}
 
+
+void ClientDataGenerator::initializeUdpConnection()
+{
+
+    if(!connectionInitialized)
+    {
+        if(appProto)
+        {
+            char buffer[appProto->getHeaderSize()];
+            buffer[0] = 0;
+            std::string msg(buffer);
+
+            appProto->addAppProtoHeader(buffer, false, &peerAddr);
+
+            msg.assign(buffer, appProto->getHeaderSize());
+
+            msg.append("\"INITIALIZE\"");
+
+            appProto->sendAndFragment(socket, (uint8_t*)msg.data(), msg.length(), false, &peerAddr);
+        }
+        else
+        {
+            std::string msg("\"INITIALIZE\"");
+            socket->SendTo((uint8_t*)msg.data(), msg.length(), 0, peerAddr);
+        }
+
+        Simulator::Schedule(Time(MilliSeconds(500)), &ClientDataGenerator::initializeUdpConnection, this);
+    }
+    else
+    {
+        startSendingData();
+    }
+
+}
+
+
+void ClientDataGenerator::startSendingData()
+{
     CLIENT_INFO("Client number: " << ownerClient <<  " is starting stream no: " << this->streamNumber << std::endl);
 
     socket->SetSendCallback(MakeCallback(&ClientDataGenerator::moreBufferSpaceAvailable, this));
@@ -213,8 +257,6 @@ void ClientDataGenerator::StartApplication(){
             (*it)->scheduleSendEvent(MakeCallback(&ClientDataGenerator::sendData, this));
         }
     }
-
-
 }
 
 void ClientDataGenerator::StopApplication(){
@@ -421,6 +463,7 @@ void ClientDataGenerator::readReceivedData(uint8_t* buffer, uint16_t bufferSize,
     Message* message = 0;
     std::string messageName;
     ReadMsgNameReturnValue retVal;
+    connectionInitialized = true;
 
     if(running){
 
@@ -434,6 +477,12 @@ void ClientDataGenerator::readReceivedData(uint8_t* buffer, uint16_t bufferSize,
                         break;
                     }
                 }
+
+                if(messageName == "ACCEPT")
+                {
+                    return;
+                }
+
 
                 int msgId;
                 message->parseMessageId(messageName, msgId);
@@ -810,6 +859,13 @@ void ServerDataGenerator::readReceivedData(uint8_t *buffer, uint16_t bufferSize,
                     }
                 }
 
+                if(messageName == "INITIALIZE")
+                {
+                    acceptUdpConnection(clientAddr);
+                    return;
+                }
+
+
                 int msgId;
                 message->parseMessageId(messageName, msgId);
 
@@ -836,6 +892,35 @@ void ServerDataGenerator::readReceivedData(uint8_t *buffer, uint16_t bufferSize,
     }
 
     forwardData();
+}
+
+
+void ServerDataGenerator::acceptUdpConnection(const Address &addr)
+{
+    if(appProto)
+    {
+
+        char buffer[appProto->getHeaderSize()];
+        buffer[0] = 0;
+        std::string msg(buffer);
+
+        if(appProto)
+            appProto->addAppProtoHeader(buffer, false, &peerAddr);
+
+        msg.assign(buffer, appProto->getHeaderSize());
+
+        msg.append("\"ACCEPT\"");
+
+        appProto->sendAndFragment(socket, (uint8_t*)msg.data(), msg.length(), false, &addr);
+
+    }
+    else
+    {
+        std::string msg("\"ACCEPT\"");
+
+        socket->SendTo((uint8_t*)msg.data(), msg.length(), 0, addr);
+
+    }
 }
 
 void ServerDataGenerator::moreBufferSpaceAvailable(Ptr<Socket> sock, uint32_t size){

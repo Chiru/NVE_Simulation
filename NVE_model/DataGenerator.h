@@ -106,12 +106,16 @@ private:
     bool nameLeft;
     std::string messageNamePart;
     std::string fullMessageName;
+    bool connectionInitialized;
 
     void dataReceivedTcp(Ptr<Socket>);
     void dataReceivedUdp(Ptr<Socket>);
     void readReceivedData(uint8_t *, uint16_t, Address&);
     void moreBufferSpaceAvailable(Ptr<Socket>, uint32_t);
     bool sendData(Message*, uint8_t* buffer);
+    void initializeUdpConnection();
+    void startSendingData();
+
 };
 
 
@@ -157,6 +161,7 @@ private:
     void sendToRandomClients(std::pair<Address, std::pair<std::string, Message*> >&);       //for UDP streams
     void forwardUserActionMessage(std::pair<std::string, Message*>, Address&);
     bool sendData(Message*, uint8_t*);
+    void acceptUdpConnection(const Address& addr);
 
     std::vector<ServerDataGenerator::ClientConnection*> clientConnections;
     std::vector<Address*> udpClients;
