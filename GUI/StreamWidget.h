@@ -68,6 +68,7 @@ public slots:
     void newMessageAdded();
     void editorClosed();
     void rowFocusChanged(int);
+    void appProtoEnabled(bool);
 
 signals:
     void setupMessageEditor(const MessageTemplate* msg, StreamWidget*);

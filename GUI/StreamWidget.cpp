@@ -132,6 +132,7 @@ void StreamWidget::configureStream()
     QObject::connect(udp, SIGNAL(toggled(bool)), ordered, SLOT(setChecked(bool)));
     QObject::connect(appProto, SIGNAL(toggled(bool)), ordered, SLOT(setEnabled(bool)));
     QObject::connect(appProto, SIGNAL(toggled(bool)), ordered, SLOT(setChecked(bool)));
+    QObject::connect(appProto, SIGNAL(toggled(bool)), this, SLOT(appProtoEnabled(bool)));
     QObject::connect(messageList, SIGNAL(currentRowChanged(int)), this, SLOT(rowFocusChanged(int)));
 
     clientGameTick->setMaximum(10000);
@@ -264,6 +265,17 @@ void StreamWidget::rowFocusChanged(int rowNumber)
         removeButtonEnabled = false;
     }
 }
+
+
+void StreamWidget::appProtoEnabled(bool enabled)
+{
+    MessageTemplate* message;
+
+    foreach(message, messages)
+        message->setAppProtoEnabled(enabled);
+
+}
+
 
 void StreamWidget::enableStreamWidgets(bool enabled)
 {
