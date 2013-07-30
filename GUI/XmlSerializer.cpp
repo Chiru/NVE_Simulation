@@ -111,15 +111,9 @@ void XmlSerializer::addClientsElement(const ClientWidget *client, int simTime)
     elem->addElement(new XmlValue("downlink", QString::number(client->downlink->value())));
     elem->addElement(new XmlValue("loss", QString::number(client->loss->value() / 100)));
 
-    if(client->arrive->value() > simTime)
-        elem->addElement(new XmlValue("jointime", QString::number(simTime)));
-    else
-        elem->addElement(new XmlValue("jointime", QString::number(client->arrive->value())));
+    elem->addElement(new XmlValue("jointime", QString::number(client->arrive->value())));
 
-    if(client->exit->value())
-        elem->addElement(new XmlValue("exittime", QString::number(simTime)));
-    else
-        elem->addElement(new XmlValue("exittime", QString::number(client->exit->value())));
+    elem->addElement(new XmlValue("exittime", QString::number(client->exit->value())));
 
     elem->addElement(new XmlValue("pcap", client->pcap->isChecked() ? "yes" : "no"));
     elem->addElement(new XmlValue("graphs", client->graph->isChecked() ? "yes" : "no"));
