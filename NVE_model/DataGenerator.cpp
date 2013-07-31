@@ -655,6 +655,7 @@ void ServerDataGenerator::StartApplication(){
         case TCP_NAGLE_DISABLED:
         case TCP_NAGLE_ENABLED:
             socket->Listen();
+            socket->SetCloseCallbacks(MakeCallback(&ServerDataGenerator::clientExited, this), MakeCallback(&ServerDataGenerator::clientExited, this));
             socket->SetAcceptCallback(MakeCallback(&ServerDataGenerator::connectionRequest,this), MakeCallback(&ServerDataGenerator::newConnectionCreated, this));
             if(!immediateSend)
                 Simulator::Schedule(Time(MilliSeconds(gameTick)), &DataSender::flushTcpBuffer, &sender, false);
@@ -678,6 +679,20 @@ void ServerDataGenerator::StartApplication(){
     }
 
 }
+
+
+void ServerDataGenerator::clientExited(Ptr<Socket> sock)
+{
+    for(std::vector<ServerDataGenerator::ClientConnection*>::iterator it = clientConnections.begin(); it != clientConnections.end(); it++)
+    {
+        if((*it)->clientSocket == sock)
+        {
+            clientConnections.erase(it);
+            break;
+        }
+    }
+}
+
 
 void ServerDataGenerator::StopApplication(){
 
@@ -895,20 +910,12 @@ void ServerDataGenerator::readReceivedData(uint8_t *buffer, uint16_t bufferSize,
 
     if(running){
 
-      /*  if(udpClients.empty()){
-            udpClients.push_back(new Address(clientAddr));
-        }*/
-
         for(std::vector<Address*>::iterator it = udpClients.begin(); it != udpClients.end(); it++){
             if((**it) == clientAddr){
                 addressExists = true;
                 break;
             }
         }
-
-      /*  if(!addressExists){
-            udpClients.push_back(new Address(clientAddr));
-        }*/
 
         while(bytesRead < bufferSize){
 

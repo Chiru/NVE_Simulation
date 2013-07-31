@@ -164,6 +164,7 @@ private:
     bool sendData(Message*, uint8_t*);
     void acceptUdpConnection(const Address& addr, bool addressExists);
     void finishUdpConnection(const Address& addr);
+    void clientExited(Ptr<Socket> sock);
 
     std::vector<ServerDataGenerator::ClientConnection*> clientConnections;    //for tcp clients
     std::vector<Address*> udpClients;                                         //for UDP clients
