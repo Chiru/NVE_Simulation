@@ -75,6 +75,9 @@ void ClientWidget::configClientWidget()
 
     clientCount->setValue(1);
     clientCount->setMinimum(1);
+    delay->setValue(10);
+    uplink->setValue(1);
+    downlink->setValue(2);
 
     layout->addWidget(clientCount, 1, 2);
     layout->addWidget(delay, 2,2);

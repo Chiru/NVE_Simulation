@@ -13,8 +13,8 @@ MessageTemplate::MessageTemplate(QWidget *parent, bool appProtoEnabled)
       returnToSender(false),
       useReceivedMessageSize(true),
       forwardMessageSize(0),
-      timeRequirementClient(0),
-      timeRequirementServer(0)
+      timeRequirementClient(100),
+      timeRequirementServer(50)
 {
 
     messageSize.setDist(None);

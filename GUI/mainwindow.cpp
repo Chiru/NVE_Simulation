@@ -29,10 +29,13 @@ MainWindow::MainWindow(QWidget *parent) :
     widget = new QWidget(ui->streamScrollArea);
     widget->setLayout(new QBoxLayout(QBoxLayout::TopToBottom, ui->streamScrollArea));
 
+    ui->appProto_ackSize->setMinimum(10);
     ui->appProto_ackSize->setMaximum(500);
     ui->appProto_delAck->setMaximum(10000);
+    ui->appProto_headerSize->setMinimum(10);
     ui->appProto_headerSize->setMaximum(500);
     ui->appProto_RTO->setMaximum(10000);
+    ui->appProto_RTO->setValue(100);
 
     ui->simTime->setMaximum(100000);
     ui->simTime->setSingleStep(10);
