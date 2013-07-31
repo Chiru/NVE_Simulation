@@ -114,6 +114,7 @@ private:
     void moreBufferSpaceAvailable(Ptr<Socket>, uint32_t);
     bool sendData(Message*, uint8_t* buffer);
     void initializeUdpConnection();
+    void finishUdpConnection();
     void startSendingData();
 
 };
@@ -161,10 +162,11 @@ private:
     void sendToRandomClients(std::pair<Address, std::pair<std::string, Message*> >&);       //for UDP streams
     void forwardUserActionMessage(std::pair<std::string, Message*>, Address&);
     bool sendData(Message*, uint8_t*);
-    void acceptUdpConnection(const Address& addr);
+    void acceptUdpConnection(const Address& addr, bool addressExists);
+    void finishUdpConnection(const Address& addr);
 
-    std::vector<ServerDataGenerator::ClientConnection*> clientConnections;
-    std::vector<Address*> udpClients;
+    std::vector<ServerDataGenerator::ClientConnection*> clientConnections;    //for tcp clients
+    std::vector<Address*> udpClients;                                         //for UDP clients
     std::vector<std::pair<Address, std::pair<std::string, Message*> > > udpMessages;
     UniformVariable probability;
 

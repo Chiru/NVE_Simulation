@@ -483,6 +483,38 @@ bool ApplicationProtocol::sendAck(int *messagesToAck, uint16_t numberOfMessages,
     return true;
 }
 
+
+void ApplicationProtocol::transmissionStopped(const Address &addr, bool isClient)
+{
+    std::list<ReliablePacket*>::iterator it;
+
+    for(it = packetsWaitingAcks.begin(); it != packetsWaitingAcks.end(); it++)
+    {
+        if(isClient || (*it)->addr == addr)
+        {
+            delete *it;
+            it = packetsWaitingAcks.erase(it);
+            it--;
+        }
+    }
+
+    for(it = packetsOutOfOrder.begin(); it != packetsOutOfOrder.end(); it++)
+    {
+        if(isClient ||(*it)->addr == addr)
+        {
+            delete *it;
+            it = packetsOutOfOrder.erase(it);
+            it--;
+
+        }
+    }
+
+    packetsToAck.erase(addr);
+    alreadyAcked.erase(addr);
+
+}
+
+
 uint16_t ApplicationProtocol::createAck(char *ack, int* number, uint16_t numberOfMessages){
 
     std::stringstream str;

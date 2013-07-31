@@ -44,6 +44,7 @@ public:
     void recv(Ptr<Socket>);
     uint16_t getHeaderSize() const{return headerSize;}
     void addAppProtoHeader(char* buffer, bool reliable, const Address* addr = 0);
+    void transmissionStopped(const Address& addr, bool isClient);
 
 
     //IP fragmentation over UDP doesn't work like a charm, so send big packets in separate datagrams

@@ -261,15 +261,67 @@ void ClientDataGenerator::startSendingData()
 
 void ClientDataGenerator::StopApplication(){
 
-    running = false;
-
-    for(std::vector<Message*>::iterator it = messages.begin(); it != messages.end(); it++){
+    for(std::vector<Message*>::iterator it = messages.begin(); it != messages.end(); it++)
+    {
         (*it)->cancelEvent();
     }
 
-    if(socket){
-       socket->ShutdownSend();
-       socket->Close();
+    if(proto == UDP)
+    {
+        finishUdpConnection();
+    }
+    else
+    {
+        running = false;
+
+        if(socket)
+        {
+           socket->ShutdownSend();
+           socket->Close();
+        }
+    }
+}
+
+
+void ClientDataGenerator::finishUdpConnection()
+{
+    if(connectionInitialized)
+    {
+
+        if(appProto)
+        {
+            char buffer[appProto->getHeaderSize()];
+            buffer[0] = 0;
+            std::string msg(buffer);
+
+            appProto->addAppProtoHeader(buffer, false, &peerAddr);
+
+            msg.assign(buffer, appProto->getHeaderSize());
+
+            msg.append("\"STOP\"");
+
+            appProto->sendAndFragment(socket, (uint8_t*)msg.data(), msg.length(), false, &peerAddr);
+
+            appProto->transmissionStopped(peerAddr, true);
+
+            Simulator::Schedule(Time(MilliSeconds(500)), &ClientDataGenerator::finishUdpConnection, this);
+        }
+        else
+        {
+            std::string msg("\"STOP\"");
+
+            socket->SendTo((uint8_t*)msg.data(), msg.length(), 0, peerAddr);
+        }
+    }
+    else
+    {
+        running = false;
+
+        if(socket)
+        {
+           socket->ShutdownSend();
+           socket->Close();
+        }
     }
 }
 
@@ -463,9 +515,11 @@ void ClientDataGenerator::readReceivedData(uint8_t* buffer, uint16_t bufferSize,
     Message* message = 0;
     std::string messageName;
     ReadMsgNameReturnValue retVal;
-    connectionInitialized = true;
+
 
     if(running){
+
+        connectionInitialized = true;
 
         while(bytesRead < bufferSize){
 
@@ -480,6 +534,13 @@ void ClientDataGenerator::readReceivedData(uint8_t* buffer, uint16_t bufferSize,
 
                 if(messageName == "ACCEPT")
                 {
+                    return;
+                }
+
+                if(messageName == "STOPPED")
+                {
+                    connectionInitialized = false;
+                    running = false;
                     return;
                 }
 
@@ -834,9 +895,9 @@ void ServerDataGenerator::readReceivedData(uint8_t *buffer, uint16_t bufferSize,
 
     if(running){
 
-        if(udpClients.empty()){
+      /*  if(udpClients.empty()){
             udpClients.push_back(new Address(clientAddr));
-        }
+        }*/
 
         for(std::vector<Address*>::iterator it = udpClients.begin(); it != udpClients.end(); it++){
             if((**it) == clientAddr){
@@ -845,9 +906,9 @@ void ServerDataGenerator::readReceivedData(uint8_t *buffer, uint16_t bufferSize,
             }
         }
 
-        if(!addressExists){
+      /*  if(!addressExists){
             udpClients.push_back(new Address(clientAddr));
-        }
+        }*/
 
         while(bytesRead < bufferSize){
 
@@ -861,7 +922,18 @@ void ServerDataGenerator::readReceivedData(uint8_t *buffer, uint16_t bufferSize,
 
                 if(messageName == "INITIALIZE")
                 {
-                    acceptUdpConnection(clientAddr);
+                    acceptUdpConnection(clientAddr, addressExists);
+                    return;
+                }
+
+                if(messageName == "STOP")
+                {
+                    finishUdpConnection(clientAddr);
+                    return;
+                }
+
+                if(!addressExists)   //connection has not been initialized
+                {
                     return;
                 }
 
@@ -895,8 +967,14 @@ void ServerDataGenerator::readReceivedData(uint8_t *buffer, uint16_t bufferSize,
 }
 
 
-void ServerDataGenerator::acceptUdpConnection(const Address &addr)
+void ServerDataGenerator::acceptUdpConnection(const Address &addr, bool addressExists)
 {
+
+    if(!addressExists)
+    {
+        udpClients.push_back(new Address(addr));
+    }
+
     if(appProto)
     {
 
@@ -904,8 +982,7 @@ void ServerDataGenerator::acceptUdpConnection(const Address &addr)
         buffer[0] = 0;
         std::string msg(buffer);
 
-        if(appProto)
-            appProto->addAppProtoHeader(buffer, false, &peerAddr);
+        appProto->addAppProtoHeader(buffer, false, &addr);
 
         msg.assign(buffer, appProto->getHeaderSize());
 
@@ -921,6 +998,47 @@ void ServerDataGenerator::acceptUdpConnection(const Address &addr)
         socket->SendTo((uint8_t*)msg.data(), msg.length(), 0, addr);
 
     }
+}
+
+
+void ServerDataGenerator::finishUdpConnection(const Address &addr)
+{
+
+    for(std::vector<Address*>::iterator it = udpClients.begin(); it != udpClients.end(); it++)
+    {
+        if(**it == addr)
+        {
+            delete *it;
+            udpClients.erase(it);
+            break;
+        }
+    }
+
+    if(appProto)
+    {
+        char buffer[appProto->getHeaderSize()];
+        buffer[0] = 0;
+        std::string msg(buffer);
+
+        appProto->addAppProtoHeader(buffer, false, &addr);
+
+        msg.assign(buffer, appProto->getHeaderSize());
+
+        msg.append("\"STOPPED\"");
+
+        appProto->transmissionStopped(addr, false);
+
+        appProto->sendAndFragment(socket, (uint8_t*)msg.data(), msg.length(), false, &addr);
+
+    }
+
+    else
+    {
+        std::string msg("\"STOPPED\"");
+
+        socket->SendTo((uint8_t*)msg.data(), msg.length(), 0, addr);
+    }
+
 }
 
 void ServerDataGenerator::moreBufferSpaceAvailable(Ptr<Socket> sock, uint32_t size){
