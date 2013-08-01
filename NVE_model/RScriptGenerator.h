@@ -24,6 +24,7 @@ public:
                                         std::list<uint16_t> sizes);
     bool writeAndExecuteResultScript();
     bool generateBandwidthHistogram(double clientDownlink, double clientUplink, double serverDownlink, double serverUplink);
+    bool addClientBandwidth(const Ipv4Address& addr, double downLink, double upLink, bool isClient = true);
 
 private:
     std::ofstream* filestream;

@@ -10,8 +10,8 @@ RScriptGenerator::RScriptGenerator(const std::string &filename, const std::strin
     textFile.append(resultTextFile);
     result.append("\")\n");
     textFile.append("\"\n");
-    streamScript.assign("#Average trasnmit times for streams\n");
-    messageScript.assign("\n#Average trasnmit times for each message\n");
+    streamScript.assign("#Average transmit times for streams\n");
+    messageScript.assign("\n#Average transmit times for each message\n");
 
     filestream =  new std::ofstream("results/Rscripts/resultscript.R", std::ios_base::out | std::ios_base::trunc);
 
@@ -455,8 +455,8 @@ bool RScriptGenerator::generateScriptForClientMessage(std::list<int> clientRecvT
     stream << "legend(\"bottomright\", c(\"client to server\", \"client to client\", \"client to server requirement\", \"client to client requirement\"), cex=0.8, col=c("
            << "\"black\", \"darkgrey\", \"black\", \"darkgrey\"), lty=c(1,1,2,2), inset=.05)" << std::endl;
 
-    stream << "#Message inter-departure times for " << name;
-    stream << "\nplot(tabulate(sendtimes_" << name << "), type=\"h\", xlab=\"Time(ms)\", ylab =\"Message count\", main=\"Inter-departure times for: " <<  name <<"\")" << std::endl;
+    stream << "#Message generation time intervals for " << name;
+    stream << "\nplot(tabulate(sendtimes_" << name << "), type=\"h\", xlab=\"Time(ms)\", ylab =\"Message count\", main=\"Message generation time intervals for: " <<  name <<"\")" << std::endl;
 
     stream << "\n#Packet sizes for message " << name << std::endl;
     stream << "\nplot(tabulate(messagesizes_" << name << "), type=\"h\", xlab=\"Message size(bytes)\", ylab =\"Message count\", main=\"Message sizes for: " <<  name <<"\")" << std::endl;
@@ -572,8 +572,8 @@ bool RScriptGenerator::generateScriptForServerMessage(std::list<int> clientRecvT
     stream << "legend(\"bottomright\", c(\"server to client\", \"server to client requirement\"), cex=0.8, col=c("
               << "\"black\", \"darkgrey\"), lty=c(1,2), inset=.05)" << std::endl;
 
-    stream << "#Message inter-departure times for " << name;
-    stream << "\nplot(tabulate(sendtimes_" << name << "), type=\"h\", xlab=\"Time(ms)\", ylab =\"Message count\", main=\"Inter-departure times for: " <<  name <<"\")" << std::endl;
+    stream << "#Message generation time intervals for " << name;
+    stream << "\nplot(tabulate(sendtimes_" << name << "), type=\"h\", xlab=\"Time(ms)\", ylab =\"Message count\", main=\"Message genereation time intervals for: " <<  name <<"\")" << std::endl;
 
     stream << "\n#Packet sizes for message " << name << std::endl;
     stream << "\nplot(tabulate(messagesizes_" << name << "), type=\"h\", xlab=\"Message size(bytes)\", ylab =\"Message count\", main=\"Message sizes for: " <<  name <<"\")" << std::endl;
@@ -589,7 +589,7 @@ bool RScriptGenerator::generateBandwidthHistogram(double clientDownlink, double 
     std::stringstream stream;
 
     stream << "\n#Barplot for bandwidths\n";
-    stream << "maxbandwidth = max(" << serverDownlink << ", " << serverUplink << ")";
+    stream << "maxbandwidth = max(" << serverDownlink << ", " << serverUplink << ", " << clientDownlink << ", " << clientUplink << ")";
     stream << "\nbarplot(c(" << clientDownlink <<  ", " << clientUplink << ", " << serverDownlink << ", " << serverUplink << "), names.arg=c(\"avg. client dl\","
                                                      << " \"avg. client ul\", \"server downlink\", \"server uplink\"), col=c(" << color[0] << ", " << color[1]
                                                      << "), ylim=c(0, maxbandwidth * 1.2))" << std::endl;
@@ -599,6 +599,20 @@ bool RScriptGenerator::generateBandwidthHistogram(double clientDownlink, double 
     messageScript.append(stream.str());
     return true;
 }
+
+
+bool RScriptGenerator::addClientBandwidth(const Ipv4Address &addr, double downLink, double upLink, bool isClient)
+{
+    std::stringstream stream;
+
+    stream << "\nwrite(\"" << (isClient ? "Average throughput for client " : "Average throughput for server ") << addr << " uplink: " << upLink
+           << " downlink " << downLink << " Mbps\n\", filename, append=TRUE)\n";
+
+    messageScript.append(stream.str());
+    return true;
+
+}
+
 
 bool RScriptGenerator::writeAndExecuteResultScript(){
 

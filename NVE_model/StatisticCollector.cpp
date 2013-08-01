@@ -157,7 +157,6 @@ void StatisticsCollector::logMessagesSentFromClient(int messageNumber, Time send
                                                 //messageNumber is the same as the index of MessageStats in messageLog because they are sent in order
 
     if(!lastTimes.count(messageId)){
-        userActionMessageLog[streamNumber-1].back()->sendTimeInterval = sendTime;
         lastTimes.insert(std::make_pair<int, Time>(messageId, sendTime));
     }
     else{
@@ -176,7 +175,7 @@ void StatisticsCollector::logMessagesSentFromServer(int messageNumber, Time send
     serverMessageLog[streamNumber - 1].push_back(new MessageStats(messageNumber, sendTime, clientTimeRequirement, 0, messageNameIndex));
 
     if(!lastTimes.count(messageId)){
-        serverMessageLog[streamNumber - 1].back()->sendTimeInterval = sendTime;
+        serverMessageLog[streamNumber - 1].back()->sendTimeInterval = sendTime; //TODO: remove?
         lastTimes.insert(std::make_pair<int, Time>(messageId, sendTime));
     }
     else{
@@ -196,8 +195,10 @@ void StatisticsCollector::logMessageForwardedByServer(int messageNumber, uint16_
     userActionMessageLog[streamNumber-1].at(messageNumber)->forwardMessageSize = forwardMessageSize;
 }
 
-void StatisticsCollector::updateMessageTimeIntervalSentFromClient(int messageNumber, uint16_t streamNumber, Time time){
-    userActionMessageLog[streamNumber-1].at(messageNumber)->sendTimeInterval = time;
+
+//this updates the time interval when gametick buffering is used
+void StatisticsCollector::updateMessageTimeIntervalSentFromClient(int messageNumber, uint16_t streamNumber, Time time){  //TODO: only application time interval is interesting here
+    //userActionMessageLog[streamNumber-1].at(messageNumber)->sendTimeInterval = time;
 }
 
 void StatisticsCollector::updateMessageTimeIntervalSentFromServer(int messageNumber, uint16_t streamNumber, Time time){
@@ -405,20 +406,26 @@ void StatisticsCollector::getBandwidthResults(){
 
     for(addrIt = nodesAndBandwidths.begin(), counter = 0; addrIt != nodesAndBandwidths.end(); addrIt++){ //NOTE: network headers are not calculated into this average
 
+        double upLink = 0;
+        double downLink = 0;
+
         if(addrIt->first != revAddrIt->first){
             runningTime = clientRunningTimes[addrIt->first];
-            averageClientUplink +=  (addrIt->second.first + (nodesAndPackets[addrIt->first].first * 14))*8.0/ runningTime / 1024 /1024;    //add ethernet header sizes
-            averageClientDownlink += (addrIt->second.second + (nodesAndPackets[addrIt->first].second * 14))*8.0 / runningTime /1024 /1024;
+            averageClientUplink += (upLink = (addrIt->second.first + (nodesAndPackets[addrIt->first].first * 12))*8.0 / runningTime / 1024 /1024);
+            averageClientDownlink += (downLink = (addrIt->second.second + (nodesAndPackets[addrIt->first].second * 12))*8.0 / runningTime /1024 /1024);
             counter++;
         }
         else{
             runningTime = this->runningTime;
-            serverUplink +=  (addrIt->second.first + (nodesAndPackets[addrIt->first].first * 14))*8.0/ runningTime / 1024 /1024;
-            serverDownlink += (addrIt->second.second + (nodesAndPackets[addrIt->first].second * 14))*8.0 / runningTime /1024 /1024;
+            serverUplink +=  (upLink = (addrIt->second.first + (nodesAndPackets[addrIt->first].first * 12))*8.0/ runningTime / 1024 /1024);
+            serverDownlink += (downLink = (addrIt->second.second + (nodesAndPackets[addrIt->first].second * 12))*8.0 / runningTime /1024 /1024);
         }
 
-        PRINT_RESULT("Average throughput for client " << addrIt->first << " downlink: "  << (addrIt->second.second + (nodesAndPackets[addrIt->first].second * 14)) *8.0 / runningTime /1024 /1024
-                     << "Mbps  " << "uplink: " << (addrIt->second.first + (nodesAndPackets[addrIt->first].first * 14)) *8.0/ runningTime / 1024 /1024 << "Mbps" << std::endl);
+        PRINT_RESULT((*addrIt == *revAddrIt ? "Average throughput for server " : "Average throughput for client ") << addrIt->first << " downlink: "  << downLink
+                     << "Mbps  " << "uplink: " << upLink << "Mbps" << std::endl);
+
+        scriptGen->addClientBandwidth(addrIt->first, downLink, upLink, (*addrIt != *revAddrIt));
+
     }
 
     scriptGen->generateBandwidthHistogram(averageClientDownlink / counter, averageClientUplink / counter, serverDownlink, serverUplink);
