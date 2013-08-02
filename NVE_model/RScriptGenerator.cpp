@@ -613,23 +613,36 @@ bool RScriptGenerator::addClientBandwidth(const Ipv4Address &addr, double downLi
 }
 
 
-bool RScriptGenerator::parsePcapStats(const std::string &sourceFile, bool size, const Ipv4Address& addr, int clientNumber)
+bool RScriptGenerator::parsePcapStats(const std::string &sourceFile, bool size, const Ipv4Address& addr, int clientNumber, bool isServer)
 {
     std::stringstream stream;
     std::ifstream file(sourceFile.c_str());
     int value;
     double tempValue;
     bool first = true;
+    std::string nodeString("");
+
+    if(isServer)
+    {
+        nodeString = "server";
+    }
+    else
+    {
+        stream << "client_" << clientNumber;
+        nodeString = stream.str();
+        stream.str("");
+    }
+
 
     if(size)
     {
         stream << "\n\n#Network  packet sizes for node: " << addr << "\n";
-        stream << "sendsizes_client_"  << clientNumber << " = c(";
+        stream << "sendsizes_"  << nodeString << " = c(";
     }
     else
     {
         stream << "\n\n#Network packet send time intervals for node: " << addr << "\n";
-        stream << "sendtimes_client_"  << clientNumber << " = c(";
+        stream << "sendtimes_" << nodeString << " = c(";
     }
 
     if(file.fail())
@@ -651,6 +664,7 @@ bool RScriptGenerator::parsePcapStats(const std::string &sourceFile, bool size, 
         if(size)
         {
             file >> value;
+            value += 12;  //this is for ethernet2 header, as the simulator uses only 2 byte PtP-header
         }
         else
         {
@@ -665,12 +679,12 @@ bool RScriptGenerator::parsePcapStats(const std::string &sourceFile, bool size, 
 
     if(size)
     {
-        stream << "plot(tabulate(sendsizes_client_" << clientNumber << "), type=\"h\", xlab=\"Packet size(bytes)\", ylab=\"Message count\", ";
+        stream << "plot(tabulate(sendsizes_" << nodeString << "), type=\"h\", xlab=\"Packet size(bytes)\", ylab=\"Message count\", ";
         stream << "main=\"Network packet sizes for client " << clientNumber << " (" << addr << ")\"\n)";
     }
     else
     {
-        stream << "plot(tabulate(sendtimes_client_" << clientNumber << "), type=\"h\", xlab=\"Time interval (ms)\", ylab=\"Message count\", ";
+        stream << "plot(tabulate(sendtimes_" << nodeString << "), type=\"h\", xlab=\"Time interval (ms)\", ylab=\"Message count\", ";
         stream << "main=\"Network packet send intervals for client " << clientNumber << " (" << addr << ")\"\n)";
     }
 

@@ -362,6 +362,12 @@ void StatisticsCollector::addClientRunningTime(const Ipv4Address &addr, int runn
     clientRunningTimes.insert(std::pair<Ipv4Address, int>(addr, runningTime));
 }
 
+
+void StatisticsCollector::setServerAddress(const Ipv4Address &addr)
+{
+    serverAddr = addr;
+}
+
 void StatisticsCollector::getBandwidthResults(){
 
     std::map<FlowId, FlowMonitor::FlowStats> flowStats;
@@ -511,28 +517,50 @@ void StatisticsCollector::getMessageStats(uint16_t streamNumber){
 bool StatisticsCollector::generateStatsFromPcap()
 {
     std::stringstream stream;
-    std::string addr;
+    std::string addrStr;
     int clientNumber;
     char dot;
     struct stat pcapFile;
     std::string fileName;
     pid_t pid;
     int status;
+    bool cont = true;
+    bool isServer = false;
+    Ipv4Address addr;
 
-    for(std::map<Ipv4Address, int>::const_iterator it = clientRunningTimes.begin(); it != clientRunningTimes.end(); it++)
+    for(std::map<Ipv4Address, int>::const_iterator it = clientRunningTimes.begin(); cont; it++)
     {
-        stream.str("");
-        stream << it->first;
 
-        addr = stream.str();
+        if(it == clientRunningTimes.end())
+        {
+            cont = false;
+            isServer = true;
+            addr = serverAddr;
+        }
+        else
+        {
+            addr = it->first;
+        }
+
+        stream.str("");
+        stream << addr;
+
+        addrStr = stream.str();
         stream >> clientNumber >> dot >> clientNumber >> dot >> clientNumber;
 
         stream.str("");
         stream << clientNumber;
 
-        fileName = "./results/client-";
-        fileName.append(stream.str());
-        fileName.append(".pcap");
+        if(isServer)
+        {
+            fileName = "./results/server.pcap";
+        }
+        else
+        {
+            fileName = "./results/client-";
+            fileName.append(stream.str());
+            fileName.append(".pcap");
+        }
 
         stat(fileName.c_str(), &pcapFile);
 
@@ -545,7 +573,7 @@ bool StatisticsCollector::generateStatsFromPcap()
                 close(fd);
 
                 std::string addrArg("ip.src==");
-                addrArg.append(addr);
+                addrArg.append(addrStr);
                 const char* const args[] = {"tshark", "-r", fileName.c_str(), "-R", addrArg.c_str(), "-T", "fields", "-e", "frame.time_delta_displayed", NULL};
                 execvp("tshark", (char* const*)args);
             }
@@ -555,7 +583,7 @@ bool StatisticsCollector::generateStatsFromPcap()
             if(status == EXIT_FAILURE)
                 return false;
 
-            scriptGen->parsePcapStats("temp.txt", false, it->first, clientNumber);
+            scriptGen->parsePcapStats("temp.txt", false, addr, clientNumber, isServer);
 
             if((pid = fork()) == 0)
             {
@@ -564,7 +592,7 @@ bool StatisticsCollector::generateStatsFromPcap()
                 close(fd);
 
                 std::string addrArg("ip.src==");
-                addrArg.append(addr);
+                addrArg.append(addrStr);
                 const char* const args[] = {"tshark", "-r", fileName.c_str(), "-R", addrArg.c_str(), "-T", "fields", "-e", "frame.cap_len", NULL};
                 execvp("tshark", (char* const*)args);
             }
@@ -574,7 +602,7 @@ bool StatisticsCollector::generateStatsFromPcap()
             if(status == EXIT_FAILURE)
                 return false;
 
-            scriptGen->parsePcapStats("temp.txt", true, it->first, clientNumber);
+            scriptGen->parsePcapStats("temp.txt", true, addr, clientNumber, isServer);
         }
     }
 

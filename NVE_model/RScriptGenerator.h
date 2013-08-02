@@ -25,7 +25,7 @@ public:
     bool writeAndExecuteResultScript();
     bool generateBandwidthHistogram(double clientDownlink, double clientUplink, double serverDownlink, double serverUplink);
     bool addClientBandwidth(const Ipv4Address& addr, double downLink, double upLink, bool isClient = true);
-    bool parsePcapStats(const std::string& sourceFile, bool size, const Ipv4Address &addr, int clientNumber);
+    bool parsePcapStats(const std::string& sourceFile, bool size, const Ipv4Address &addr, int clientNumber, bool isServer);
 
 private:
     std::ofstream* filestream;

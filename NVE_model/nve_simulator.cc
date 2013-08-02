@@ -227,6 +227,8 @@ int start(Args args){
         clientRouterDevices[i].Get(0)->GetChannel()->SetAttribute("Delay", TimeValue(Time(clients[i]->getDelayInMilliseconds())));
     }
 
+    stats->setServerAddress(routerServerIpInterfaces.GetAddress(1));
+
     //let's make sure that router-server link does not crash
     routerServerDevices.Get(0)->SetAttribute("DataRate", DataRateValue(DataRate("1Gbps")));
     routerServerDevices.Get(1)->SetAttribute("DataRate", DataRateValue(DataRate("1Gbps")));
