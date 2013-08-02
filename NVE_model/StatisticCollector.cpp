@@ -199,15 +199,6 @@ void StatisticsCollector::logMessageForwardedByServer(int messageNumber, uint16_
 }
 
 
-//this updates the time interval when gametick buffering is used
-void StatisticsCollector::updateMessageTimeIntervalSentFromClient(int messageNumber, uint16_t streamNumber, Time time){  //TODO: only application time interval is interesting here
-    //userActionMessageLog[streamNumber-1].at(messageNumber)->sendTimeInterval = time;
-}
-
-void StatisticsCollector::updateMessageTimeIntervalSentFromServer(int messageNumber, uint16_t streamNumber, Time time){
-    //serverMessageLog[streamNumber-1].at(messageNumber)->sendTimeInterval = time;
-}
-
 void StatisticsCollector::getStreamResults(std::vector<StatisticsCollector::MessageStats*>& clientStats, std::vector<StatisticsCollector::MessageStats*>& serverStats,
                                            uint16_t streamnumber, Time& clientToClientTimeResult, Time& clientToServerTimeResult, Time& serverToClientTimeResult, uint32_t& clientToClientMsgCount,
                                            uint32_t& clientToServerMsgCount, uint32_t& serverToClientMsgCount,  uint32_t& toServerInTime, uint32_t& fromClientToClientInTime,

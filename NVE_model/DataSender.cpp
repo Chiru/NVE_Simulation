@@ -88,16 +88,12 @@ bool DataSender::flushTcpBuffer(bool isClient){
 
     if(isClient){
         for(std::vector<MessageInfo>::iterator msgIt = clientMessagesInTcpBuffer.begin(); msgIt != clientMessagesInTcpBuffer.end(); msgIt++){
-
             interval = getMessageSendInterval( msgIt->name);
-            StatisticsCollector::updateMessageTimeIntervalSentFromClient(msgIt->messageNumber, msgIt->streamNumber, interval);
         }
         clientMessagesInTcpBuffer.clear();
     }else{
         for(std::vector<MessageInfo>::iterator msgIt = serverMessagesInTcpBuffer.begin(); msgIt != serverMessagesInTcpBuffer.end(); msgIt++){
-
             interval = getMessageSendInterval(msgIt->name);
-            StatisticsCollector::updateMessageTimeIntervalSentFromServer(msgIt->messageNumber, msgIt->streamNumber, interval);
         }
         serverMessagesInTcpBuffer.clear();
     }
@@ -128,14 +124,12 @@ bool DataSender::flushUdpBuffer(Ptr<Socket> sock, bool isClient){
         for(std::vector<MessageInfo>::iterator it = clientMessagesInUdpBuffer.begin(); it != clientMessagesInUdpBuffer.end(); it++){
 
             interval = getMessageSendInterval(it->name);
-            StatisticsCollector::updateMessageTimeIntervalSentFromClient(it->messageNumber, it->streamNumber, interval);
         }
         clientMessagesInUdpBuffer.clear();
     }else{
         for(std::vector<MessageInfo>::iterator it = serverMessagesInUdpBuffer.begin(); it != serverMessagesInUdpBuffer.end(); it++){
 
             interval = getMessageSendInterval(it->name);
-            StatisticsCollector::updateMessageTimeIntervalSentFromServer(it->messageNumber, it->streamNumber, interval);
         }
         serverMessagesInUdpBuffer.clear();
     }

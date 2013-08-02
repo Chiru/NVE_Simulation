@@ -67,8 +67,6 @@ public:
     static void logMessageForwardedByServer(int messageNumber, uint16_t streamNumber, uint16_t size); //counts the messages forwarded to clients
     static void logMessagesSentFromServer(int messageNumber, Time, uint16_t streamNumber, uint32_t clientTimeRequirement, uint16_t messageNameIndex, uint16_t messageId, uint16_t size);
     static void countMessagesSentFromServer(int messageNumber, uint16_t streamNumber);
-    static void updateMessageTimeIntervalSentFromClient(int messageNumber, uint16_t streamNumber, Time time);  //this is used for updating the sending time when gametick is used and sending is not immediate
-    static void updateMessageTimeIntervalSentFromServer(int messageNumber, uint16_t streamNumber, Time time);  //this is used for updating the sending time when gametick is used and sending is not immediate
     static uint16_t userActionmessageCount;
     static uint16_t otherDataMessageCount;
 
