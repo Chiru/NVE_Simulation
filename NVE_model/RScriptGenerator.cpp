@@ -1,6 +1,5 @@
 #include "RScriptGenerator.h"
 
-
 RScriptGenerator::RScriptGenerator(const std::string &filename, const std::string& resultPdfFile, std::string& resultTextFile): resultPdf(resultPdfFile), resultTxt(resultTextFile){
 
     std::string header("# Generated R script for NVE simulator statistics\n\n");
@@ -614,6 +613,74 @@ bool RScriptGenerator::addClientBandwidth(const Ipv4Address &addr, double downLi
 }
 
 
+bool RScriptGenerator::parsePcapStats(const std::string &sourceFile, bool size, const Ipv4Address& addr, int clientNumber)
+{
+    std::stringstream stream;
+    std::ifstream file(sourceFile.c_str());
+    int value;
+    double tempValue;
+    bool first = true;
+
+    if(size)
+    {
+        stream << "\n\n#Network  packet sizes for node: " << addr << "\n";
+        stream << "sendsizes_client_"  << clientNumber << " = c(";
+    }
+    else
+    {
+        stream << "\n\n#Network packet send time intervals for node: " << addr << "\n";
+        stream << "sendtimes_client_"  << clientNumber << " = c(";
+    }
+
+    if(file.fail())
+        return false;
+
+    if(!size)       //with time intervals, the first value is always 0
+    {
+        file >> tempValue;
+    }
+
+
+    while(!file.eof())
+    {
+        if(first)
+            first = false;
+        else
+            stream << ", ";
+
+        if(size)
+        {
+            file >> value;
+        }
+        else
+        {
+            file >> tempValue;
+            value = int(1000*tempValue + 0.5);
+        }
+
+        stream << value;
+    }
+
+    stream << ")\n";
+
+    if(size)
+    {
+        stream << "plot(tabulate(sendsizes_client_" << clientNumber << "), type=\"h\", xlab=\"Packet size(bytes)\", ylab=\"Message count\", ";
+        stream << "main=\"Network packet sizes for client " << clientNumber << " (" << addr << ")\"\n)";
+    }
+    else
+    {
+        stream << "plot(tabulate(sendtimes_client_" << clientNumber << "), type=\"h\", xlab=\"Time interval (ms)\", ylab=\"Message count\", ";
+        stream << "main=\"Network packet send intervals for client " << clientNumber << " (" << addr << ")\"\n)";
+    }
+
+    file.close();
+    messageScript.append(stream.str());
+    return true;
+}
+
+
+
 bool RScriptGenerator::writeAndExecuteResultScript(){
 
     pid_t pid;
@@ -636,6 +703,7 @@ bool RScriptGenerator::writeAndExecuteResultScript(){
     }
     return true;
 }
+
 
 
 

@@ -23,7 +23,7 @@ XMLParser::XMLParser(std::string filename): filename(filename), correctFile(true
     std::string xmlFile;
     std::string token;
 
-    if(filestream == 0){
+    if(filestream.fail()){
         PRINT_ERROR( "XML file \"" << filename << "\" could not be opened." << std::endl);
         correctFile = false;
         return;

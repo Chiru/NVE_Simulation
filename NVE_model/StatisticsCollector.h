@@ -78,7 +78,7 @@ private:
                           std::list<int64_t>& clientToServerTimes,  std::list<int64_t>& clientToClientTimes, std::list<int64_t>& serverToClientTimes);
     void getBandwidthResults();
     void getMessageStats(uint16_t streamNumber);
-    void generateStatsFromPcap();
+    bool generateStatsFromPcap();
 
     uint16_t streamCount;
     Ptr<FlowMonitor> flowMon;
@@ -88,7 +88,7 @@ private:
     std::string scriptSourceFile;
     std::string scriptResultPdfFile;
     std::string scriptResultTextFile;
-    std::map<Address, int> clientRunningTimes;
+    std::map<Ipv4Address, int> clientRunningTimes;
 
     static bool verbose;
     static bool clientLog;
