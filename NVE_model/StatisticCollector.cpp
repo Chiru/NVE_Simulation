@@ -121,9 +121,9 @@ StatisticsCollector::~StatisticsCollector(){
                  << "\n\tAverage percentage of messages to reach server in time:" <<  averageServerInTime << "\n\tAverage percentage of messages from client to reach client in time: "
                  << averageClientToClientInTime << "\n\tAverage percentage of messages from server to reach client in time: " << averageServerToClientInTime << std::endl);
 
-    getBandwidthResults();
-
     generateStatsFromPcap();
+
+    getBandwidthResults();
 
     if(scriptGen->writeAndExecuteResultScript())
         PRINT_RESULT(std::endl << "Generated a result file for graphs: " << scriptResultPdfFile  << std::endl);

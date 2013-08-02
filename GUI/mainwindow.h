@@ -27,6 +27,7 @@ public:
     explicit MainWindow(QWidget *parent = 0);
     bool configMessageFromEditor(MessageTemplate* msg);
     void setMsgConfigErrorMessage(const QString& error);
+    void updateSimulationStatus(bool simulationEnded);
     ~MainWindow();
 
 private:
@@ -37,7 +38,8 @@ private:
     QStack<QFrame*> previousClientsLines;
     QStack<StreamWidget*> previousStreams;
     QStack<QFrame*> previousStreamsLines;
-    QPalette* palette;
+    QPalette* errorPalette;
+    QPalette* normalPalette;
     DistributionWidget* messageSize;
     DistributionWidget* timeInterval;
     XmlSerializer serializer;
@@ -57,9 +59,9 @@ private:
     void configureMessages(const std::string& element, bool appProtoEnabled, QList<MessageTemplate*>& messages);
     MessageTemplate *configureMessage(const std::string& element, bool appProtoEnabled);
 
-
 public slots:
     void finishEditor();
+
 
 private slots:
     void chooseConfigurationFile();

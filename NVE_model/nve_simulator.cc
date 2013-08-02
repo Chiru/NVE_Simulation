@@ -63,11 +63,11 @@ Args::Args(bool verbose, bool clientLog, bool serverLog, bool help, const std::s
 }
 
 
-
+void secondPassed(MainWindow* mw);
 void printAddresses(NetDeviceContainer *deviceContainer, Ipv4InterfaceContainer *ipv4Container,  int count);
 void printHelpAndQuit();
 
-int start(Args args){
+int start(Args args, MainWindow *mw){
 
    // LogComponentEnable("nve_simulator", LOG_LEVEL_INFO);
 
@@ -263,10 +263,20 @@ int start(Args args){
    // AnimationInterface anim = AnimationInterface("results/animation");  //TODO: use this or not?
 
    // anim.StartAnimation();
+    if(mw != 0)
+    {
+        secondPassed(mw);
+    }
     Simulator::Stop(Seconds(runningTime));   //+1 second because of giving the connections time to finish
     Simulator::Run();
+
     Simulator::Destroy();
     //anim.StopAnimation();
+
+    if(mw != 0)
+    {
+        mw->updateSimulationStatus(true);
+    }
 
     for(i = 0; i < numberOfClients; i++){
         delete clients[i];
@@ -280,6 +290,15 @@ int start(Args args){
     return EXIT_SUCCESS;
 
 }
+
+
+void secondPassed(MainWindow *mw)
+{
+    Simulator::Schedule(Time(Seconds(1)), &secondPassed, mw);
+
+    mw->updateSimulationStatus(false);
+}
+
 
 void printAddresses(NetDeviceContainer *deviceContainer, Ipv4InterfaceContainer *ipv4Container, int count){
 

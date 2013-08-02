@@ -1,6 +1,7 @@
 #ifndef SIMULATION_INTERFACE_H
 #define SIMULATION_INTERFACE_H
 #include <string>
+#include "../GUI/mainwindow.h"
 
 //The purpose of this file is only to give the start function signature to the module that
 //wants to run the simulation. Also a class to pass arguments is defined.
@@ -26,7 +27,7 @@ private:
 };
 
 
-int start(Args args);
+int start(Args args, MainWindow* mw = 0);
 
 
 #endif // SIMULATION_INTERFACE_H

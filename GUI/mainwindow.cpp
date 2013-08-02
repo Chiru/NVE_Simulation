@@ -9,6 +9,8 @@
 #include <iostream>
 #include <QFile>
 #include <QFileDialog>
+#include <sstream>
+#include <ctime>
 
 
 MainWindow::MainWindow(QWidget *parent) :
@@ -74,10 +76,14 @@ MainWindow::MainWindow(QWidget *parent) :
     if(previousStreams.empty())
         addStream();
 
-    palette = new QPalette();
-    palette->setColor(QPalette::WindowText, QColor(255,0,0));
-    ui->message_errorLabel->setPalette(*palette);
-    ui->executionError->setPalette(*palette);
+    errorPalette = new QPalette();
+    errorPalette->setColor(QPalette::WindowText, QColor(255,0,0));
+    ui->message_errorLabel->setPalette(*errorPalette);
+    ui->executionStatus->setPalette(*errorPalette);
+
+    normalPalette = new QPalette();
+    normalPalette->setColor(QPalette::WindowText, QColor(0,0,255));
+
     ui->serverPcapCheckbox->setChecked(true);
     ui->serverPcapCheckbox->setToolTip("Enable pcap-file creation for the server");
 
@@ -88,7 +94,8 @@ MainWindow::MainWindow(QWidget *parent) :
 MainWindow::~MainWindow()
 {
     delete ui;
-    delete palette;
+    delete errorPalette;
+    delete normalPalette;
 }
 
 bool MainWindow::executeFileDialog()
@@ -395,10 +402,12 @@ void MainWindow::configurationFinished()
 
     Args args(fileName.toStdString());
 
-    if(start(args) == EXIT_FAILURE)
-        ui->executionError->setText("Could not execute simulation!");
+    if(start(args, this) == EXIT_FAILURE)
+        ui->executionStatus->setText("Could not execute simulation!");
     else
+    {
         this->close();
+    }
 
 }
 
@@ -791,6 +800,40 @@ void MainWindow::simTimeChanged(int time)
     foreach(client, previousClients)
     {
         emit client->simTimeChanged(time);
+    }
+}
+
+
+void MainWindow::updateSimulationStatus(bool simulationEnded)
+{
+    static time_t realSeconds = 0;
+    static int simTime = -1;
+    std::stringstream stream;
+
+    if(!simulationEnded)
+    {
+        simTime++;
+
+        if(time(NULL) > realSeconds)
+        {
+            stream << "Executed simulation time: " << simTime << " s";
+
+            ui->executionStatus->setPalette(*normalPalette);
+
+            ui->executionStatus->setText(stream.str().c_str());
+
+            this->repaint();
+            ui->executionStatus->repaint();
+
+            realSeconds = time(NULL);
+        }
+    }
+    else
+    {
+        ui->executionStatus->setText("Gathering results...");
+
+        this->repaint();
+        ui->executionStatus->repaint();
     }
 }
 
