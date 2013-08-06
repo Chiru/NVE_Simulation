@@ -772,12 +772,12 @@ bool RScriptGenerator::writeAndExecuteResultScript(){
 }
 
 
-template <typename T> void RScriptGenerator::writeRVectorToStream(T container, const std::string& name, std::stringstream& stream)
+template <typename T> void RScriptGenerator::writeRVectorToStream(const T& container, const std::string& name, std::stringstream& stream)
 {
     bool first = true;
     stream << "\n" << name << " = c(";
 
-    for(typename T::iterator it = container.begin(); it != container.end(); it++)
+    for(typename T::const_iterator it = container.begin(); it != container.end(); it++)
     {
         if(first)
         {

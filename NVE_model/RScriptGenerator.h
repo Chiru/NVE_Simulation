@@ -35,7 +35,7 @@ private:
     std::string streamScript;
     std::string messageScript;
 
-    template <typename T> void writeRVectorToStream(T container, const std::string& name, std::stringstream& stream);
+    template <typename T> void writeRVectorToStream(const T& container, const std::string& name, std::stringstream& stream);
 
 };
 
