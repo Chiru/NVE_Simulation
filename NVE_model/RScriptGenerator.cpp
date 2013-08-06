@@ -49,18 +49,11 @@ bool RScriptGenerator::generateScriptForStream(const std::list<int64_t>* transmi
 
         stream << "\n#Vector for server transmission times on stream number: " << count +1 << std::endl;
         if(!transmitTimesToServer[count].empty()){
-            stream << server << count;
-            stream << " = c(";
-            for(std::list<int64_t>::const_iterator it = transmitTimesToServer[count].begin(); it != transmitTimesToServer[count].end();){
-                stream << *it;
+            std::stringstream temp;
+            temp << server << count;
 
-                if(++it == transmitTimesToServer[count].end()){
-                    stream << ")\n";
-                    break;
-                }
-                else
-                    stream << ", ";
-            }
+            writeRVectorToStream<std::list<int64_t> >(transmitTimesToServer[count], temp.str(), stream);
+
         }else
             stream << server << count << " = c(0)" << std::endl;
 
@@ -75,19 +68,10 @@ bool RScriptGenerator::generateScriptForStream(const std::list<int64_t>* transmi
         stream << "\n#Vector for client to client transmission times on stream number: " << count +1 << std::endl;
 
         if(!transmitTimesToClients[count].empty()){
-            stream << client << count;
-            stream << " = c(";
+            std::stringstream temp;
+            temp << client << count;
 
-            for(std::list<int64_t>::const_iterator it = transmitTimesToClients[count].begin(); it != transmitTimesToClients[count].end();){
-                stream << *it;
-
-                if(++it == transmitTimesToClients[count].end()){
-                    stream << ")\n";
-                    break;
-                }
-                else
-                    stream << ", ";
-            }
+            writeRVectorToStream<std::list<int64_t> >(transmitTimesToClients[count], temp.str(), stream);
         }
         else
             stream << client << count << " = c(0)" << std::endl;
@@ -103,19 +87,10 @@ bool RScriptGenerator::generateScriptForStream(const std::list<int64_t>* transmi
         stream << "\n#Vector for server to client transmission time for stream number: " << count + 1 << std::endl;
 
         if(!transmitTimesFromServer[count].empty()){
-            stream << serverToClient << count;
-            stream << " = c(";
+            std::stringstream temp;
+            temp << serverToClient << count;
 
-            for(std::list<int64_t>::const_iterator it = transmitTimesFromServer[count].begin(); it != transmitTimesFromServer[count].end();){
-                stream << *it;
-
-                if(++it == transmitTimesFromServer[count].end()){
-                    stream << ")\n";
-                    break;
-                }
-                else
-                    stream << ", ";
-            }
+            writeRVectorToStream<std::list<int64_t> >(transmitTimesFromServer[count], temp.str(), stream);
         }else
             stream << serverToClient << count << " = c(0)" << std::endl;
 
@@ -524,16 +499,12 @@ bool RScriptGenerator::generateScriptForServerMessage(std::list<int> clientRecvT
         stream << ")\n";
 
     stream << "\n#Vector for message send time intervals for server message " << name;
-    stream << "\nsendtimes_" << name << " = c(";
-    for(std::list<int>::const_iterator it = sendIntervals.begin(); it != sendIntervals.end();){
-        stream << *it;
-        if(++it == sendIntervals.end()){
-            stream << ")\n";
-            break;
-        }
-        else
-            stream << ", ";
-    }
+
+    std::stringstream temp;
+
+    temp << "\nsendtimes_" << name;
+
+    writeRVectorToStream<std::list<int> >(sendIntervals, temp.str(), stream);
 
     stream << "write(\"Mean value of send time intervals for message: " << name << "\", filename, append=TRUE)\n";
     stream << "write(mean(sendtimes_" << name << "), filename, append=TRUE)\n";
@@ -541,16 +512,11 @@ bool RScriptGenerator::generateScriptForServerMessage(std::list<int> clientRecvT
     stream << "write(quantile(sendtimes_" << name << "), filename, append=TRUE)\n";
 
     stream << "\n#Vector for message sizes for message " << name;
-    stream << "\nmessagesizes_" << name << " = c(";
-    for(std::list<uint16_t>::const_iterator it = sizes.begin(); it != sizes.end();){
-        stream << *it;
-        if(++it == sizes.end()){
-            stream << ")\n";
-            break;
-        }
-        else
-            stream << ", ";
-    }
+
+    temp.str("");
+    temp << "\nmessagesizes_" << name;
+
+    writeRVectorToStream<std::list<uint16_t> >(sizes, temp.str(), stream);
 
     stream << "write(\"Mean value of message sizes for message: " << name << "\", filename, append=TRUE)\n";
     stream << "write(mean(messagesizes_" << name << "), filename, append=TRUE)\n";
@@ -698,15 +664,14 @@ bool RScriptGenerator::parseOverallPcapStats(const std::string &sourceFile, cons
 {
     std::stringstream stream;
     std::ifstream file(sourceFile.c_str());
-    double tempValue;
     bool first = true;
     std::string value;
-    int srcBytes = 0;
-    int destBytes = 0;
+    double srcBytes = 0;
+    double destBytes = 0;
     int srcFrames = 0;
     int destFrames = 0;
-    std::list<int> sentBytesInSecond;
-    std::list<int> recvBytesInSecond;
+    std::list<double> sentBytesInSecond;
+    std::list<double> recvBytesInSecond;
     std::string uplinkString("");
     std::string downlinkString("");
 
@@ -744,43 +709,38 @@ bool RScriptGenerator::parseOverallPcapStats(const std::string &sourceFile, cons
 
         file >> srcFrames >> srcBytes >> destFrames >> destBytes;
 
-        sentBytesInSecond.push_back(srcBytes + (srcFrames*12));    //add 12 bytes for each frame since the simulation uses 2 byte PtP-headers instead of 14 byte ethernet2-headers
-        recvBytesInSecond.push_back(destBytes + (destFrames*12));
+        sentBytesInSecond.push_back((srcBytes + srcFrames*12)*8/1024/1024);    //add 12 bytes for each frame since the simulation uses 2 byte PtP-headers instead of 14 byte ethernet2-headers
+        recvBytesInSecond.push_back((destBytes +  destFrames*12)*8/1024/1024);
 
     }
 
     file.close();
 
     stream << "\n\n#Uplink bandwidth usage per second for node: " << addr << "\n";
-    stream << uplinkString << " = c(";
 
     if(isServer)
     {
-
-        for(std::list<int>::iterator it = sentBytesInSecond.begin(); it != sentBytesInSecond.end(); it++)
-        {
-            if(first)
-            {
-                first = false;
-            }
-            else
-            {
-                stream << ", ";
-            }
-
-            stream << *it;
-        }
-
+        writeRVectorToStream<std::list<double> >(sentBytesInSecond, uplinkString, stream);
     }
     else
     {
 
     }
 
-    stream << ")\n";
-
     stream << "plot(seq(1,length(" << uplinkString << ")), " << uplinkString << ", main=\"Overall bandwidths\", type='l', col=\"black\", xlim=c(0,length(" <<
               uplinkString << ")))\n";
+
+    stream << "\n#Dowlink bandwidth usage per second for node: " << addr << "\n";
+
+    first = true;
+
+    if(isServer)
+    {
+        writeRVectorToStream<std::list<double> >(recvBytesInSecond, downlinkString, stream);
+    }
+
+    stream << "lines(seq(1,length(" << downlinkString << ")), " << downlinkString << ", col=\"black\")\n";
+
 
     messageScript.append(stream.str());
     return true;
@@ -812,5 +772,27 @@ bool RScriptGenerator::writeAndExecuteResultScript(){
 }
 
 
+template <typename T> void RScriptGenerator::writeRVectorToStream(T container, const std::string& name, std::stringstream& stream)
+{
+    bool first = true;
+    stream << "\n" << name << " = c(";
+
+    for(typename T::iterator it = container.begin(); it != container.end(); it++)
+    {
+        if(first)
+        {
+            first = false;
+        }
+        else
+        {
+            stream << " ,";
+        }
+
+        stream << *it;
+    }
+
+    stream << ")\n";
+
+}
 
 
