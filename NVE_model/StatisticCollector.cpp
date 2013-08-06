@@ -121,7 +121,8 @@ StatisticsCollector::~StatisticsCollector(){
                  << "\n\tAverage percentage of messages to reach server in time:" <<  averageServerInTime << "\n\tAverage percentage of messages from client to reach client in time: "
                  << averageClientToClientInTime << "\n\tAverage percentage of messages from server to reach client in time: " << averageServerToClientInTime << std::endl);
 
-    generateStatsFromPcap();
+    generateSingleNodeStatsFromPcap();
+    generateOverallGraphFromPcap();
 
     getBandwidthResults();
 
@@ -505,7 +506,7 @@ void StatisticsCollector::getMessageStats(uint16_t streamNumber){
 }
 
 
-bool StatisticsCollector::generateStatsFromPcap()
+bool StatisticsCollector::generateSingleNodeStatsFromPcap()
 {
     std::stringstream stream;
     std::string addrStr;
@@ -518,6 +519,7 @@ bool StatisticsCollector::generateStatsFromPcap()
     bool cont = true;
     bool isServer = false;
     Ipv4Address addr;
+
 
     for(std::map<Ipv4Address, int>::const_iterator it = clientRunningTimes.begin(); cont; it++)
     {
@@ -574,7 +576,7 @@ bool StatisticsCollector::generateStatsFromPcap()
             if(status == EXIT_FAILURE)
                 return false;
 
-            scriptGen->parsePcapStats("temp.txt", false, addr, clientNumber, isServer);
+            scriptGen->parseSingleNodePcapStats("temp.txt", false, addr, clientNumber, isServer);
 
             if((pid = fork()) == 0)
             {
@@ -593,9 +595,78 @@ bool StatisticsCollector::generateStatsFromPcap()
             if(status == EXIT_FAILURE)
                 return false;
 
-            scriptGen->parsePcapStats("temp.txt", true, addr, clientNumber, isServer);
+            scriptGen->parseSingleNodePcapStats("temp.txt", true, addr, clientNumber, isServer);
         }
     }
 
     return true;
 }
+
+
+bool StatisticsCollector::generateOverallGraphFromPcap()
+{
+    std::stringstream stream;
+    Ipv4Address addr;
+    std::string addrStr;
+    int clientNumber;
+    char dot;
+    std::string fileName;
+    pid_t pid;
+    int status;
+    struct stat pcapFile;
+
+    addr = serverAddr;
+    stream << addr;
+    addrStr = stream.str();
+
+
+
+    stat("./results/server.pcap", &pcapFile);
+
+    if((pcapFile.st_mode & S_IFMT) == S_IFREG)   //if pcap-file exists
+    {
+        if((pid = fork()) == 0)
+        {
+            int fd = open("temp.txt",  O_RDWR | O_CREAT | O_TRUNC, S_IRWXO | S_IRWXG | S_IRWXU);
+            dup2(fd, 1);
+            close(fd);
+
+            std::string statsArg = "io,stat,1,ip.src==";
+            statsArg.append(addrStr);
+            statsArg.append(",ip.dst==");
+            statsArg.append(addrStr);
+
+            const char* const args[] = {"tshark", "-r", "./results/server.pcap", "-qz", statsArg.c_str(), NULL};
+            execvp("tshark", (char* const*)args);
+        }
+
+        waitpid(pid, &status, 0);
+
+        if(status == EXIT_FAILURE)
+            return false;
+
+        scriptGen->parseOverallPcapStats("temp.txt", addr, 0, true);
+
+    }
+    else
+        return false;
+
+    return true;
+
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

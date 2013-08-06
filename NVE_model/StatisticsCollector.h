@@ -77,7 +77,8 @@ private:
                           std::list<int64_t>& clientToServerTimes,  std::list<int64_t>& clientToClientTimes, std::list<int64_t>& serverToClientTimes);
     void getBandwidthResults();
     void getMessageStats(uint16_t streamNumber);
-    bool generateStatsFromPcap();
+    bool generateSingleNodeStatsFromPcap();
+    bool generateOverallGraphFromPcap();
 
     uint16_t streamCount;
     Ptr<FlowMonitor> flowMon;

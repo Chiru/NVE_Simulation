@@ -605,7 +605,7 @@ bool RScriptGenerator::addClientBandwidth(const Ipv4Address &addr, double downLi
     std::stringstream stream;
 
     stream << "\nwrite(\"" << (isClient ? "Average throughput for client " : "Average throughput for server ") << addr << " uplink: " << upLink
-           << " downlink " << downLink << " Mbps\n\", filename, append=TRUE)\n";
+           << " downlink " << downLink << " Mbps\", filename, append=TRUE)\n";
 
     messageScript.append(stream.str());
     return true;
@@ -613,7 +613,7 @@ bool RScriptGenerator::addClientBandwidth(const Ipv4Address &addr, double downLi
 }
 
 
-bool RScriptGenerator::parsePcapStats(const std::string &sourceFile, bool size, const Ipv4Address& addr, int clientNumber, bool isServer)
+bool RScriptGenerator::parseSingleNodePcapStats(const std::string &sourceFile, bool size, const Ipv4Address& addr, int clientNumber, bool isServer)
 {
     std::stringstream stream;
     std::ifstream file(sourceFile.c_str());
@@ -680,12 +680,12 @@ bool RScriptGenerator::parsePcapStats(const std::string &sourceFile, bool size, 
     if(size)
     {
         stream << "plot(tabulate(sendsizes_" << nodeString << "), type=\"h\", xlab=\"Packet size(bytes)\", ylab=\"Message count\", ";
-        stream << "main=\"Network packet sizes for client " << clientNumber << " (" << addr << ")\"\n)";
+        stream << "main=\"Network packet sizes for client " << clientNumber << " (" << addr << ")\")\n";
     }
     else
     {
         stream << "plot(tabulate(sendtimes_" << nodeString << "), type=\"h\", xlab=\"Time interval (ms)\", ylab=\"Message count\", ";
-        stream << "main=\"Network packet send intervals for client " << clientNumber << " (" << addr << ")\"\n)";
+        stream << "main=\"Network packet send intervals for client " << clientNumber << " (" << addr << ")\")\n";
     }
 
     file.close();
@@ -693,6 +693,99 @@ bool RScriptGenerator::parsePcapStats(const std::string &sourceFile, bool size, 
     return true;
 }
 
+
+bool RScriptGenerator::parseOverallPcapStats(const std::string &sourceFile, const Ipv4Address &addr, int clientNumber, bool isServer, int joinTime, int exitTime)
+{
+    std::stringstream stream;
+    std::ifstream file(sourceFile.c_str());
+    double tempValue;
+    bool first = true;
+    std::string value;
+    int srcBytes = 0;
+    int destBytes = 0;
+    int srcFrames = 0;
+    int destFrames = 0;
+    std::list<int> sentBytesInSecond;
+    std::list<int> recvBytesInSecond;
+    std::string uplinkString("");
+    std::string downlinkString("");
+
+    if(isServer)
+    {
+        uplinkString = "overall_uplink_server";
+        downlinkString = "overall_downlink_server";
+    }
+    else
+    {
+        stream << "client_" << clientNumber;
+        uplinkString = "overall_uplink_";
+        downlinkString = "overall_downlink_";
+        uplinkString.append(stream.str());
+        downlinkString.append(stream.str());
+        stream.str("");
+    }
+
+    if(file.fail())
+        return false;
+
+    do
+    {
+        file >> value;
+    }while(value != "|frames|");     //there's extra info in the beginning of the file, let's remove them...
+
+    file >> value >> value >> value;   //3 more extra fields after |fields|
+
+    while(1)
+    {
+        file >> value;   //first value is time, second source frame count, third source bytes count, fouth dest frame count and fifth dest bytes count
+
+        if(value.find("=") != std::string::npos)   //there's a line full of '=' signs after the values
+            break;
+
+        file >> srcFrames >> srcBytes >> destFrames >> destBytes;
+
+        sentBytesInSecond.push_back(srcBytes + (srcFrames*12));    //add 12 bytes for each frame since the simulation uses 2 byte PtP-headers instead of 14 byte ethernet2-headers
+        recvBytesInSecond.push_back(destBytes + (destFrames*12));
+
+    }
+
+    file.close();
+
+    stream << "\n\n#Uplink bandwidth usage per second for node: " << addr << "\n";
+    stream << uplinkString << " = c(";
+
+    if(isServer)
+    {
+
+        for(std::list<int>::iterator it = sentBytesInSecond.begin(); it != sentBytesInSecond.end(); it++)
+        {
+            if(first)
+            {
+                first = false;
+            }
+            else
+            {
+                stream << ", ";
+            }
+
+            stream << *it;
+        }
+
+    }
+    else
+    {
+
+    }
+
+    stream << ")\n";
+
+    stream << "plot(seq(1,length(" << uplinkString << ")), " << uplinkString << ", main=\"Overall bandwidths\", type='l', col=\"black\", xlim=c(0,length(" <<
+              uplinkString << ")))\n";
+
+    messageScript.append(stream.str());
+    return true;
+
+}
 
 
 bool RScriptGenerator::writeAndExecuteResultScript(){
