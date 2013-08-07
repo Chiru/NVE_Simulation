@@ -1,6 +1,9 @@
 #include "RScriptGenerator.h"
 
-RScriptGenerator::RScriptGenerator(const std::string &filename, const std::string& resultPdfFile, std::string& resultTextFile): resultPdf(resultPdfFile), resultTxt(resultTextFile){
+RScriptGenerator::RScriptGenerator(const std::string &filename, const std::string& resultPdfFile, std::string& resultTextFile)
+    : resultPdf(resultPdfFile),
+      resultTxt(resultTextFile)
+{
 
     std::string header("# Generated R script for NVE simulator statistics\n\n");
     std::string textFile("filename = \"");
@@ -28,6 +31,9 @@ RScriptGenerator::~RScriptGenerator(){
     delete filestream;
 }
 
+std::string RScriptGenerator::colors[]  = {"\"green\"", "\"blue\"", "\"purple\"", "\"red\"", "\"grey\"", "\"cyan\"", "\"gold\"", "\"brown\""};
+std::string RScriptGenerator::lineTypes[] = {"lty=1", "lty=2", "lty=3", "lty=4", "lty=5", "lty=6", "lty=1", "lty=2"};
+
 bool RScriptGenerator::generateScriptForStream(const std::list<int64_t>* transmitTimesToClients, const std::list<int64_t>* transmitTimesToServer, const std::list<int64_t>* transmitTimesFromServer,
                                                uint16_t maxStreams){
 
@@ -38,9 +44,6 @@ bool RScriptGenerator::generateScriptForStream(const std::list<int64_t>* transmi
     std::string serverFunc("serverfunc_");
     std::string clientFunc("clientfunc_");
     std::string serverToClientFunc("servertoclientfunc_");
-
-    std::string colors[] = {"\"green\"", "\"blue\"", "\"purple\"", "\"red\"", "\"grey\""};
-    std::string lineTypes[] = {"lty=1", "lty=2", "lty=3", "lty=4", "lty=5"};
     std::stringstream stream;
 
     for(count = 0; count < maxStreams; count++){
@@ -664,7 +667,6 @@ bool RScriptGenerator::parseOverallPcapStats(const std::string &sourceFile, cons
 {
     std::stringstream stream;
     std::ifstream file(sourceFile.c_str());
-    bool first = true;
     std::string value;
     double srcBytes = 0;
     double destBytes = 0;
@@ -700,6 +702,12 @@ bool RScriptGenerator::parseOverallPcapStats(const std::string &sourceFile, cons
 
     file >> value >> value >> value;   //3 more extra fields after |fields|
 
+    if(!isServer)
+    {
+        sentBytesInSecond.push_back(0);
+        recvBytesInSecond.push_back(0);
+    }
+
     while(1)
     {
         file >> value;   //first value is time, second source frame count, third source bytes count, fouth dest frame count and fifth dest bytes count
@@ -716,31 +724,41 @@ bool RScriptGenerator::parseOverallPcapStats(const std::string &sourceFile, cons
 
     file.close();
 
+    sentBytesInSecond.push_back(0);
+    recvBytesInSecond.push_back(0);
+
+
     stream << "\n\n#Uplink bandwidth usage per second for node: " << addr << "\n";
+
+    writeRVectorToStream<std::list<double> >(sentBytesInSecond, uplinkString, stream);
 
     if(isServer)
     {
-        writeRVectorToStream<std::list<double> >(sentBytesInSecond, uplinkString, stream);
+        stream << "plot(seq(0,length(" << uplinkString << ") - 1), " << uplinkString
+               << ", main=\"Overall bandwidths\", type='s', col=\"darkblue\", lwd=2, xlim=c(0,length("
+               << uplinkString << ")), xlab=\"Simulation time (seconds)\", ylab=\"Bandwidth usage (Mbps)\")\n";
     }
     else
     {
-
+        stream << "lines(seq(" << joinTime - 1 << "," << exitTime << "), " << uplinkString << ", type='s', col=\"palegreen2\")\n";
     }
-
-    stream << "plot(seq(1,length(" << uplinkString << ")), " << uplinkString << ", main=\"Overall bandwidths\", type='l', col=\"black\", xlim=c(0,length(" <<
-              uplinkString << ")))\n";
 
     stream << "\n#Dowlink bandwidth usage per second for node: " << addr << "\n";
 
-    first = true;
+    writeRVectorToStream<std::list<double> >(recvBytesInSecond, downlinkString, stream);
 
     if(isServer)
     {
-        writeRVectorToStream<std::list<double> >(recvBytesInSecond, downlinkString, stream);
+        stream << "lines(seq(0,length(" << downlinkString << ") - 1), " << downlinkString << ", col=\"darkblue\", lty=2, type='s', lwd=3)\n";
+    }
+    else
+    {
+        stream << "lines(seq(" << joinTime - 1 << "," << exitTime << "), " << downlinkString << ", col=\"orange4\", type='s', lty=2, lwd=2)\n";
     }
 
-    stream << "lines(seq(1,length(" << downlinkString << ")), " << downlinkString << ", col=\"black\")\n";
-
+    if(isServer)
+        stream << "legend(\"topleft\", c(\"server uplink\", \"server downlink\", \"client uplink\", \"client downlink\"), cex=0.8"
+               << ", col=c(\"darkblue\", \"darkblue\", \"palegreen2\", \"orange4\"), lty=c(1,2,1,2), lwd=c(2,3,1,2))\n";
 
     messageScript.append(stream.str());
     return true;
@@ -785,7 +803,7 @@ template <typename T> void RScriptGenerator::writeRVectorToStream(const T& conta
         }
         else
         {
-            stream << " ,";
+            stream << ", ";
         }
 
         stream << *it;
@@ -794,5 +812,3 @@ template <typename T> void RScriptGenerator::writeRVectorToStream(const T& conta
     stream << ")\n";
 
 }
-
-

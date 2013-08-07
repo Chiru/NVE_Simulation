@@ -34,6 +34,8 @@ private:
     std::string resultTxt;
     std::string streamScript;
     std::string messageScript;
+    static std::string colors[];
+    static std::string lineTypes[];
 
     template <typename T> void writeRVectorToStream(const T& container, const std::string& name, std::stringstream& stream);
 

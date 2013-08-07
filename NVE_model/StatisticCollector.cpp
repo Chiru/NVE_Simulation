@@ -349,9 +349,15 @@ void StatisticsCollector::addFlowMonitor(Ptr<FlowMonitor> flowMon, FlowMonitorHe
     this->flowMon->Stop(Time(runningTime));
 }
 
-void StatisticsCollector::addClientRunningTime(const Ipv4Address &addr, int runningTime)
+void StatisticsCollector::addClientRunningTimes(const Ipv4Address &addr, int runningTime, int joinTime, int exitTime)
 {
-    clientRunningTimes.insert(std::pair<Ipv4Address, int>(addr, runningTime));
+    ClientTimes times;
+
+    times.joinTime = joinTime;
+    times.exitTime = exitTime;
+    times.runningTime = runningTime;
+
+    clientRunningTimes.insert(std::pair<Ipv4Address, ClientTimes>(addr, times));
 }
 
 
@@ -411,7 +417,7 @@ void StatisticsCollector::getBandwidthResults(){
         double downLink = 0;
 
         if(addrIt->first != revAddrIt->first){
-            runningTime = clientRunningTimes[addrIt->first];
+            runningTime = clientRunningTimes[addrIt->first].runningTime;
             averageClientUplink += (upLink = (addrIt->second.first + (nodesAndPackets[addrIt->first].first * 12))*8.0 / runningTime / 1024 /1024);
             averageClientDownlink += (downLink = (addrIt->second.second + (nodesAndPackets[addrIt->first].second * 12))*8.0 / runningTime /1024 /1024);
             counter++;
@@ -521,7 +527,7 @@ bool StatisticsCollector::generateSingleNodeStatsFromPcap()
     Ipv4Address addr;
 
 
-    for(std::map<Ipv4Address, int>::const_iterator it = clientRunningTimes.begin(); cont; it++)
+    for(std::map<Ipv4Address, ClientTimes>::const_iterator it = clientRunningTimes.begin(); cont; it++)
     {
 
         if(it == clientRunningTimes.end())
@@ -608,48 +614,96 @@ bool StatisticsCollector::generateOverallGraphFromPcap()
     std::stringstream stream;
     Ipv4Address addr;
     std::string addrStr;
-    int clientNumber;
-    char dot;
-    std::string fileName;
     pid_t pid;
     int status;
+    char dot;
+    int clientNumber;
+    bool isServer;
     struct stat pcapFile;
-
-    addr = serverAddr;
-    stream << addr;
-    addrStr = stream.str();
+    std::string fileName;
 
 
+   // for(std::map<Ipv4Address, ClientTimes>::const_iterator it = clientRunningTimes.begin(); cont; it++)
 
-    stat("./results/server.pcap", &pcapFile);
+    std::map<Ipv4Address, ClientTimes>::const_iterator it;
+    isServer = true;
 
-    if((pcapFile.st_mode & S_IFMT) == S_IFREG)   //if pcap-file exists
+    do
     {
-        if((pid = fork()) == 0)
+        if(isServer)
         {
-            int fd = open("temp.txt",  O_RDWR | O_CREAT | O_TRUNC, S_IRWXO | S_IRWXG | S_IRWXU);
-            dup2(fd, 1);
-            close(fd);
-
-            std::string statsArg = "io,stat,1,ip.src==";
-            statsArg.append(addrStr);
-            statsArg.append(",ip.dst==");
-            statsArg.append(addrStr);
-
-            const char* const args[] = {"tshark", "-r", "./results/server.pcap", "-qz", statsArg.c_str(), NULL};
-            execvp("tshark", (char* const*)args);
+            addr = serverAddr;
+        }
+        else
+        {
+            addr = it->first;
         }
 
-        waitpid(pid, &status, 0);
+        stream.str("");
+        stream << addr;
 
-        if(status == EXIT_FAILURE)
-            return false;
+        addrStr = stream.str();
+        stream >> clientNumber >> dot >> clientNumber >> dot >> clientNumber;
 
-        scriptGen->parseOverallPcapStats("temp.txt", addr, 0, true);
+        stream.str("");
+        stream << clientNumber;
 
-    }
-    else
-        return false;
+        if(isServer)
+        {
+            fileName = "./results/server.pcap";
+        }
+        else
+        {
+            fileName = "./results/client-";
+            fileName.append(stream.str());
+            fileName.append(".pcap");
+        }
+
+        stream.str("");
+
+        stat(fileName.c_str(), &pcapFile);
+
+        if((pcapFile.st_mode & S_IFMT) == S_IFREG)   //if pcap-file exists
+        {
+            if((pid = fork()) == 0)
+            {
+                int fd = open("temp.txt",  O_RDWR | O_CREAT | O_TRUNC, S_IRWXO | S_IRWXG | S_IRWXU);
+                dup2(fd, 1);
+                close(fd);
+
+                std::string statsArg = "io,stat,1,ip.src==";
+                statsArg.append(addrStr);
+                statsArg.append(",ip.dst==");
+                statsArg.append(addrStr);
+
+                const char* const args[] = {"tshark", "-r", fileName.c_str(), "-qz", statsArg.c_str(), NULL};
+                execvp("tshark", (char* const*)args);
+            }
+
+            waitpid(pid, &status, 0);
+
+            if(status == EXIT_FAILURE)
+                return false;
+
+            if(isServer)
+                scriptGen->parseOverallPcapStats("temp.txt", addr, 0, true);
+            else
+                scriptGen->parseOverallPcapStats("temp.txt", addr, clientNumber, false, it->second.joinTime, it->second.exitTime);
+
+        }
+
+        if(isServer)
+        {
+            it = clientRunningTimes.begin();
+            isServer = false;
+        }
+        else
+        {
+            it++;
+        }
+
+    }while(it != clientRunningTimes.end());
+
 
     return true;
 

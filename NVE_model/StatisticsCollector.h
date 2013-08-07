@@ -57,7 +57,7 @@ public:
     static bool getClientLog() {return clientLog;}
     static bool getServerLog() {return serverLog;}
     void addFlowMonitor(Ptr<FlowMonitor> flowMon, FlowMonitorHelper& helper);
-    void addClientRunningTime(const Ipv4Address &addr, int runningTime);
+    void addClientRunningTimes(const Ipv4Address &addr, int runningTime, int joinTime, int exitTime);
     void setServerAddress(const Ipv4Address& addr);
     static void logMessagesSentFromClient(int messageNumber, Time, uint16_t streamNumber, uint32_t clientTimeRequirement, uint32_t serverTimeRequirement,
                                           uint16_t messageNameIndex, uint16_t messageId, uint16_t size);//log times when user action messages are sent
@@ -88,7 +88,16 @@ private:
     std::string scriptSourceFile;
     std::string scriptResultPdfFile;
     std::string scriptResultTextFile;
-    std::map<Ipv4Address, int> clientRunningTimes;
+
+    struct ClientTimes
+    {
+        int joinTime;
+        int exitTime;
+        int runningTime;
+    };
+
+    std::map<Ipv4Address, ClientTimes> clientRunningTimes;
+
     Ipv4Address serverAddr;
 
     static bool verbose;

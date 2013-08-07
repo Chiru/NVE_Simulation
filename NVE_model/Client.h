@@ -52,6 +52,8 @@ public:
     bool graphsEnabled() const {return graph;}
     Ipv4Address getAddress() const {return addr;}
     int getRunningTime() const;
+    int getJoinTime() const {return joinTime;}
+    int getExitTime() const {return exitTime;}
 
 private:
     XMLParser &parser;
