@@ -10,6 +10,7 @@ ClientWidget::ClientWidget(int number, int simTime, QWidget *parent, const Clien
     configClientWidget();
 
     exit->setValue(simTime);
+    exit->setMaximum(simTime);
 
     if(previous != 0)
     {
@@ -26,11 +27,14 @@ ClientWidget::ClientWidget(int number, int simTime, QWidget *parent, const Clien
 
 }
 
-ClientWidget::ClientWidget(int number, int count, int delay, double loss, double uplink, double downlink, int arriveTime, int exitTime, bool pcap, bool graph, QWidget *parent)
+ClientWidget::ClientWidget(int number, int count, int delay, double loss, double uplink, double downlink, int arriveTime, int exitTime, bool pcap, bool graph,
+                           int simTime, QWidget *parent)
     : QGroupBox(parent),
       clientNumber(number)
 {
     configClientWidget();
+
+    exit->setMaximum(simTime);
 
     this->delay->setValue(delay);
     this->loss->setValue(loss);

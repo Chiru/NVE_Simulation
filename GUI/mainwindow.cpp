@@ -523,7 +523,8 @@ void MainWindow::configureClient(const std::string &element)
 
     graph = parser.readBoolVariable(element, "graphs", false);
 
-    ClientWidget* client = new ClientWidget(numberOfClients++, count, delay, loss, uplink, downlink, arriveTime, exitTime, pcap, graph, this);
+    ClientWidget* client = new ClientWidget(numberOfClients++, count, delay, loss, uplink, downlink, arriveTime, exitTime, pcap,
+                                            graph, ui->simTime->value(),this);
     QFrame* line = new QFrame(ui->clientScrollArea->widget());
 
 

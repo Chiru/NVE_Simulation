@@ -14,7 +14,8 @@ class ClientWidget : public QGroupBox
 
 public:
     ClientWidget(int number, int simTime, QWidget* parent = 0, const ClientWidget* previous = 0);
-    ClientWidget(int number, int count, int delay, double loss, double uplink, double downlink, int arriveTime, int exitTime, bool pcap, bool graph, QWidget* parent = 0);
+    ClientWidget(int number, int count, int delay, double loss, double uplink, double downlink, int arriveTime, int exitTime, bool pcap,
+                  bool graph, int simTime, QWidget* parent = 0);
 
 public slots:
     void simTimeChanged(int);
