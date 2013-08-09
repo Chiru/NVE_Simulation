@@ -15,7 +15,12 @@ bool DataSender::send(bool sendNow, uint8_t* buffer, const Message* msg, const P
 
 
     if(sendNow){
-        if(sock->Send((uint8_t*)buffer, messageSize, 0) == -1){
+
+        std::string tempString;
+        tempString.append((char*)buffer);
+        tempString.resize(messageSize);
+
+        if(sock->Send((uint8_t*)tempString.c_str(), messageSize, 0) == -1){
             PRINT_ERROR("Problems with server socket buffer." << std::endl);
             return false;
         }
@@ -49,20 +54,25 @@ bool DataSender::sendTo(bool sendNow, uint8_t* buffer, const Message* msg, const
         messageSize = msg->getMessageSize(msgId);
 
     if(sendNow){
+
+        std::string tempString;
+        tempString.append((char*)buffer);
+        tempString.resize(messageSize);
+
         if(appProto){
             if(isClient){
-                if(!appProto->sendFromClient(msg, buffer, sock, forward)){
+                if(!appProto->sendFromClient(msg, (uint8_t*)tempString.c_str(), sock, forward)){
                     PRINT_ERROR("Problems with server socket buffer." << std::endl);
                     return false;
                 }
             }else{
-                if(!appProto->sendFromServer(buffer, msg, addr, sock, forward)){
+                if(!appProto->sendFromServer((uint8_t*)tempString.c_str(), msg, addr, sock, forward)){
                     PRINT_ERROR("Problems with server socket buffer." << std::endl);
                     return false;
                 }
             }
         }else{
-            if(sendAndFragment(sock, buffer, messageSize, msg->getReliable(), &addr) == -1){
+            if(sendAndFragment(sock, (uint8_t*)tempString.c_str(), messageSize, msg->getReliable(), &addr) == -1){
                 PRINT_ERROR("Problems with server socket buffer." << std::endl);
                 return false;
             }
