@@ -29,12 +29,6 @@ bool ApplicationProtocol::sendFromClient(const Message *msg, uint8_t *buffer, Pt
 
     int bytesSent = 0;
 
-    char msgContents[30 + headerSize];
-    msgContents[0] = '\0';
-
-    addAppProtoHeader(msgContents, msg->getReliable());
-    memcpy(msgContents + headerSize, (char*)buffer, 30);
-
     uint16_t messageSize;
     int msgId;
 
@@ -44,6 +38,18 @@ bool ApplicationProtocol::sendFromClient(const Message *msg, uint8_t *buffer, Pt
         messageSize = msg->getMessageSize(msgId);
     else
         messageSize = msg->getForwardMessageSize(msgId);
+
+    char msgContents[messageSize + headerSize];
+    msgContents[0] = '\0';
+
+    addAppProtoHeader(msgContents, msg->getReliable());
+    memcpy(msgContents + headerSize, (char*)buffer, messageSize);
+
+
+
+
+
+
 
     if(socket->GetTxAvailable() < messageSize + headerSize){        //TODO: how to remember messages when buffer overflows
         return false;
@@ -197,12 +203,12 @@ bool ApplicationProtocol::sendFromServer(uint8_t *buffer, const Message* msg, co
 
     int bytesSent = 0;
 
-    char msgContents[30 + headerSize]; //TODO: hard-coded message size
+    char msgContents[size + headerSize]; //TODO: hard-coded message size
 
     msgContents[0] = '\0';
 
     addAppProtoHeader(msgContents, msg->getReliable(), &addr);
-    strncpy(msgContents + headerSize, (char*)buffer, 30);
+    strncpy(msgContents + headerSize, (char*)buffer, size);
 
     if(socket->GetTxAvailable() < size + headerSize){        //TODO: how to remember messages when buffer overflows
         return false;
@@ -571,6 +577,8 @@ int ApplicationProtocol::sendAndFragment(Ptr<Socket> socket, uint8_t *buffer, ui
     return -1;  //we should never get here
 }
 
+
+
 int ApplicationProtocol::sendFragment(const std::string& buffer, const size_t index, Ptr<Socket> sock, uint16_t maxDatagramSize, const Address* const addr, ApplicationProtocol* appProto, bool reliable,
                                       uint16_t headerSize){
 
@@ -593,16 +601,37 @@ int ApplicationProtocol::sendFragment(const std::string& buffer, const size_t in
             return sock->SendTo((uint8_t*)buffer.substr(0, buffer.length()).c_str(), buffer.length(), 0, *addr);
         }
     }else{
-        if( tempIndex >= maxDatagramSize || (tempIndex2 = buffer.find('"', tempIndex + 1)) >= maxDatagramSize){
+        if( tempIndex >= maxDatagramSize || (tempIndex2 = buffer.find('"', tempIndex + 1)) >= maxDatagramSize || buffer.length() > maxDatagramSize){
             int retval = 0;
             char header[headerSize];
             std::string tempString;
+            std::string sendString;
+
+            if(buffer.length() > maxDatagramSize)
+            {
+                if(buffer[maxDatagramSize-1] != 0)
+                {
+                    tempIndex = buffer.substr(0, maxDatagramSize-1).find_last_of('"');
+                    tempIndex = buffer.substr(0, tempIndex).find_last_of('"');
+                }
+                else
+                {
+                   tempIndex = buffer.substr(0, maxDatagramSize).find_last_of('"');
+                }
+                tempIndex = buffer.substr(0, tempIndex).find_last_of('"');
+                sendString = buffer.substr(0, tempIndex);
+            }
+            else
+            {
+                sendString = buffer.substr(0, tempIndex);
+            }
+
             if(addr == 0){
 
                 if(reliable)
-                    appProto->rememberReliablePacket(appProto->reliableMsgNumber.begin()->second, tempIndex, (uint8_t*)buffer.substr(0, tempIndex).c_str(), &ApplicationProtocol::resendCheckClient);
+                    appProto->rememberReliablePacket(appProto->reliableMsgNumber.begin()->second, tempIndex, (uint8_t*)sendString.c_str(), &ApplicationProtocol::resendCheckClient);
 
-                retval = sock->Send((uint8_t*)buffer.substr(0, tempIndex).c_str(), tempIndex, 0);
+                retval = sock->Send((uint8_t*)sendString.c_str(), tempIndex, 0);
 
                 if(appProto){
                     appProto->addAppProtoHeader(header, reliable, addr);
@@ -621,10 +650,10 @@ int ApplicationProtocol::sendFragment(const std::string& buffer, const size_t in
             else{
 
                 if(reliable)
-                    appProto->rememberReliablePacket(appProto->reliableMsgNumber, tempIndex, (uint8_t*)buffer.substr(0, tempIndex).c_str(), *addr, &ApplicationProtocol::resendCheckServer);
+                    appProto->rememberReliablePacket(appProto->reliableMsgNumber, tempIndex, (uint8_t*)sendString.c_str(), *addr, &ApplicationProtocol::resendCheckServer);
 
 
-                retval = sock->SendTo((uint8_t*)buffer.substr(0, tempIndex).c_str(), tempIndex, 0, *addr);
+                retval = sock->SendTo((uint8_t*)sendString.c_str(), tempIndex, 0, *addr);
 
                 if(appProto){
                     appProto->addAppProtoHeader(header, reliable, addr);
@@ -668,6 +697,4 @@ void ApplicationProtocol::rememberReliablePacket(std::map<const Address, uint32_
     packetsWaitingAcks.push_back(new ApplicationProtocol::ReliablePacket(reliableMsgNumber[addr], messageSize, tempMsg, addr));
     Simulator::Schedule(Time(MilliSeconds(retransmit)), fptr, this, reliableMsgNumber, addr);
 }
-
-
 

@@ -304,14 +304,14 @@ void ClientDataGenerator::finishUdpConnection()
 
             appProto->transmissionStopped(peerAddr, true);
 
-            Simulator::Schedule(Time(MilliSeconds(500)), &ClientDataGenerator::finishUdpConnection, this);
         }
         else
         {
             std::string msg("\"STOP\"");
-
             socket->SendTo((uint8_t*)msg.data(), msg.length(), 0, peerAddr);
         }
+
+        Simulator::Schedule(Time(MilliSeconds(500)), &ClientDataGenerator::finishUdpConnection, this);
     }
     else
     {
@@ -1019,6 +1019,7 @@ void ServerDataGenerator::finishUdpConnection(const Address &addr)
             udpClients.erase(it);
             break;
         }
+
     }
 
     if(appProto)
