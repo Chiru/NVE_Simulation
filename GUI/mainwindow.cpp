@@ -407,6 +407,7 @@ void MainWindow::configurationFinished()
     else
     {
         this->close();
+        deleteStats();
     }
 
 }
@@ -422,6 +423,7 @@ bool MainWindow::loadConfigurationFile(QString fileName)
 
     std::string contents(file.readAll());
     std::string result("");
+    configureSimulationParams(contents);
 
     if(parser.getElement(contents, 0, "<clients>", "</clients>", result))
     {
@@ -432,8 +434,6 @@ bool MainWindow::loadConfigurationFile(QString fileName)
     {
         configureAppProto(result);
     }
-
-    configureSimulationParams(contents);
 
     if(parser.getElement(contents, 0, "<streams>", "</streams>", result))
     {

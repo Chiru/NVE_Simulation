@@ -26,7 +26,7 @@ private:
     std::string fileName;
 };
 
-
+void deleteStats();
 int start(Args args, MainWindow* mw = 0);
 
 

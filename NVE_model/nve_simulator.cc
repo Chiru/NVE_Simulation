@@ -63,6 +63,13 @@ Args::Args(bool verbose, bool clientLog, bool serverLog, bool help, const std::s
 }
 
 
+//this is dirty, but stats must be destroyed after the simulation to avoid problems with incomplete pcap-files
+StatisticsCollector* stats;
+void deleteStats()
+{
+    delete stats;
+}
+
 void secondPassed(MainWindow* mw);
 void printAddresses(NetDeviceContainer *deviceContainer, Ipv4InterfaceContainer *ipv4Container,  int count);
 void printHelpAndQuit();
@@ -81,7 +88,7 @@ int start(Args args, MainWindow *mw){
     Ipv4InterfaceContainer routerServerIpInterfaces;
     Ipv4AddressHelper address;
     NodeContainer allNodes;
-    StatisticsCollector* stats;
+
     uint16_t* serverPorts;
     bool verbose = false, clientLog = false, serverLog = false;
     std::string XML_filename;
@@ -165,7 +172,12 @@ int start(Args args, MainWindow *mw){
 
     NodeContainer routerServerNodes = NodeContainer(allNodes.Get(numberOfClients), allNodes.Get(numberOfClients+1));
 
-    PointToPointHelper pointToPoint[numberOfClients + 1];    //point-to-point connection for each client-router connection and one for router-server connection
+    PointToPointHelper* pointToPoint[numberOfClients + 1];    //point-to-point connection for each client-router connection and one for router-server connection
+
+    for(i = 0; i < numberOfClients + 1; i++)
+    {
+        pointToPoint[i] = new PointToPointHelper();
+    }
 
     //for(int i = 0; i<numberOfClients; i++)
       //  csma[i].SetChannelAttribute("DataRate", StringValue("5Mbps"));
@@ -177,10 +189,10 @@ int start(Args args, MainWindow *mw){
     NetDeviceContainer clientRouterDevices[numberOfClients];
 
     for(i = 0; i < numberOfClients; i++){
-        clientRouterDevices[i] = pointToPoint[i].Install(clientRouterNodes[i]);
+        clientRouterDevices[i] = pointToPoint[i]->Install(clientRouterNodes[i]);
     }
 
-    NetDeviceContainer routerServerDevices = pointToPoint[numberOfClients].Install(routerServerNodes);
+    NetDeviceContainer routerServerDevices = pointToPoint[numberOfClients]->Install(routerServerNodes);
 
     InternetStackHelper stack;
     stack.Install(allNodes);
@@ -250,13 +262,13 @@ int start(Args args, MainWindow *mw){
             pcapFileName << "results/client-";
             pcapFileName << i + 1;
             pcapFileName << ".pcap";
-            pointToPoint[i].EnablePcap(pcapFileName.str(), clientRouterDevices[i].Get(0), false, true);
+            pointToPoint[i]->EnablePcap(pcapFileName.str(), clientRouterDevices[i].Get(0), false, true);
         }
 
     }
 
     if(server.pcapEnabled())
-         pointToPoint[numberOfClients].EnablePcap("results/server.pcap", routerServerDevices.Get(1), false, true);
+         pointToPoint[numberOfClients]->EnablePcap("results/server.pcap", routerServerDevices.Get(1), false, true);
 
     stats->addFlowMonitor(flowMonHelper.InstallAll(), flowMonHelper);   //TODO: something leaks memory in flow monitoring (ns-3 bug?)
 
@@ -267,7 +279,7 @@ int start(Args args, MainWindow *mw){
     {
         secondPassed(mw);
     }
-    Simulator::Stop(Seconds(runningTime));   //+1 second because of giving the connections time to finish
+    Simulator::Stop(Seconds(runningTime));
     Simulator::Run();
 
     Simulator::Destroy();
@@ -285,7 +297,12 @@ int start(Args args, MainWindow *mw){
     delete[] serverPorts;
     delete[] packetLoss;
 
-    delete stats;
+    for(i = 0; i < numberOfClients + 1; i++)
+    {
+        delete pointToPoint[i];
+    }
+
+    //delete stats;
 
     return EXIT_SUCCESS;
 
