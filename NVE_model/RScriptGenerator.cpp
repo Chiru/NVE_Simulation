@@ -735,12 +735,12 @@ bool RScriptGenerator::parseOverallPcapStats(const std::string &sourceFile, cons
     if(isServer)
     {
         stream << "plot(seq(0,length(" << uplinkString << ") - 1), " << uplinkString
-               << ", main=\"Overall bandwidths\", type='s', col=\"darkblue\", lwd=2, xlim=c(0,length("
+               << ", main=\"Overall bandwidths\", type='s', col=\"red\", lwd=2, xlim=c(0,length("
                << uplinkString << ")), xlab=\"Simulation time (seconds)\", ylab=\"Bandwidth usage (Mbps)\")\n";
     }
     else
     {
-        stream << "lines(seq(" << joinTime - 1 << "," << exitTime << "), " << uplinkString << ", type='s', col=\"palegreen2\")\n";
+        stream << "lines(seq(" << joinTime - 1 << "," << joinTime - 1 + sentBytesInSecond.size() - 1 << "), " << uplinkString << ", type='s', col=\"palegreen2\")\n";
     }
 
     stream << "\n#Dowlink bandwidth usage per second for node: " << addr << "\n";
@@ -753,12 +753,12 @@ bool RScriptGenerator::parseOverallPcapStats(const std::string &sourceFile, cons
     }
     else
     {
-        stream << "lines(seq(" << joinTime - 1 << "," << exitTime << "), " << downlinkString << ", col=\"orange4\", type='s', lty=2, lwd=2)\n";
+        stream << "lines(seq(" << joinTime - 1  << "," << joinTime - 1 + recvBytesInSecond.size() - 1 << "), " << downlinkString << ", col=\"orange4\", type='s', lty=2, lwd=2)\n";
     }
 
     if(isServer)
         stream << "legend(\"topleft\", c(\"server uplink\", \"server downlink\", \"client uplink\", \"client downlink\"), cex=0.8"
-               << ", col=c(\"darkblue\", \"darkblue\", \"palegreen2\", \"orange4\"), lty=c(1,2,1,2), lwd=c(2,3,1,2))\n";
+               << ", col=c(\"red\", \"darkblue\", \"palegreen2\", \"orange4\"), lty=c(1,2,1,2), lwd=c(2,3,1,2))\n";
 
     messageScript.append(stream.str());
     return true;

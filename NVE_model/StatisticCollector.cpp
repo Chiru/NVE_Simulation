@@ -123,7 +123,6 @@ StatisticsCollector::~StatisticsCollector(){
 
     generateSingleNodeStatsFromPcap();
     generateOverallGraphFromPcap();
-
     getBandwidthResults();
 
     if(scriptGen->writeAndExecuteResultScript())
