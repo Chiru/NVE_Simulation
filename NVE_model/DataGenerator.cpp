@@ -634,8 +634,10 @@ ServerDataGenerator::ServerDataGenerator(const DataGenerator& stream){
 ServerDataGenerator::~ServerDataGenerator(){
 
     for(std::vector<ServerDataGenerator::ClientConnection*>::iterator it = clientConnections.begin(); it != clientConnections.end(); it++){
-        (*it)->clientSocket->Close();
-        delete (*it);
+        if((*it)->clientSocket != 0)
+        {
+            delete (*it);
+        }
         SERVER_INFO("Closed server socket for stream number: " << this->getStreamNumber() << std::endl);
     }
 
@@ -1192,7 +1194,6 @@ ServerDataGenerator::ClientConnection::ClientConnection(Ptr<Socket> sock, DataSe
 
 ServerDataGenerator::ClientConnection::~ClientConnection(){
 
-    clientSocket->Close();
 }
 
 void ServerDataGenerator::ClientConnection::forwardUserActionMessage(std::pair<std::string, Message*>& msg){           //forwarding over TCP
