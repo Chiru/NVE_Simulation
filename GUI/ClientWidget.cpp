@@ -103,6 +103,7 @@ void ClientWidget::configClientWidget()
     pcap->setToolTip("Enable pcap-file creation for this client type (makes the simulation slower)");
     graph->setToolTip("Enable graphs for this client type");
 
+    pcap->setChecked(true);
 
     delay->setMaximum(10000);
     arrive->setMaximum(100000);

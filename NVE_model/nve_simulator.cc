@@ -305,8 +305,6 @@ int start(Args args, MainWindow *mw){
         delete pointToPoint[i];
     }
 
-    //delete stats;
-
     return EXIT_SUCCESS;
 
 }

@@ -23,6 +23,8 @@ MainWindow::MainWindow(QWidget *parent) :
 
     ui->setupUi(this);
 
+    this->setWindowTitle("NVE simulation");
+
     QWidget* widget = new QWidget(ui->clientScrollArea);
     widget->setLayout(new QBoxLayout(QBoxLayout::TopToBottom, ui->clientScrollArea));
 
@@ -42,6 +44,11 @@ MainWindow::MainWindow(QWidget *parent) :
     ui->simTime->setMaximum(100000);
     ui->simTime->setSingleStep(10);
     ui->simTime->setValue(100);
+    ui->serverPcapCheckbox->setChecked(true);
+    ui->serverPcapCheckbox->setToolTip("Enable pcap-file creation for the server");
+
+    ui->animationCheckBox->setChecked(true);
+    ui->animationCheckBox->setToolTip("Enable netanim");
 
     messageSize = new DistributionWidget(ui->message_size, ui->message_configMessageSize, ui->message_sizeDistribution,
                                          ui->message_sizeFrame->layout(), this);
@@ -84,9 +91,6 @@ MainWindow::MainWindow(QWidget *parent) :
     normalPalette = new QPalette();
     normalPalette->setColor(QPalette::WindowText, QColor(0,0,255));
 
-    ui->serverPcapCheckbox->setChecked(true);
-    ui->serverPcapCheckbox->setToolTip("Enable pcap-file creation for the server");
-
     enableMessageEditor(false);
 
 }
@@ -103,6 +107,7 @@ bool MainWindow::executeFileDialog()
     bool retval;
 
     configuration = new QDialog();
+    configuration->setWindowTitle("Select initial configuration");
     QPushButton* open = new QPushButton("Open configuration file", configuration);
     QPushButton* defaultConf = new QPushButton("Use previous configuration", configuration);
     QPushButton* cancel = new QPushButton("Cancel", configuration);
@@ -406,8 +411,8 @@ void MainWindow::configurationFinished()
         ui->executionStatus->setText("Could not execute simulation!");
     else
     {
-        this->close();
         deleteStats();
+        this->close();
     }
 
 }
@@ -576,8 +581,8 @@ void MainWindow::configureAppProto(const std::string &element)
 void MainWindow::configureSimulationParams(const std::string &element)
 {
     int simTime = 0;
-    std::string boolValue("");
     bool animation = false;
+    bool pcap = true;
 
     if(!parser.readValue<int>(element, "runningtime", simTime))
     {
@@ -585,9 +590,11 @@ void MainWindow::configureSimulationParams(const std::string &element)
     }
 
     animation = parser.readBoolVariable(element, "animation", false);
+    pcap = parser.readBoolVariable(element, "serverpcap", true);
 
     ui->simTime->setValue(simTime);
     ui->animationCheckBox->setChecked(animation);
+    ui->serverPcapCheckbox->setChecked(pcap);
 
 }
 
@@ -831,7 +838,7 @@ void MainWindow::updateSimulationStatus(bool simulationEnded)
     }
     else
     {
-        ui->executionStatus->setText("Gathering results...");
+        ui->executionStatus->setText("Gathering results and generating graphs...");
 
         this->repaint();
         ui->executionStatus->repaint();
