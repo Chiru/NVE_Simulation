@@ -845,3 +845,23 @@ void MainWindow::updateSimulationStatus(bool simulationEnded)
     }
 }
 
+
+void MainWindow::showErrorDialog(const std::string& err)
+{
+
+    QDialog error;
+    error.setWindowTitle("Error");
+    QPushButton ok("Ok");
+    error.setLayout(new QVBoxLayout(&error));
+    QTextBrowser text;
+
+    text.setTextColor(QColor(255,0,0));
+    text.setText(QString(err.c_str()));
+
+    error.layout()->addWidget(&text);
+    error.layout()->addWidget(&ok);
+
+    QObject::connect(&ok, SIGNAL(clicked()), &error, SLOT(close()));
+
+    error.exec();
+}

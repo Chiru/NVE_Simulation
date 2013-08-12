@@ -163,7 +163,7 @@ bool DataSender::flushUdpBuffer(Ptr<Socket> sock, bool isClient){
         for(std::map<Address, std::pair<std::string, bool> >::iterator it = udpBuffer.begin(); it != udpBuffer.end(); it++){
 
             if(sendAndFragment(sock,(uint8_t*)it->second.first.c_str(), it->second.first.length(), false, &(it->first)) == -1){
-                PRINT_ERROR("Problems with socket buffer2." << std::endl);
+                PRINT_ERROR("Problems with socket buffer." << std::endl);
                 return false;
             }
             it->second.second = false;

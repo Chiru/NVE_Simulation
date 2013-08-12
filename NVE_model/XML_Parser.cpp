@@ -12,19 +12,30 @@ XMLParser::XMLParser()
       numberOfStreams(0),
       clients(0)
 {
-
+    errorMessage = new std::stringstream();
 }
 
 
 //this constructor is for simulation usage
-XMLParser::XMLParser(std::string filename): filename(filename), correctFile(true), appProto(0), clientStreams(0),serverStreams(0), numberOfClients(0), numberOfStreams(0), clients(0){
+XMLParser::XMLParser(std::string filename)
+    : filename(filename),
+      correctFile(true),
+      appProto(0),
+      clientStreams(0),
+      serverStreams(0),
+      numberOfClients(0),
+      numberOfStreams(0),
+      clients(0)
+{
+
+    errorMessage = new std::stringstream();
 
     std::ifstream filestream(filename.c_str());
     std::string xmlFile;
     std::string token;
 
     if(filestream.fail()){
-        PRINT_ERROR( "XML file \"" << filename << "\" could not be opened." << std::endl);
+        *errorMessage << "XML file \"" << filename << "\" could not be opened." << std::endl;
         correctFile = false;
         return;
     }
@@ -53,6 +64,8 @@ XMLParser::XMLParser(std::string filename): filename(filename), correctFile(true
 }
 
 XMLParser::~XMLParser(){
+
+    delete errorMessage;
 
     for(std::vector<XMLParser::Client*>::iterator it = clients.begin(); it != clients.end(); it++)
     {
@@ -177,14 +190,14 @@ bool XMLParser::parseClients(std::string &file){
     uint16_t from = 0, to = 0;
 
     if((temp_position = file.find("<clients>")) == std::string::npos){
-        PRINT_ERROR( "Incorrect format in XML file: no <clients> tag found" << std::endl);
+        *errorMessage <<  "Incorrect format in XML file: no <clients> tag found" << std::endl;
         return false;
     }
 
     while((temp_position = file.find("<client>", temp_position+1)) != std::string::npos){
 
         if(!getElement(file, temp_position, "<client>", "</client>", token)){
-            PRINT_ERROR( "Incorrect format in client specifications" << std::endl);
+            *errorMessage <<  "Incorrect format in client specifications" << std::endl;
             return false;
         }
 
@@ -202,22 +215,22 @@ bool XMLParser::parseClients(std::string &file){
                     tempClient->clientNumber = from + i;
 
                     if(!readValue<int>(token, "delay", tempClient->delay, latest_token)){
-                        PRINT_ERROR( "Incorrect format in client parameters" << std::endl);
+                        *errorMessage <<  "Incorrect format in client parameters" << std::endl;
                         return false;
                     }
 
                     if(!readValue<double>(token, "uplink", tempClient->uplink, latest_token)){
-                        PRINT_ERROR( "Incorrect format in client parameters" << std::endl);
+                        *errorMessage <<  "Incorrect format in client parameters" << std::endl;
                         return false;
                     }
 
                     if(!readValue<double>(token, "downlink", tempClient->downlink, latest_token)){
-                        PRINT_ERROR( "Incorrect format in client parameters" << std::endl);
+                        *errorMessage <<  "Incorrect format in client parameters" << std::endl;
                         return false;
                     }
 
                     if(!readValue<double>(token, "loss", tempClient->loss, latest_token)){
-                        PRINT_ERROR( "Incorrect format in client parameters" << std::endl);
+                        *errorMessage <<  "Incorrect format in client parameters" << std::endl;
                         return false;
                     }
 
@@ -237,22 +250,22 @@ bool XMLParser::parseClients(std::string &file){
                 }
 
             }else{
-                PRINT_ERROR( "Incorrect format in XML file." << value << std::endl);
+                *errorMessage <<  "Incorrect format in XML file." << value << std::endl;
                 return false;
             }
         }else{
-            PRINT_ERROR( "Incorrect format in XML file." << value << std::endl);
+            *errorMessage <<  "Incorrect format in XML file." << value << std::endl;
             return false;
         }
     }
 
     if((latest_token = file.find("</clients>", latest_token)) == std::string::npos){
-        PRINT_ERROR( "Incorrect format in XML file: no </clients> tag found or clients defined after it" << std::endl);
+        *errorMessage <<  "Incorrect format in XML file: no </clients> tag found or clients defined after it" << std::endl;
         return false;
     }
 
     if(count == 0){
-        PRINT_ERROR( "No clients specified" << std::endl);
+        *errorMessage <<  "No clients specified" << std::endl;
         return false;
     }
 
@@ -286,7 +299,7 @@ bool XMLParser::parseStream(std::string &streamElement, DataGenerator* &clientSt
     int serverGameTick = 0, clientGameTick = 0;
 
     if(!readValue<std::string>(streamElement, "type", type, 0)){
-        PRINT_ERROR( "No stream type specified in stream number: " << streamNumber << std::endl);
+        *errorMessage <<  "No stream type specified in stream number: " << streamNumber << std::endl;
         return false;
     }
 
@@ -298,7 +311,7 @@ bool XMLParser::parseStream(std::string &streamElement, DataGenerator* &clientSt
     }else if(type.compare("udp") == 0)
         proto = DataGenerator::UDP;
     else {
-        PRINT_ERROR( "Invalid type in stream number: " << streamNumber << std::endl);
+        *errorMessage <<  "Invalid type in stream number: " << streamNumber << std::endl;
     }
 
     readValue<std::string>(streamElement, "appproto", useAppProto, 0);
@@ -309,7 +322,7 @@ bool XMLParser::parseStream(std::string &streamElement, DataGenerator* &clientSt
         }
 
         if(!readValue<std::string>(streamElement, "ordered", ordered, 0)){
-            PRINT_ERROR("Error in ordering specification in stream number " << streamNumber << std::endl);
+            *errorMessage << "Error in ordering specification in stream number " << streamNumber << std::endl;
             return false;
         }
 
@@ -322,20 +335,20 @@ bool XMLParser::parseStream(std::string &streamElement, DataGenerator* &clientSt
     }
 
     if((position = streamElement.find("<messages>")) == std::string::npos){
-        PRINT_ERROR( "No messages specified in stream number " << streamNumber << std::endl);
+        *errorMessage <<  "No messages specified in stream number " << streamNumber << std::endl;
         delete appProto;
         return false;
     }
 
     if(!getElement(streamElement, position, "<messages>", "</messages>", messagesElement)){
-        PRINT_ERROR( streamElement << std::endl);
-        PRINT_ERROR( "Incorrect format in message specification in stream number " << streamNumber << std::endl);
+        *errorMessage <<  streamElement << std::endl;
+        *errorMessage <<  "Incorrect format in message specification in stream number " << streamNumber << std::endl;
         delete appProto;
         return false;
     }
 
     if(!parseMessages(messagesElement, messages, streamNumber)){
-        PRINT_ERROR( "Incorrect format in message specifications." << std::endl);
+        *errorMessage <<  "Incorrect format in message specifications." << std::endl;
         delete appProto;
         for(std::vector<Message*>::iterator it = messages.begin(); it != messages.end(); it++){
             delete *it;
@@ -357,12 +370,12 @@ bool XMLParser::parseStreams(std::string &file){
     std::string streamElement;
 
     if((latestToken = file.find("<streams>")) == std::string::npos){
-        PRINT_ERROR( "Incorrect format in XML file: no <streams> tag found" << std::endl);
+        *errorMessage <<  "Incorrect format in XML file: no <streams> tag found" << std::endl;
         return false;
     }
 
     if(!getElement(file, latestToken, "<streams>", "</streams>", streams)){
-        PRINT_ERROR( "Incorrect format in streams specifications" << std::endl);
+        *errorMessage <<  "Incorrect format in streams specifications" << std::endl;
         return false;
     }
 
@@ -381,12 +394,12 @@ bool XMLParser::parseStreams(std::string &file){
     while((temp_position = streams.find("<stream>", latestToken+1)) != std::string::npos){
         latestToken = temp_position;
         if(!getElement(streams, latestToken, "<stream>", "</stream>", streamElement)){
-            PRINT_ERROR( "Incorrect format in stream specifications." << std::endl);
+            *errorMessage <<  "Incorrect format in stream specifications." << std::endl;
             return false;
         }
 
         if(!parseStream(streamElement, this->clientStreams[count], this->serverStreams[count], streamNumber)){
-            PRINT_ERROR( "Incorrect format in stream specification." << std::endl);
+            *errorMessage <<  "Incorrect format in stream specification." << std::endl;
             return false;
         }
 
@@ -396,12 +409,12 @@ bool XMLParser::parseStreams(std::string &file){
     }
 
     if((latestToken = file.find("</streams>", latestToken)) == std::string::npos){
-        PRINT_ERROR( "Incorrect format in XML file: no </streams> tag found or streams defined after it" << std::endl);
+        *errorMessage <<  "Incorrect format in XML file: no </streams> tag found or streams defined after it" << std::endl;
         return false;
     }
 
     if(count == 0){
-        PRINT_ERROR( "No streams specified" << std::endl);
+        *errorMessage <<  "No streams specified" << std::endl;
         return false;
     }
 
@@ -424,7 +437,7 @@ bool XMLParser::parseMessages(std::string &messagesElement, std::vector<Message*
     DistributionEnum distribution;
 
     if((latest_token = messagesElement.find("<message>")) == std::string::npos){
-        PRINT_ERROR( "Error in message specifications" << std::endl);
+        *errorMessage <<  "Error in message specifications" << std::endl;
         return false;
     }
 
@@ -433,43 +446,43 @@ bool XMLParser::parseMessages(std::string &messagesElement, std::vector<Message*
         ranvarTimeInterval = ranvarSize = ranvarForwardSize = 0;
 
         if(!readValue<std::string>(messageElement, "type", type, 0)){
-            PRINT_ERROR( "Error in message type specification." << std::endl);
+            *errorMessage <<  "Error in message type specification." << std::endl;
             return false;
         }
 
         if(!readValue<std::string>(messageElement, "name", name, 0)){
-            PRINT_ERROR( "No message name specified." << std::endl);
+            *errorMessage <<  "No message name specified." << std::endl;
             return false;
         }
 
         if(!readValue<std::string>(messageElement, "reliable", reliable, 0)){
-            PRINT_ERROR( "Error in reliability specification." << std::endl);
+            *errorMessage <<  "Error in reliability specification." << std::endl;
             return false;
         }
 
         if(!readRandomVariable(messageElement, ranvarSize, distribution, "size")){                  //if no distribution is specified, read simple timeinterval
             if(!readValue<int>(messageElement, "size", size, 0)){
-                PRINT_ERROR( "Error in message size specification." << std::endl);
+                *errorMessage <<  "Error in message size specification." << std::endl;
                 return false;
             }
        }
 
         if(!readRandomVariable(messageElement, ranvarTimeInterval, distribution, "timeinterval")){          //if no distribution is specified, read simple timeinterval
             if(!readValue<int>(messageElement, "timeinterval", timeInterval, 0)){
-                PRINT_ERROR( "Error in message timeinterval specification." << std::endl);
+                *errorMessage <<  "Error in message timeinterval specification." << std::endl;
                 return false;
             }
         }
 
         if(!readValue<std::string>(messageElement, "returntosender", returnToSender, 0)){
-            PRINT_ERROR( "Error in returntosender specification." << std::endl);
+            *errorMessage <<  "Error in returntosender specification." << std::endl;
             return false;
         }
 
 
         if(!readValue<std::string>(messageElement, "forwardmessagesize", forwardSizeStr, 0))
         {
-            PRINT_ERROR( "Error in message forwardmessagesize specification." << std::endl);
+            *errorMessage <<  "Error in message forwardmessagesize specification." << std::endl;
             return false;
         }
         else
@@ -488,17 +501,17 @@ bool XMLParser::parseMessages(std::string &messagesElement, std::vector<Message*
         }
 
         if(size <= 0 && ranvarSize == 0){
-            PRINT_ERROR( "Message size must be more than 0 ot distribution must be specified." << std::endl);
+            *errorMessage <<  "Message size must be more than 0 ot distribution must be specified." << std::endl;
             return false;
         }
 
         if(timeInterval <= 0 && ranvarTimeInterval == 0){
-            PRINT_ERROR( "TimeInterval value must be either more than 0 or distribution must be specified." << std::endl);
+            *errorMessage <<  "TimeInterval value must be either more than 0 or distribution must be specified." << std::endl;
             return false;
         }
 
         if(!readValue<int>(messageElement, "timerequirementclient", clientTimeRequirement, 0)){
-            PRINT_ERROR( "Error in message timerequirementclient specification." << std::endl);
+            *errorMessage <<  "Error in message timerequirementclient specification." << std::endl;
             return false;
         }
 
@@ -506,22 +519,22 @@ bool XMLParser::parseMessages(std::string &messagesElement, std::vector<Message*
 
 
             if(!readValue<int>(messageElement, "timerequirementserver", serverTimeRequirement, 0)){
-                PRINT_ERROR( "Error in message timerequirementserver specification." << std::endl);
+                *errorMessage <<  "Error in message timerequirementserver specification." << std::endl;
                 return false;
             }
 
             if(serverTimeRequirement <= 0 || clientTimeRequirement <= 0){
-                PRINT_ERROR( "TimeRequirement must be more than 0." << std::endl);
+                *errorMessage <<  "TimeRequirement must be more than 0." << std::endl;
                 return false;
             }
 
             if(!readValue<double>(messageElement, "clientsofinterest", clientsOfInterest, 0)){
-                PRINT_ERROR( "Error in message clients of interest specification." << std::endl);
+                *errorMessage <<  "Error in message clients of interest specification." << std::endl;
                 return false;
             }
 
             if(clientsOfInterest < 0 || clientsOfInterest > 1){
-                PRINT_ERROR( "ClientsOfInterest must be between 0 and 1." << std::endl);
+                *errorMessage <<  "ClientsOfInterest must be between 0 and 1." << std::endl;
                 return false;
             }
 
@@ -533,7 +546,7 @@ bool XMLParser::parseMessages(std::string &messagesElement, std::vector<Message*
         else if(type.compare("odt") == 0){
 
             if(clientTimeRequirement <= 0){
-                PRINT_ERROR( "TimeRequirement must be more than 0." << std::endl);
+                *errorMessage <<  "TimeRequirement must be more than 0." << std::endl;
                 return false;
             }
 
@@ -543,12 +556,12 @@ bool XMLParser::parseMessages(std::string &messagesElement, std::vector<Message*
         }
 
         else{
-            PRINT_ERROR("Unknown message type: " << type <<std::endl);
+            *errorMessage << "Unknown message type: " << type <<std::endl;
             return false;
         }
 
         if((latest_token = messagesElement.find("</message>", latest_token)) == std::string::npos){
-            PRINT_ERROR( "Error in messages specification: missing </message> tag." << std::endl);
+            *errorMessage <<  "Error in messages specification: missing </message> tag." << std::endl;
             return false;
         }
 
@@ -567,34 +580,34 @@ bool XMLParser::parseApplicationProtocol(std::string &file){
 
     if((position = file.find("<appproto>")) == std::string::npos){
         appProto = 0;
-        PRINT_ERROR( "No application protocol found" << std::endl);
+        *errorMessage <<  "No application protocol found" << std::endl;
         return true;
     }
 
     if(!getElement(file, position, "<appproto>", "</appproto>", token)){
-        PRINT_ERROR( "Incorrect format in application protocol specifications." << std::endl);
+        *errorMessage <<  "Incorrect format in application protocol specifications." << std::endl;
         return false;
     }
 
     value = "";
 
     if(!readValue<int>(token, "acksize", acksize)){
-        PRINT_ERROR( "Incorrect format in application protocol parameter: acksize" << std::endl);
+        *errorMessage <<  "Incorrect format in application protocol parameter: acksize" << std::endl;
         return false;
     }
 
     if(!readValue<int>(token, "delayedack", delack)){
-        PRINT_ERROR( "Incorrect format in application protocol parameter: delayedack" << std::endl);
+        *errorMessage <<  "Incorrect format in application protocol parameter: delayedack" << std::endl;
         return false;
     }
 
     if(!readValue<int>(token, "retransmit", retransmit)){
-        PRINT_ERROR( "Incorrect format in application protocol parameter: retransmit" << std::endl);
+        *errorMessage <<  "Incorrect format in application protocol parameter: retransmit" << std::endl;
         return false;
     }
 
     if(!readValue<int>(token, "headersize", headerSize)){
-        PRINT_ERROR("Incorrect format in application protocol parameter: headersize" << std::endl);
+        *errorMessage << "Incorrect format in application protocol parameter: headersize" << std::endl;
         return false;
     }
 
@@ -663,12 +676,12 @@ bool XMLParser::getClientStats(uint16_t clientIndex, uint16_t &clientNumber, int
 bool XMLParser::parseGameTick(std::string& streamElement, int& serverGameTick, int& clientGameTick){
 
     if(!readValue<int>(streamElement, "<servergametick", serverGameTick) || serverGameTick < 0){
-        PRINT_ERROR(" Incorrect servergametick value." << std::endl);
+        *errorMessage << " Incorrect servergametick value." << std::endl;
         return false;
     }
 
     if(!readValue<int>(streamElement, "<clientgametick", clientGameTick) || clientGameTick < 0){
-        PRINT_ERROR(" Incorrect clientgametick value." << std::endl);
+        *errorMessage << " Incorrect clientgametick value." << std::endl;
         return false;
     }
 
@@ -679,7 +692,7 @@ bool XMLParser::parseSimulationParams(std::string &file){
 
     if(!readValue<int>(file, "<runningtime", runningTime) || runningTime <= 0)
     {
-        PRINT_ERROR(" Incorrect runningtime value." << std::endl);
+        *errorMessage << " Incorrect runningtime value." << std::endl;
         return false;
     }
 
@@ -882,21 +895,21 @@ RandomVariable* XMLParser::DistributionEnum::constructRandomVariable(const std::
 
      case XMLParser::Uniform:
          if(!readCommaSeparatedString<double, double, uint32_t, uint32_t>(params, 2, v1.doubleVal, v2.doubleVal, v3.uintVal, v4.uintVal)){
-             PRINT_ERROR("Error in timeinterval distribution parameters" << std::endl);
+             (*owner->errorMessage) << "Error in timeinterval distribution parameters" << std::endl;
          }else{
              retVal = new UniformVariable(v1.doubleVal, v2.doubleVal);
          }
          break;
      case XMLParser::Constant:
          if(!readCommaSeparatedString<double, uint32_t, uint32_t, uint32_t>(params, 1, v1.doubleVal, v2.uintVal, v3.uintVal, v4.uintVal)){
-             PRINT_ERROR("Error in timeinterval distribution parameters" << std::endl);
+             (*owner->errorMessage) << "Error in timeinterval distribution parameters" << std::endl;
          }else{
              retVal = new ConstantVariable(v1.doubleVal);
          }
          break;
      case XMLParser::Sequential:
          if(!readCommaSeparatedString<double, double, double, uint32_t>(params, 4, v1.doubleVal, v2.doubleVal, v3.doubleVal, v3.uintVal)){
-             PRINT_ERROR("Error in timeinterval distribution parameters" << std::endl);
+             (*owner->errorMessage) << "Error in timeinterval distribution parameters" << std::endl;
          }else{
              retVal = new SequentialVariable(v1.doubleVal, v2.doubleVal, v3.doubleVal, v4.uintVal);
          }
@@ -904,70 +917,70 @@ RandomVariable* XMLParser::DistributionEnum::constructRandomVariable(const std::
 
      case XMLParser::Exponential:
          if(!readCommaSeparatedString<double, double, uint32_t, uint32_t>(params, 2, v1.doubleVal, v2.doubleVal, v3.uintVal, v4.uintVal)){
-             PRINT_ERROR("Error in timeinterval distribution parameters" << std::endl);
+             (*owner->errorMessage) << "Error in timeinterval distribution parameters" << std::endl;
          }else{
              retVal = new ExponentialVariable(v1.doubleVal, v2.doubleVal);
          }
          break;
      case XMLParser::Pareto:
          if(!readCommaSeparatedString<double, double, double, uint32_t>(params, 3, v1.doubleVal, v2.doubleVal, v3.doubleVal, v4.uintVal)){
-             PRINT_ERROR("Error in timeinterval distribution parameters" << std::endl);
+             (*owner->errorMessage) << "Error in timeinterval distribution parameters" << std::endl;
          }else{
              retVal = new ParetoVariable(v1.doubleVal, v2.doubleVal, v3.doubleVal);
          }
          break;
      case XMLParser::Weibull:
          if(!readCommaSeparatedString<double, double, double, double>(params, 4, v1.doubleVal, v2.doubleVal, v3.doubleVal, v4.doubleVal)){
-             PRINT_ERROR("Error in timeinterval distribution parameters" << std::endl);
+             (*owner->errorMessage) << "Error in timeinterval distribution parameters" << std::endl;
          }else{
              retVal = new WeibullVariable(v1.doubleVal, v2.doubleVal, v3.doubleVal, v4.doubleVal);
          }
          break;
      case XMLParser::Normal:
          if(!readCommaSeparatedString<double, double, uint32_t, uint32_t>(params, 2, v1.doubleVal, v2.doubleVal, v3.uintVal, v4.uintVal)){
-             PRINT_ERROR("Error in timeinterval distribution parameters" << std::endl);
+             (*owner->errorMessage) << "Error in timeinterval distribution parameters" << std::endl;
          }else{
              retVal = new NormalVariable(v1.doubleVal, v2.doubleVal);
          }
          break;
      case XMLParser::Lognormal:
          if(!readCommaSeparatedString<double, double, uint32_t, uint32_t>(params, 2, v1.doubleVal, v2.doubleVal, v3.uintVal, v4.uintVal)){
-             PRINT_ERROR("Error in timeinterval distribution parameters" << std::endl);
+             (*owner->errorMessage) << "Error in timeinterval distribution parameters" << std::endl;
          }else{
              retVal = new LogNormalVariable(v1.doubleVal, v2.doubleVal);
          }
          break;
      case XMLParser::Gamma:
          if(!readCommaSeparatedString<double, double, uint32_t, uint32_t>(params, 2, v1.doubleVal, v2.doubleVal, v3.uintVal, v4.uintVal)){
-             PRINT_ERROR("Error in timeinterval distribution parameters" << std::endl);
+             (*owner->errorMessage) << "Error in timeinterval distribution parameters" << std::endl;
          }else{
              retVal = new GammaVariable(v1.doubleVal, v2.doubleVal);
          }
          break;
      case XMLParser::Erlang:
          if(!readCommaSeparatedString<uint32_t, double, uint32_t, uint32_t>(params, 2, v1.uintVal, v2.doubleVal, v3.uintVal, v4.uintVal)){
-             PRINT_ERROR("Error in timeinterval distribution parameters" << std::endl);
+             (*owner->errorMessage) << "Error in timeinterval distribution parameters" << std::endl;
          }else{
              retVal = new ErlangVariable(v1.uintVal, v2.doubleVal);
          }
          break;
      case XMLParser::Zipf:
          if(!readCommaSeparatedString<long, double, uint32_t, uint32_t>(params, 2, v1.longIntVal, v2.doubleVal, v3.uintVal, v4.uintVal)){
-             PRINT_ERROR("Error in timeinterval distribution parameters" << std::endl);
+             (*owner->errorMessage) << "Error in timeinterval distribution parameters" << std::endl;
          }else{
              retVal = new ZipfVariable(v1.longIntVal, v2.doubleVal);
          }
          break;
      case XMLParser::Zeta:
          if(!readCommaSeparatedString<double, uint32_t, uint32_t, uint32_t>(params, 1, v1.doubleVal, v2.uintVal, v3.uintVal, v4.uintVal)){
-             PRINT_ERROR("Error in timeinterval distribution parameters" << std::endl);
+             (*owner->errorMessage) << "Error in timeinterval distribution parameters" << std::endl;
          }else{
              retVal = new ZetaVariable(v1.doubleVal);
          }
          break;
      case XMLParser::Triangular:
          if(!readCommaSeparatedString<double, double, double, uint32_t>(params, 3, v1.doubleVal, v2.doubleVal, v3.doubleVal, v4.uintVal)){
-             PRINT_ERROR("Error in timeinterval distribution parameters" << std::endl);
+             (*owner->errorMessage) << "Error in timeinterval distribution parameters" << std::endl;
          }else{
              retVal = new TriangularVariable(v1.doubleVal, v2.doubleVal, v3.doubleVal);
          }
@@ -977,7 +990,7 @@ RandomVariable* XMLParser::DistributionEnum::constructRandomVariable(const std::
          retVal = new EmpiricalVariable();
 
          if(!readEmpiricalDataFile(fileName, *((EmpiricalVariable*)retVal))){
-             PRINT_ERROR("Couldn't read empirical values from file: " << fileName << std::endl);
+             (*owner->errorMessage) << "Couldn't read empirical values from file: " << fileName << std::endl;
              delete retVal;
              retVal = 0;
          }
@@ -985,7 +998,7 @@ RandomVariable* XMLParser::DistributionEnum::constructRandomVariable(const std::
 
      case XMLParser::Extreme:
          if(!readCommaSeparatedString<double, double, double, uint32_t>(params, 3, v1.doubleVal, v2.doubleVal, v3.doubleVal, v4.uintVal)){
-             PRINT_ERROR("Error in timeinterval distribution parameters" << std::endl);
+             (*owner->errorMessage) << "Error in timeinterval distribution parameters" << std::endl;
          }else{
              retVal = new ExtremeVariable(v1.doubleVal, v2.doubleVal, v3.doubleVal);
          }
@@ -1138,3 +1151,7 @@ bool XMLParser::DistributionEnum::readAndRemovePercentage(std::string &dist, dou
 }
 
 
+std::string XMLParser::getErrorMessage() const
+{
+    return errorMessage->str();
+}

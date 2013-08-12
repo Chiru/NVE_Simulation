@@ -146,8 +146,17 @@ int start(Args args, MainWindow *mw){
     XMLParser parser = XMLParser(XML_filename);
 
     if(!parser.isFileCorrect()){
-        PRINT_ERROR( "Terminating due to an incorrect XML file: " << std::endl);
 
+        std::string err = parser.getErrorMessage();
+
+        if(mw != 0)
+        {
+            mw->showErrorDialog(err);
+        }
+
+        err.append("Terminating due to an incorrect XML file\n");
+
+        PRINT_ERROR(err);
         return EXIT_FAILURE;
     }
 

@@ -28,6 +28,8 @@ public:
     bool configMessageFromEditor(MessageTemplate* msg);
     void setMsgConfigErrorMessage(const QString& error);
     void updateSimulationStatus(bool simulationEnded);
+    void showErrorDialog(const std::string &err);
+
     ~MainWindow();
 
 private:

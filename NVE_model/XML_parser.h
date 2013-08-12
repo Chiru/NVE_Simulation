@@ -22,6 +22,7 @@
 #include "ApplicationProtocol.h"
 #include "DataGenerator.h"
 #include "Messages.h"
+#include <sstream>
 #include "ns3/random-variable.h"
 #include <string>
 #include <vector>
@@ -61,6 +62,7 @@ public:
     template <class T> bool readValue(const std::string& file, const std::string& variable, T& result, size_t position = 0) const;
     bool getRunningValue(const std::string& value, uint16_t &from, uint16_t &to) const;
     bool readBoolVariable(const std::string& file, const std::string& variable, bool defaultValue, size_t position = 0) const;  //does the same as readValue<bool>
+    std::string getErrorMessage() const;
 
 
 private:
@@ -103,6 +105,7 @@ private:
         RandomVariable* readSplitDistribution(const std::string& params);
         bool readAndRemovePercentage(std::string& dist, double& result);
 
+
         XMLParser* owner;
 
     }; //end of nested class
@@ -132,6 +135,7 @@ private:
     int runningTime;
     bool animation;
     bool serverPcap;
+    std::stringstream* errorMessage;
 
     std::vector<struct XMLParser::Client*> clients;
 
