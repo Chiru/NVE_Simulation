@@ -297,6 +297,8 @@ int start(Args args, MainWindow *mw){
         delete clients[i];
     }
 
+    stats->setStartTime(server.getStartSeconds());
+
     delete[] serverPorts;
     delete[] packetLoss;
 

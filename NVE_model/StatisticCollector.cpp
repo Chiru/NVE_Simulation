@@ -518,6 +518,11 @@ void StatisticsCollector::setServerPcap(bool pcap)
 }
 
 
+void StatisticsCollector::setStartTime(double time)
+{
+    startTime = time;
+}
+
 bool StatisticsCollector::generateSingleNodeStatsFromPcap()
 {
     std::stringstream stream;
@@ -704,9 +709,9 @@ bool StatisticsCollector::generateOverallGraphFromPcap()
                     return false;
 
                 if(isServer)
-                    scriptGen->parseOverallPcapStats("temp.txt", addr, 0, true);
+                    scriptGen->parseOverallPcapStats("temp.txt", addr, 0, true, startTime);
                 else
-                    scriptGen->parseOverallPcapStats("temp.txt", addr, clientNumber, false, it->second.joinTime, it->second.exitTime);
+                    scriptGen->parseOverallPcapStats("temp.txt", addr, clientNumber, false, startTime, it->second.joinTime);
 
             }
         }

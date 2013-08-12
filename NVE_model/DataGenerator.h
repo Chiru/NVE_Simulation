@@ -149,6 +149,7 @@ public:
 
     virtual void StartApplication();
     virtual void StopApplication();
+    double getStartTime() const;
 
 private:
     void dataReceivedTcp(Ptr<Socket>);
@@ -170,6 +171,8 @@ private:
     std::vector<Address*> udpClients;                                         //for UDP clients
     std::vector<std::pair<Address, std::pair<std::string, Message*> > > udpMessages;
     UniformVariable probability;
+    Time transmissionStarted;
+    bool dataReceived;
 
 };
 

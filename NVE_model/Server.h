@@ -29,6 +29,7 @@ public:
     Server(XMLParser&, int, Ptr<Node>, Address*);
     ~Server();
     bool pcapEnabled() const {return pcap;}
+    double getStartSeconds() const;
 
 private:
     XMLParser &parser;

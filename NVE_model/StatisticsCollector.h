@@ -60,6 +60,7 @@ public:
     void addClientInfo(const Ipv4Address &addr, int runningTime, int joinTime, int exitTime, bool pcap);
     void setServerAddress(const Ipv4Address& addr);
     void setServerPcap(bool pcap);
+    void setStartTime(double time);
     static void logMessagesSentFromClient(int messageNumber, Time, uint16_t streamNumber, uint32_t clientTimeRequirement, uint32_t serverTimeRequirement,
                                           uint16_t messageNameIndex, uint16_t messageId, uint16_t size);//log times when user action messages are sent
     static void logUserActionMessageReceivedByServer(int messageNumber, Time, uint16_t streamNumber);    //log times when user action messages are received by the server
@@ -85,6 +86,7 @@ private:
     Ptr<FlowMonitor> flowMon;
     FlowMonitorHelper helper;
     int runningTime;
+    double startTime; //time of the first packet arriving at the server
     bool serverPcap;
     RScriptGenerator* scriptGen;
     std::string scriptSourceFile;

@@ -649,12 +649,20 @@ bool RScriptGenerator::parseSingleNodePcapStats(const std::string &sourceFile, b
     if(size)
     {
         stream << "plot(tabulate(sendsizes_" << nodeString << "), type=\"h\", xlab=\"Packet size(bytes)\", ylab=\"Message count\", ";
-        stream << "main=\"Network packet sizes for client " << clientNumber << " (" << addr << ")\")\n";
+
+        if(!isServer)
+            stream << "main=\"Network packet sizes for client " << clientNumber << " (" << addr << ")\")\n";
+        else
+            stream << "main=\"Network packet sizes for server (" << addr << ")\")\n";
     }
     else
     {
         stream << "plot(tabulate(sendtimes_" << nodeString << "), type=\"h\", xlab=\"Time interval (ms)\", ylab=\"Message count\", ";
-        stream << "main=\"Network packet send intervals for client " << clientNumber << " (" << addr << ")\")\n";
+
+        if(!isServer)
+            stream << "main=\"Network packet send intervals for client " << clientNumber << " (" << addr << ")\")\n";
+        else
+            stream << "main=\"Network packet send intervals for server (" << addr << ")\")\n";
     }
 
     file.close();
@@ -663,7 +671,8 @@ bool RScriptGenerator::parseSingleNodePcapStats(const std::string &sourceFile, b
 }
 
 
-bool RScriptGenerator::parseOverallPcapStats(const std::string &sourceFile, const Ipv4Address &addr, int clientNumber, bool isServer, int joinTime, int exitTime)
+bool RScriptGenerator::parseOverallPcapStats(const std::string &sourceFile, const Ipv4Address &addr, int clientNumber, bool isServer,
+                                             int startTime, int joinTime)
 {
     std::stringstream stream;
     std::ifstream file(sourceFile.c_str());
@@ -730,6 +739,14 @@ bool RScriptGenerator::parseOverallPcapStats(const std::string &sourceFile, cons
 
     stream << "\n\n#Uplink bandwidth usage per second for node: " << addr << "\n";
 
+    if(isServer)
+    {
+        for(int i = 0; i < startTime; i++)
+        {
+            sentBytesInSecond.push_front(0);
+        }
+    }
+
     writeRVectorToStream<std::list<double> >(sentBytesInSecond, uplinkString, stream);
 
     if(isServer)
@@ -744,6 +761,14 @@ bool RScriptGenerator::parseOverallPcapStats(const std::string &sourceFile, cons
     }
 
     stream << "\n#Dowlink bandwidth usage per second for node: " << addr << "\n";
+
+    if(isServer)
+    {
+        for(int i = 0; i < startTime; i++)
+        {
+            recvBytesInSecond.push_front(0);
+        }
+    }
 
     writeRVectorToStream<std::list<double> >(recvBytesInSecond, downlinkString, stream);
 

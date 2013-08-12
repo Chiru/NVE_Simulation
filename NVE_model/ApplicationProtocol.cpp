@@ -293,7 +293,7 @@ void ApplicationProtocol::resendCheckClient(uint32_t reliableMsgNumber){
                 Simulator::Schedule(Time(MilliSeconds(retransmit)), &ApplicationProtocol::resendCheckClient, this, reliableMsgNumber);
                 return;
             }
-            //sendAndFragment(socket, (**it).buffer,(**it).msgSize + headerSize, true);
+
             socket->Send((**it).buffer, (**it).msgSize, 0);
             Simulator::Schedule(Time(MilliSeconds(retransmit)), &ApplicationProtocol::resendCheckClient, this, reliableMsgNumber);
             break;
@@ -309,7 +309,7 @@ void ApplicationProtocol::resendCheckServer(std::map<const Address, uint32_t>& r
                 Simulator::Schedule(Time(MilliSeconds(retransmit)), &ApplicationProtocol::resendCheckServer, this, reliableMsgNumber, addr);
                 return;
             }
-            //sendAndFragment(socket, (**it).buffer, (**it).msgSize + headerSize, true, &(**it).addr);
+
             socket->SendTo((**it).buffer, (**it).msgSize, 0, (**it).addr);
             Simulator::Schedule(Time(MilliSeconds(retransmit)), &ApplicationProtocol::resendCheckServer, this, reliableMsgNumber, addr);
             break;

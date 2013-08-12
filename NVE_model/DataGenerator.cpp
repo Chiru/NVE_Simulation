@@ -605,7 +605,9 @@ ServerDataGenerator::ServerDataGenerator(uint16_t streamNumber, Protocol proto, 
 
 }
 
-ServerDataGenerator::ServerDataGenerator(const DataGenerator& stream){
+ServerDataGenerator::ServerDataGenerator(const DataGenerator& stream)
+    : dataReceived(false)
+{
 
     this->probability = UniformVariable(0,1);
     this->gameTick = stream.getGameTick();
@@ -910,6 +912,12 @@ void ServerDataGenerator::readReceivedData(uint8_t *buffer, uint16_t bufferSize,
     ReadMsgNameReturnValue retVal;
     bool addressExists = false;
 
+    if(!dataReceived)
+    {
+        transmissionStarted = Simulator::Now();
+        dataReceived = true;
+    }
+
     if(running){
 
         for(std::vector<Address*>::iterator it = udpClients.begin(); it != udpClients.end(); it++){
@@ -1057,7 +1065,14 @@ void ServerDataGenerator::moreBufferSpaceAvailable(Ptr<Socket> sock, uint32_t si
 
 bool ServerDataGenerator::connectionRequest(Ptr<Socket> sock, const Address &addr){
 
+    if(!dataReceived)
+    {
+        transmissionStarted = Simulator::Now();
+        dataReceived = true;
+    }
+
     (void)sock;
+
     SERVER_INFO("Connection request from: " << addr << std::endl);   //TODO: getting ip-addresses impossible???
     return true;
 
@@ -1209,5 +1224,11 @@ void ServerDataGenerator::ClientConnection::forwardUserActionMessage(std::pair<s
     msg.second->parseMessageId(msg.first, messageNumber);
 
     StatisticsCollector::logMessageForwardedByServer(messageNumber, msg.second->getStreamNumber(), msg.second->getForwardMessageSize(messageNumber));
+}
+
+
+double ServerDataGenerator::getStartTime() const
+{
+    return transmissionStarted.GetSeconds();
 }
 

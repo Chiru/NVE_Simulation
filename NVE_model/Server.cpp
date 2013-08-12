@@ -33,3 +33,19 @@ Server::~Server(){
 
 }
 
+
+double Server::getStartSeconds() const
+{
+    double smallest;
+    double temp;
+
+    smallest = static_cast<ServerDataGenerator*>(streams[0])->getStartTime();
+
+    for(int i = 1; i < numberOfStreams; i++)
+    {
+        if((temp = static_cast<ServerDataGenerator*>(streams[i])->getStartTime()) < smallest)
+            smallest = temp;
+    }
+
+    return smallest;
+}
