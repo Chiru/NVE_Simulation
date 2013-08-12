@@ -57,8 +57,9 @@ public:
     static bool getClientLog() {return clientLog;}
     static bool getServerLog() {return serverLog;}
     void addFlowMonitor(Ptr<FlowMonitor> flowMon, FlowMonitorHelper& helper);
-    void addClientRunningTimes(const Ipv4Address &addr, int runningTime, int joinTime, int exitTime);
+    void addClientInfo(const Ipv4Address &addr, int runningTime, int joinTime, int exitTime, bool pcap);
     void setServerAddress(const Ipv4Address& addr);
+    void setServerPcap(bool pcap);
     static void logMessagesSentFromClient(int messageNumber, Time, uint16_t streamNumber, uint32_t clientTimeRequirement, uint32_t serverTimeRequirement,
                                           uint16_t messageNameIndex, uint16_t messageId, uint16_t size);//log times when user action messages are sent
     static void logUserActionMessageReceivedByServer(int messageNumber, Time, uint16_t streamNumber);    //log times when user action messages are received by the server
@@ -84,19 +85,23 @@ private:
     Ptr<FlowMonitor> flowMon;
     FlowMonitorHelper helper;
     int runningTime;
+    bool serverPcap;
     RScriptGenerator* scriptGen;
     std::string scriptSourceFile;
     std::string scriptResultPdfFile;
     std::string scriptResultTextFile;
 
-    struct ClientTimes
+
+    //this struct is needed since clients have to be deleted before statistics collector
+    struct ClientInfo
     {
         int joinTime;
         int exitTime;
         int runningTime;
+        bool pcap;
     };
 
-    std::map<Ipv4Address, ClientTimes> clientRunningTimes;
+    std::map<Ipv4Address, ClientInfo> clientsInformation;
 
     Ipv4Address serverAddr;
 

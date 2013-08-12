@@ -221,10 +221,13 @@ int start(Args args, MainWindow *mw){
     Client* clients[numberOfClients];
     Server server = Server(parser, runningTime, routerServerNodes.Get(1), serverAddresses);
 
+    stats->setServerPcap(server.pcapEnabled());
+
     for(uint16_t i = 0; i < numberOfClients; i++){
         clients[i] = new Client(parser, i+1, clientRouterNodes[i].Get(0), serverAddresses, clientRouterIpInterfaces[i].GetAddress(0));
         PRINT_INFO(*(clients[i]) << std::endl);
-        stats->addClientRunningTimes(clients[i]->getAddress(), clients[i]->getRunningTime(), clients[i]->getJoinTime(), clients[i]->getExitTime());
+        stats->addClientInfo(clients[i]->getAddress(), clients[i]->getRunningTime(), clients[i]->getJoinTime(),
+                             clients[i]->getExitTime(), clients[i]->pcapEnabled());
     }
 
     for(i = 0; i < numberOfClients; i++){
