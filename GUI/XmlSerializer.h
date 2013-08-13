@@ -52,10 +52,10 @@ public:
     XmlSerializer(QString fileName);
     ~XmlSerializer();
     bool writeToFile();
-    void addClientsElement(const ClientWidget *, int);
+    void addClientsElement(const ClientWidget *);
     void addAppProtoElement(uint ackSize, uint delayedAck, uint retransmit, uint headerSize);
     void addStreamElement(const StreamWidget *stream);
-    void addSimulationParam(uint simTime, bool animation, bool pcap);
+    void addSimulationParam(uint simTime, bool pcap);
     void flush();
 
 private:
@@ -68,7 +68,6 @@ private:
     QList<XmlElement*> simulationParams;
     uint clientCount;
     uint simulationTime;
-    bool enableAnimation;
 
     void gatherElements();
     void addMessages(XmlStruct *stream, const QList<MessageTemplate *>& messages);

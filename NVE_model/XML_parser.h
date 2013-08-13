@@ -56,7 +56,6 @@ public:
     bool getClientStats(uint16_t clientIndex, uint16_t &clientNumber, int &delay, double &uplink, double &downlink, double &loss, bool &pcap, bool &graphs,
                         int& joinTime, int& exitTime) const;
     int getRunningTime() const{return runningTime;}
-    bool useAnimation() const{return animation;}
     bool isServerPcapEnabled() const{return serverPcap;}
     bool getElement(const std::string& file, size_t position,const  std::string& start, const std::string& end, std::string &result) const;
     template <class T> bool readValue(const std::string& file, const std::string& variable, T& result, size_t position = 0) const;
@@ -133,7 +132,6 @@ private:
     int serverGameTick;
     int clientGameTick;
     int runningTime;
-    bool animation;
     bool serverPcap;
     std::stringstream* errorMessage;
 

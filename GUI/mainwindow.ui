@@ -32,7 +32,7 @@
          <x>0</x>
          <y>0</y>
          <width>1161</width>
-         <height>1152</height>
+         <height>1124</height>
         </rect>
        </property>
        <layout class="QGridLayout" name="gridLayout_5">
@@ -52,8 +52,8 @@
                <rect>
                 <x>0</x>
                 <y>0</y>
-                <width>783</width>
-                <height>376</height>
+                <width>790</width>
+                <height>348</height>
                </rect>
               </property>
              </widget>
@@ -109,7 +109,7 @@
               <enum>QFrame::Raised</enum>
              </property>
              <layout class="QGridLayout" name="gridLayout_2">
-              <item row="4" column="0">
+              <item row="3" column="0">
                <widget class="QPushButton" name="executeButton">
                 <property name="text">
                  <string>Run simulation</string>
@@ -130,21 +130,14 @@
                 </property>
                </widget>
               </item>
-              <item row="1" column="0">
-               <widget class="QCheckBox" name="animationCheckBox">
-                <property name="text">
-                 <string>Enable animation (netanim)</string>
-                </property>
-               </widget>
-              </item>
-              <item row="3" column="0" colspan="2">
+              <item row="2" column="0" colspan="2">
                <widget class="QLabel" name="executionStatus">
                 <property name="text">
                  <string/>
                 </property>
                </widget>
               </item>
-              <item row="2" column="0">
+              <item row="1" column="0">
                <widget class="QCheckBox" name="serverPcapCheckbox">
                 <property name="text">
                  <string>Server pcap</string>

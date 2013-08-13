@@ -16,7 +16,6 @@
 
 
 #include "ns3/applications-module.h"
-#include "ns3/animation-interface.h"
 #include "ns3/nstime.h"
 #include "ns3/core-module.h"
 #include "ns3/point-to-point-helper.h"
@@ -284,9 +283,6 @@ int start(Args args, MainWindow *mw){
 
     stats->addFlowMonitor(flowMonHelper.InstallAll(), flowMonHelper);   //TODO: something leaks memory in flow monitoring (ns-3 bug?)
 
-   // AnimationInterface anim = AnimationInterface("results/animation");  //TODO: use this or not?
-
-   // anim.StartAnimation();
     if(mw != 0)
     {
         secondPassed(mw);
@@ -295,7 +291,6 @@ int start(Args args, MainWindow *mw){
     Simulator::Run();
 
     Simulator::Destroy();
-    //anim.StopAnimation();
 
     if(mw != 0)
     {

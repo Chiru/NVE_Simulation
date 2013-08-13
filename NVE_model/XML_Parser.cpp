@@ -696,8 +696,6 @@ bool XMLParser::parseSimulationParams(std::string &file){
         return false;
     }
 
-    animation = readBoolVariable(file, "<animation", false);
-
     serverPcap = readBoolVariable(file, "<serverpcap", true);
 
     return true;

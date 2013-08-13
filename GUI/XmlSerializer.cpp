@@ -85,7 +85,7 @@ XmlSerializer::~XmlSerializer()
     flush();
 }
 
-void XmlSerializer::addClientsElement(const ClientWidget *client, int simTime)
+void XmlSerializer::addClientsElement(const ClientWidget *client)
 {
     XmlStruct* elem = new XmlStruct("client");
 
@@ -201,10 +201,9 @@ void XmlSerializer::addMessages(XmlStruct* stream, const QList<MessageTemplate*>
 }
 
 
-void XmlSerializer::addSimulationParam(uint simTime, bool animation, bool pcap)
+void XmlSerializer::addSimulationParam(uint simTime, bool pcap)
 {
     this->simulationParams.append(new XmlValue("runningtime", QString::number(simTime)));
-    this->simulationParams.append(new XmlValue("animation", animation ? "yes" : "no"));
     this->simulationParams.append(new XmlValue("serverpcap", pcap ? "yes" : "no"));
 }
 

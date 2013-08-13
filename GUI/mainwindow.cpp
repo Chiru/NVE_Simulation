@@ -47,9 +47,6 @@ MainWindow::MainWindow(QWidget *parent) :
     ui->serverPcapCheckbox->setChecked(true);
     ui->serverPcapCheckbox->setToolTip("Enable pcap-file creation for the server");
 
-    ui->animationCheckBox->setChecked(true);
-    ui->animationCheckBox->setToolTip("Enable netanim");
-
     messageSize = new DistributionWidget(ui->message_size, ui->message_configMessageSize, ui->message_sizeDistribution,
                                          ui->message_sizeFrame->layout(), this);
     timeInterval = new DistributionWidget(ui->message_timeInterval, ui->message_configTimeInterval, ui->message_timeIntervalDistribution,
@@ -389,12 +386,12 @@ void MainWindow::configurationFinished()
 
     serializer.flush();
 
-    serializer.addSimulationParam(ui->simTime->value(), ui->animationCheckBox->isChecked(), ui->serverPcapCheckbox->isChecked());
+    serializer.addSimulationParam(ui->simTime->value(),  ui->serverPcapCheckbox->isChecked());
 
     ClientWidget* client;
 
     foreach(client, previousClients)
-        serializer.addClientsElement(client, ui->simTime->value());
+        serializer.addClientsElement(client);
 
     serializer.addAppProtoElement(ui->appProto_ackSize->value(), ui->appProto_delAck->value(), ui->appProto_RTO->value(), ui->appProto_headerSize->value());
 
@@ -581,7 +578,6 @@ void MainWindow::configureAppProto(const std::string &element)
 void MainWindow::configureSimulationParams(const std::string &element)
 {
     int simTime = 0;
-    bool animation = false;
     bool pcap = true;
 
     if(!parser.readValue<int>(element, "runningtime", simTime))
@@ -589,11 +585,9 @@ void MainWindow::configureSimulationParams(const std::string &element)
         simTime = 0;
     }
 
-    animation = parser.readBoolVariable(element, "animation", false);
     pcap = parser.readBoolVariable(element, "serverpcap", true);
 
     ui->simTime->setValue(simTime);
-    ui->animationCheckBox->setChecked(animation);
     ui->serverPcapCheckbox->setChecked(pcap);
 
 }
