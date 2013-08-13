@@ -495,7 +495,11 @@ bool XMLParser::parseMessages(std::string &messagesElement, std::vector<Message*
             {
                 if(!readRandomVariable(messageElement, ranvarForwardSize, distribution, "forwardmessagesize"))
                 {
-                    readValue<int>(messageElement, "forwardmessagesize", forwardSize, 0);
+                    if(!readValue<int>(messageElement, "forwardmessagesize", forwardSize, 0))
+                    {
+                        *errorMessage <<  "Error in message forwardmessagesize specification." << std::endl;
+                        return false;
+                    }
                 }
             }
         }
