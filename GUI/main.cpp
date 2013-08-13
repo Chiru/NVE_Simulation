@@ -14,7 +14,7 @@ int main(int argc, char *argv[])
         w.show();
         return a.exec();
     }
-    else
+    else              //the execution has started from the console
     {
 
         std::string filename;
@@ -42,9 +42,10 @@ int main(int argc, char *argv[])
 
             if(strcmp(argv[i], "--filename") == 0)
             {
-                if(i + 1 >= argc)
+                if(++i >= argc)
                 {
                     filename = "";
+                    break;
                 }
                 else
                 {
