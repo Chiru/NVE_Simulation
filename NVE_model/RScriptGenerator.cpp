@@ -60,9 +60,9 @@ bool RScriptGenerator::generateScriptForStream(const std::list<int64_t>* transmi
         }else
             stream << server << count << " = c(0)" << std::endl;
 
-        stream << "write(\"Mean value of client to server transmission times for stream number : " << count << "\", filename, append=TRUE)\n";
+        stream << "write(\"\nMean value of client to server transmission times for stream number : " << count + 1 << "\", filename, append=TRUE)\n";
         stream << "write(mean(" << server << count << "), filename, append=TRUE)\n";
-        stream << "write(\"Quantiles of client to server transmission times for stream number : " << count << " (min, 25%, median, 75%, max) \", filename, append=TRUE)\n";
+        stream << "write(\"Quantiles of client to server transmission times for stream number : " << count + 1 << " (min, 25%, median, 75%, max) \", filename, append=TRUE)\n";
         stream << "write(quantile(" << server << count << "), filename, append=TRUE)\n";
 
         stream << "\n#Step function for stream number: " << count +1 << "\n";
@@ -79,12 +79,12 @@ bool RScriptGenerator::generateScriptForStream(const std::list<int64_t>* transmi
         else
             stream << client << count << " = c(0)" << std::endl;
 
-        stream << "write(\"Mean value of client to client transmission times for stream number : " << count << "\", filename, append=TRUE)\n";
+        stream << "write(\"\nMean value of client to client transmission times for stream number : " << count + 1 << "\", filename, append=TRUE)\n";
         stream << "write(mean(" << client << count << "), filename, append=TRUE)\n";
-        stream << "write(\"Quantiles of client to client transmission times for stream number : " << count << " (min, 25%, median, 75%, max) \", filename, append=TRUE)\n";
+        stream << "write(\"Quantiles of client to client transmission times for stream number : " << count + 1 << " (min, 25%, median, 75%, max) \", filename, append=TRUE)\n";
         stream << "write(quantile(" << client << count << "), filename, append=TRUE)\n";
 
-        stream << "\n#Step function for stream number: " << count +1 << "\n";
+        stream << "\n#Step function for stream number: " << count + 1 << "\n";
         stream << clientFunc << count << " = ecdf(" << client << count << ")\n";
 
         stream << "\n#Vector for server to client transmission time for stream number: " << count + 1 << std::endl;
@@ -97,9 +97,9 @@ bool RScriptGenerator::generateScriptForStream(const std::list<int64_t>* transmi
         }else
             stream << serverToClient << count << " = c(0)" << std::endl;
 
-        stream << "write(\"Mean value of server to client transmission times for stream number : " << count << "\", filename, append=TRUE)\n";
+        stream << "write(\"\nMean value of server to client transmission times for stream number : " << count + 1  << "\", filename, append=TRUE)\n";
         stream << "write(mean(" << serverToClient << count << "), filename, append=TRUE)\n";
-        stream << "write(\"Quantiles of server to client transmission times for stream number : " << count << " (min, 25%, median, 75%, max) \", filename, append=TRUE)\n";
+        stream << "write(\"Quantiles of server to client transmission times for stream number : " << count + 1  << " (min, 25%, median, 75%, max) \", filename, append=TRUE)\n";
         stream << "write(quantile(" << serverToClient << count << "), filename, append=TRUE)\n";
 
         stream << "\n#Step function for stream number: " << count +1 << "\n";
@@ -147,7 +147,7 @@ bool RScriptGenerator::generateScriptForStream(const std::list<int64_t>* transmi
 
     for(int count = 0; count < maxStreams; count++){
         if(count == 0){  //then this is the first plot to draw to server
-            stream << "plot(" << serverFunc << count<< ", do.points=FALSE, verticals=TRUE, main=\"Average stream transmit times from client to server\", col="<< colors[count] <<
+            stream << "plot(" << serverFunc << count<< ", do.points=FALSE, verticals=TRUE, main=\"Average stream transmission times from client to server\", col="<< colors[count] <<
                       ", " << lineTypes[count] << ", lwd = 2, xlab=\"Time(ms)\", ylab=\"Frequency\", xlim=(c(0," << server << "max))" << ")\n";
             stream << "abline(h=0.1*0:10,  col=\"lightgray\")\n";
         }
@@ -190,7 +190,7 @@ bool RScriptGenerator::generateScriptForStream(const std::list<int64_t>* transmi
 
     for(int count = 0; count < maxStreams; count++){
         if(count == 0)  { //then this is the first plot to draw to client
-            stream << "plot(" << clientFunc << count << ", do.points=FALSE, verticals=TRUE, main=\"Average stream transmit times from client to client\", col=" << colors[count] <<
+            stream << "plot(" << clientFunc << count << ", do.points=FALSE, verticals=TRUE, main=\"Average stream transmission times from client to client\", col=" << colors[count] <<
                       ", " << lineTypes[count]  << ", lwd = 2, xlab=\"Time(ms)\", ylab=\"Frequency\", xlim=(c(0," << client << "max))" << ")\n";
             stream << "abline(h=0.1*0:10,  col=\"lightgray\")\n";
         }
@@ -231,7 +231,7 @@ bool RScriptGenerator::generateScriptForStream(const std::list<int64_t>* transmi
 
     for(int count = 0; count < maxStreams; count++){
         if(count == 0)  { //then this is the first plot to draw from server to client
-            stream << "plot(" << serverToClientFunc << count << ", do.points=FALSE, verticals=TRUE, main=\"Average stream transmit times from server to client\", col=" << colors[count] <<
+            stream << "plot(" << serverToClientFunc << count << ", do.points=FALSE, verticals=TRUE, main=\"Average stream transmission times from server to client\", col=" << colors[count] <<
                       ", " << lineTypes[count]  << ", lwd = 2, xlab=\"Time(ms)\", ylab=\"Frequency\", xlim=(c(0," << serverToClient << "max))" << ")\n";
             stream << "abline(h=0.1*0:10,  col=\"lightgray\")\n";
         }
@@ -307,7 +307,7 @@ bool RScriptGenerator::generateScriptForClientMessage(std::list<int> clientRecvT
             stream << ", ";
     }
 
-    stream << "write(\"Mean value of client to server transmission times for message: " << name << "\", filename, append=TRUE)\n";
+    stream << "write(\"\nMean value of client to server transmission times for message: " << name << "\", filename, append=TRUE)\n";
     stream << "write(mean(" << server << name << "), filename, append=TRUE)\n";
     stream << "write(\"Quantiles of client to server transmission times for message: " << name << " (min, 25%, median, 75%, max) \", filename, append=TRUE)\n";
     stream << "write(quantile(" << server << name << "), filename, append=TRUE)\n";
@@ -338,7 +338,7 @@ bool RScriptGenerator::generateScriptForClientMessage(std::list<int> clientRecvT
         stream << client << name << " = c(0)" << std::endl;
 
 
-    stream << "write(\"Mean value of client to client transmission times for message: " << name << "\", filename, append=TRUE)\n";
+    stream << "write(\"\nMean value of client to client transmission times for message: " << name << "\", filename, append=TRUE)\n";
     stream << "write(mean(" << client << name << "), filename, append=TRUE)\n";
     stream << "write(\"Quantiles of client to client transmission times for message: " << name << " (min, 25%, median, 75%, max) \", filename, append=TRUE)\n";
     stream << "write(quantile(" << client << name << "), filename, append=TRUE)\n";
@@ -357,7 +357,7 @@ bool RScriptGenerator::generateScriptForClientMessage(std::list<int> clientRecvT
             stream << ", ";
     }
 
-    stream << "write(\"Mean value of send time intervals for message: " << name << "\", filename, append=TRUE)\n";
+    stream << "write(\"\nMean value of send time intervals for message: " << name << "\", filename, append=TRUE)\n";
     stream << "write(mean(sendtimes_" << name << "), filename, append=TRUE)\n";
     stream << "write(\"Quantiles of send time intervals for message: " << name << " (min, 25%, median, 75%, max) \", filename, append=TRUE)\n";
     stream << "write(quantile(sendtimes_" << name << "), filename, append=TRUE)\n";
@@ -374,7 +374,7 @@ bool RScriptGenerator::generateScriptForClientMessage(std::list<int> clientRecvT
             stream << ", ";
     }
 
-    stream << "write(\"Mean value of message sizes for message: " << name << "\", filename, append=TRUE)\n";
+    stream << "write(\"\nMean value of message sizes for message: " << name << "\", filename, append=TRUE)\n";
     stream << "write(mean(messagesizes_" << name << "), filename, append=TRUE)\n";
     stream << "write(\"Quantiles of message sizes for message: " << name << " (min, 25%, median, 75%, max) \", filename, append=TRUE)\n";
     stream << "write(quantile(messagesizes_" << name << "), filename, append=TRUE)\n";
@@ -421,7 +421,7 @@ bool RScriptGenerator::generateScriptForClientMessage(std::list<int> clientRecvT
     stream << clientFunc << name << " = ecdf(c(" << client << name << ", " << client << name << "_lost)" << ");\n";
 
     stream << "\n#Plotting for message: " << name << std::endl;
-    stream << "plot(" << serverFunc << name << ", do.points=FALSE, verticals=TRUE, main=\"message: " << name << "\", col=\"black\", xlim=(c(0," << name << "_max" << ")), xlab=\"Time(ms)\","
+    stream << "plot(" << serverFunc << name << ", do.points=FALSE, verticals=TRUE, main=\"Transmission times for message: " << name << "\", col=\"black\", xlim=(c(0," << name << "_max" << ")), xlab=\"Time(ms)\","
            << " ylab=\"Frequency\")" << std::endl;
     stream << "plot(" << clientFunc << name << ", do.points=FALSE, verticals=TRUE, add=TRUE, col=\"darkgrey\")" << std::endl;
 
@@ -475,7 +475,7 @@ bool RScriptGenerator::generateScriptForServerMessage(std::list<int> clientRecvT
     else
         stream << client << name << " = c(0)" << std::endl;
 
-    stream << "write(\"Mean value of server to client transmission times for message: " << name << "\", filename, append=TRUE)\n";
+    stream << "write(\"\nMean value of server to client transmission times for message: " << name << "\", filename, append=TRUE)\n";
     stream << "write(mean(" << client << name << "), filename, append=TRUE)\n";
     stream << "write(\"Quantiles of server to client transmission times for message: " << name << " (min, 25%, median, 75%, max) \", filename, append=TRUE)\n";
     stream << "write(quantile(" << client << name << "), filename, append=TRUE)\n";
@@ -509,7 +509,7 @@ bool RScriptGenerator::generateScriptForServerMessage(std::list<int> clientRecvT
 
     writeRVectorToStream<std::list<int> >(sendIntervals, temp.str(), stream);
 
-    stream << "write(\"Mean value of send time intervals for message: " << name << "\", filename, append=TRUE)\n";
+    stream << "write(\"\nMean value of send time intervals for message: " << name << "\", filename, append=TRUE)\n";
     stream << "write(mean(sendtimes_" << name << "), filename, append=TRUE)\n";
     stream << "write(\"Quantiles of send time intervals for message: " << name << " (min, 25%, median, 75%, max) \", filename, append=TRUE)\n";
     stream << "write(quantile(sendtimes_" << name << "), filename, append=TRUE)\n";
@@ -521,7 +521,7 @@ bool RScriptGenerator::generateScriptForServerMessage(std::list<int> clientRecvT
 
     writeRVectorToStream<std::list<uint16_t> >(sizes, temp.str(), stream);
 
-    stream << "write(\"Mean value of message sizes for message: " << name << "\", filename, append=TRUE)\n";
+    stream << "write(\"\nMean value of message sizes for message: " << name << "\", filename, append=TRUE)\n";
     stream << "write(mean(messagesizes_" << name << "), filename, append=TRUE)\n";
     stream << "write(\"Quantiles of message sizes for message: " << name << " (min, 25%, median, 75%, max) \", filename, append=TRUE)\n";
     stream << "write(quantile(messagesizes_" << name << "), filename, append=TRUE)\n";
@@ -531,7 +531,7 @@ bool RScriptGenerator::generateScriptForServerMessage(std::list<int> clientRecvT
 
 
     stream << "\n#Plotting for message: " << name << std::endl;
-    stream << "plot(" << clientFunc << name << ", do.points=FALSE, verticals=TRUE, main=\"message: " << name << "\", col=\"black\", xlim=(c(0," << name << "_max" << ")), xlab=\"Time(ms)\","
+    stream << "plot(" << clientFunc << name << ", do.points=FALSE, verticals=TRUE, main=\"Transmission times for message: " << name << "\", col=\"black\", xlim=(c(0," << name << "_max" << ")), xlab=\"Time(ms)\","
            << " ylab=\"Frequency\")" << std::endl;
 
     stream << "#Requirement lines to message: " << name << std::endl;
@@ -573,7 +573,7 @@ bool RScriptGenerator::addClientBandwidth(const Ipv4Address &addr, double downLi
 {
     std::stringstream stream;
 
-    stream << "\nwrite(\"" << (isClient ? "Average throughput for client " : "Average throughput for server ") << addr << " uplink: " << upLink
+    stream << "\nwrite(\"" << (isClient ? "\nAverage throughput for client " : "\nAverage throughput for server ") << addr << " uplink: " << upLink
            << " downlink " << downLink << " Mbps\", filename, append=TRUE)\n";
 
     messageScript.append(stream.str());
@@ -651,9 +651,9 @@ bool RScriptGenerator::parseSingleNodePcapStats(const std::string &sourceFile, b
         stream << "plot(tabulate(sendsizes_" << nodeString << "), type=\"h\", xlab=\"Packet size(bytes)\", ylab=\"Message count\", ";
 
         if(!isServer)
-            stream << "main=\"Network packet sizes for client " << clientNumber << " (" << addr << ")\")\n";
+            stream << "main=\"Network packet send sizes for client " << clientNumber << " (" << addr << ")\")\n";
         else
-            stream << "main=\"Network packet sizes for server (" << addr << ")\")\n";
+            stream << "main=\"Network packet send sizes for server (" << addr << ")\")\n";
     }
     else
     {

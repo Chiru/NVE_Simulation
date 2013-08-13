@@ -116,7 +116,7 @@ StatisticsCollector::~StatisticsCollector(){
     }
 
 
-    PRINT_RESULT("Overall stats: "  <<"\n\tAverage transmit times   clientToServer: " <<  averageClientToServer.GetMilliSeconds() << "   clientToClient: "
+    PRINT_RESULT("Overall stats: "  <<"\n\tAverage transmission times   clientToServer: " <<  averageClientToServer.GetMilliSeconds() << "   clientToClient: "
                  << averageClientToClient.GetMilliSeconds() << "   serverToClient: " << averageServerToClient.GetMilliSeconds()  << "  (in milliseconds)"
                  << "\n\tAverage percentage of messages to reach server in time:" <<  averageServerInTime << "\n\tAverage percentage of messages from client to reach client in time: "
                  << averageClientToClientInTime << "\n\tAverage percentage of messages from server to reach client in time: " << averageServerToClientInTime << std::endl);
@@ -300,7 +300,7 @@ void StatisticsCollector::getStreamResults(std::vector<StatisticsCollector::Mess
         serverToClientPercentage = static_cast<double>(tempServerToClientInTime) / static_cast<double>(messagesSentFromServer);
 
 
-    PRINT_RESULT("Average transmit times for stream number: " << streamnumber << std::endl);
+    PRINT_RESULT("Average transmission times for stream number: " << streamnumber << std::endl);
     PRINT_RESULT("\tclientToServer: ");
     if(clientToServerPercentage == -1)
         PRINT_RESULT("N/A" << std::endl);

@@ -574,7 +574,6 @@ void ClientDataGenerator::readReceivedData(uint8_t* buffer, uint16_t bufferSize,
 
 
 void ClientDataGenerator::moreBufferSpaceAvailable(Ptr<Socket> sock, uint32_t size){
-
 }
 
 bool ClientDataGenerator::sendData(Message *msg, uint8_t* buffer){
