@@ -236,7 +236,7 @@ int start(Args args, MainWindow *mw){
         clients[i] = new Client(parser, i+1, clientRouterNodes[i].Get(0), serverAddresses, clientRouterIpInterfaces[i].GetAddress(0));
         PRINT_INFO(*(clients[i]) << std::endl);
         stats->addClientInfo(clients[i]->getAddress(), clients[i]->getRunningTime(), clients[i]->getJoinTime(),
-                             clients[i]->getExitTime(), clients[i]->pcapEnabled());
+                             clients[i]->getExitTime(), clients[i]->pcapEnabled(), clients[i]->graphsEnabled());
     }
 
     for(i = 0; i < numberOfClients; i++){

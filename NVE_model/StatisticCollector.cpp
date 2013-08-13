@@ -348,7 +348,7 @@ void StatisticsCollector::addFlowMonitor(Ptr<FlowMonitor> flowMon, FlowMonitorHe
     this->flowMon->Stop(Time(runningTime));
 }
 
-void StatisticsCollector::addClientInfo(const Ipv4Address &addr, int runningTime, int joinTime, int exitTime, bool pcap)
+void StatisticsCollector::addClientInfo(const Ipv4Address &addr, int runningTime, int joinTime, int exitTime, bool pcap, bool graphs)
 {
     ClientInfo info;
 
@@ -356,6 +356,7 @@ void StatisticsCollector::addClientInfo(const Ipv4Address &addr, int runningTime
     info.exitTime = exitTime;
     info.runningTime = runningTime;
     info.pcap = pcap;
+    info.graph = graphs;
 
     clientsInformation.insert(std::pair<Ipv4Address, ClientInfo>(addr, info));
 }
@@ -536,6 +537,7 @@ bool StatisticsCollector::generateSingleNodeStatsFromPcap()
     bool cont = true;
     bool isServer = false;
     bool pcap = false;
+    bool graphs = false;
     Ipv4Address addr;
 
 
@@ -548,14 +550,16 @@ bool StatisticsCollector::generateSingleNodeStatsFromPcap()
             isServer = true;
             addr = serverAddr;
             pcap = serverPcap;
+            graphs = true;
         }
         else
         {
             addr = it->first;
             pcap = it->second.pcap;
+            graphs = it->second.graph;
         }
 
-        if(pcap)
+        if(pcap && graphs)
         {
 
             stream.str("");

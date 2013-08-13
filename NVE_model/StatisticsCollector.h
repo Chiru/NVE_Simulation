@@ -57,7 +57,7 @@ public:
     static bool getClientLog() {return clientLog;}
     static bool getServerLog() {return serverLog;}
     void addFlowMonitor(Ptr<FlowMonitor> flowMon, FlowMonitorHelper& helper);
-    void addClientInfo(const Ipv4Address &addr, int runningTime, int joinTime, int exitTime, bool pcap);
+    void addClientInfo(const Ipv4Address &addr, int runningTime, int joinTime, int exitTime, bool pcap, bool graphs);
     void setServerAddress(const Ipv4Address& addr);
     void setServerPcap(bool pcap);
     void setStartTime(double time);
@@ -101,6 +101,7 @@ private:
         int exitTime;
         int runningTime;
         bool pcap;
+        bool graph;
     };
 
     std::map<Ipv4Address, ClientInfo> clientsInformation;

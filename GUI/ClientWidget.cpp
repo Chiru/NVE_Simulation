@@ -104,6 +104,7 @@ void ClientWidget::configClientWidget()
     graph->setToolTip("Enable graphs for this client type");
 
     pcap->setChecked(true);
+    graph->setChecked(true);
 
     delay->setMaximum(10000);
     arrive->setMaximum(100000);
@@ -112,6 +113,7 @@ void ClientWidget::configClientWidget()
     QObject::connect(this->arrive, SIGNAL(valueChanged(int)), this, SLOT(arriveValueChangedManually(int)));
     QObject::connect(this->exit, SIGNAL(valueChanged(int)), this, SLOT(exitValueChangedManually(int)));
     QObject::connect(this->exit, SIGNAL(valueChanged(int)), this, SLOT(limitMaxJoinTime(int)));
+    QObject::connect(this->pcap, SIGNAL(toggled(bool)), this, SLOT(pcapButtonStatusChanged(bool)));
 
 }
 
@@ -159,3 +161,9 @@ void ClientWidget::simTimeChanged(int time)
     autoValueChange = false;
 }
 
+
+void ClientWidget::pcapButtonStatusChanged(bool checked)
+{
+    graph->setChecked(checked);
+    graph->setEnabled(checked);
+}
