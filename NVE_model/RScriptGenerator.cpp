@@ -62,8 +62,8 @@ bool RScriptGenerator::generateScriptForStream(const std::list<int64_t>* transmi
 
         stream << "write(\"\nMean value of client to server transmission times for stream number : " << count + 1 << "\", filename, append=TRUE)\n";
         stream << "write(mean(" << server << count << "), filename, append=TRUE)\n";
-        stream << "write(\"Quantiles of client to server transmission times for stream number : " << count + 1 << " (min, 25%, median, 75%, max) \", filename, append=TRUE)\n";
-        stream << "write(quantile(" << server << count << "), filename, append=TRUE)\n";
+        stream << "write(\"Quantiles of client to server transmission times for stream number : " << count + 1 << " (min, 10%, 20%, 30%, 40%, 50%, 60%, 70%, 80%, 90%, max) \", filename, append=TRUE)\n";
+        stream << "write(quantile(" << server << count << ", probs = seq(0, 1, 0.1)), filename, append=TRUE)\n";
 
         stream << "\n#Step function for stream number: " << count +1 << "\n";
         stream << serverFunc << count << " = ecdf(" << server << count << ")\n";
@@ -81,8 +81,8 @@ bool RScriptGenerator::generateScriptForStream(const std::list<int64_t>* transmi
 
         stream << "write(\"\nMean value of client to client transmission times for stream number : " << count + 1 << "\", filename, append=TRUE)\n";
         stream << "write(mean(" << client << count << "), filename, append=TRUE)\n";
-        stream << "write(\"Quantiles of client to client transmission times for stream number : " << count + 1 << " (min, 25%, median, 75%, max) \", filename, append=TRUE)\n";
-        stream << "write(quantile(" << client << count << "), filename, append=TRUE)\n";
+        stream << "write(\"Quantiles of client to client transmission times for stream number : " << count + 1 << " (min, 10%, 20%, 30%, 40%, 50%, 60%, 70%, 80%, 90%, max) \", filename, append=TRUE)\n";
+        stream << "write(quantile(" << client << count << ", probs = seq(0, 1, 0.1)), filename, append=TRUE)\n";
 
         stream << "\n#Step function for stream number: " << count + 1 << "\n";
         stream << clientFunc << count << " = ecdf(" << client << count << ")\n";
@@ -99,8 +99,8 @@ bool RScriptGenerator::generateScriptForStream(const std::list<int64_t>* transmi
 
         stream << "write(\"\nMean value of server to client transmission times for stream number : " << count + 1  << "\", filename, append=TRUE)\n";
         stream << "write(mean(" << serverToClient << count << "), filename, append=TRUE)\n";
-        stream << "write(\"Quantiles of server to client transmission times for stream number : " << count + 1  << " (min, 25%, median, 75%, max) \", filename, append=TRUE)\n";
-        stream << "write(quantile(" << serverToClient << count << "), filename, append=TRUE)\n";
+        stream << "write(\"Quantiles of server to client transmission times for stream number : " << count + 1  << " (min, 10%, 20%, 30%, 40%, 50%, 60%, 70%, 80%, 90%, max) \", filename, append=TRUE)\n";
+        stream << "write(quantile(" << serverToClient << count << ", probs = seq(0, 1, 0.1)), filename, append=TRUE)\n";
 
         stream << "\n#Step function for stream number: " << count +1 << "\n";
         stream << serverToClientFunc << count << " = ecdf(" << serverToClient << count << ")\n";
@@ -309,8 +309,8 @@ bool RScriptGenerator::generateScriptForClientMessage(std::list<int> clientRecvT
 
     stream << "write(\"\nMean value of client to server transmission times for message: " << name << "\", filename, append=TRUE)\n";
     stream << "write(mean(" << server << name << "), filename, append=TRUE)\n";
-    stream << "write(\"Quantiles of client to server transmission times for message: " << name << " (min, 25%, median, 75%, max) \", filename, append=TRUE)\n";
-    stream << "write(quantile(" << server << name << "), filename, append=TRUE)\n";
+    stream << "write(\"Quantiles of client to server transmission times for message: " << name << " (min, 10%, 20%, 30%, 40%, 50%, 60%, 70%, 80%, 90%, max) \", filename, append=TRUE)\n";
+    stream << "write(quantile(" << server << name << ", probs = seq(0, 1, 0.1)), filename, append=TRUE)\n";
     stream << "write(\"Percentage of messages to reach server in " << serverTimeReq << " ms for message: " << name << "\", filename, append=TRUE)\n";
     stream << "write(" << ((double)clientToServerInTime/ ((double)sendIntervals.size() )) << ", filename, append=TRUE)\n";
 
@@ -340,8 +340,8 @@ bool RScriptGenerator::generateScriptForClientMessage(std::list<int> clientRecvT
 
     stream << "write(\"\nMean value of client to client transmission times for message: " << name << "\", filename, append=TRUE)\n";
     stream << "write(mean(" << client << name << "), filename, append=TRUE)\n";
-    stream << "write(\"Quantiles of client to client transmission times for message: " << name << " (min, 25%, median, 75%, max) \", filename, append=TRUE)\n";
-    stream << "write(quantile(" << client << name << "), filename, append=TRUE)\n";
+    stream << "write(\"Quantiles of client to client transmission times for message: " << name << " (min, 10%, 20%, 30%, 40%, 50%, 60%, 70%, 80%, 90%, max) \", filename, append=TRUE)\n";
+    stream << "write(quantile(" << client << name << ", probs = seq(0, 1, 0.1)), filename, append=TRUE)\n";
     stream << "write(\"Percentage of messages from client to reach client in " << clientTimeReq << " ms for message: " << name << "\", filename, append=TRUE)\n";
     stream << "write(" << (numberOfClientsForwarded == 0 ? 0 :  (double)clientToClientInTime/ ((double)numberOfClientsForwarded)) << ", filename, append=TRUE)\n";
 
@@ -359,8 +359,8 @@ bool RScriptGenerator::generateScriptForClientMessage(std::list<int> clientRecvT
 
     stream << "write(\"\nMean value of send time intervals for message: " << name << "\", filename, append=TRUE)\n";
     stream << "write(mean(sendtimes_" << name << "), filename, append=TRUE)\n";
-    stream << "write(\"Quantiles of send time intervals for message: " << name << " (min, 25%, median, 75%, max) \", filename, append=TRUE)\n";
-    stream << "write(quantile(sendtimes_" << name << "), filename, append=TRUE)\n";
+    stream << "write(\"Quantiles of send time intervals for message: " << name << " (min, 10%, 20%, 30%, 40%, 50%, 60%, 70%, 80%, 90%, max) \", filename, append=TRUE)\n";
+    stream << "write(quantile(sendtimes_" << name << ", probs = seq(0, 1, 0.1)), filename, append=TRUE)\n";
 
     stream << "\n#Vector for message sizes for message " << name;
     stream << "\nmessagesizes_" << name << " = c(";
@@ -376,8 +376,8 @@ bool RScriptGenerator::generateScriptForClientMessage(std::list<int> clientRecvT
 
     stream << "write(\"\nMean value of message sizes for message: " << name << "\", filename, append=TRUE)\n";
     stream << "write(mean(messagesizes_" << name << "), filename, append=TRUE)\n";
-    stream << "write(\"Quantiles of message sizes for message: " << name << " (min, 25%, median, 75%, max) \", filename, append=TRUE)\n";
-    stream << "write(quantile(messagesizes_" << name << "), filename, append=TRUE)\n";
+    stream << "write(\"Quantiles of message sizes for message: " << name << " (min, 10%, 20%, 30%, 40%, 50%, 60%, 70%, 80%, 90%, max) \", filename, append=TRUE)\n";
+    stream << "write(quantile(messagesizes_" << name << ", probs = seq(0, 1, 0.1)), filename, append=TRUE)\n";
 
     stream << "\n#Setting max x value\n";
     stream <<  name << "_max = max(" << server << name << ", " << client << name << ", " << serverTimeReq << ", " << clientTimeReq << ")\n";
@@ -477,8 +477,8 @@ bool RScriptGenerator::generateScriptForServerMessage(std::list<int> clientRecvT
 
     stream << "write(\"\nMean value of server to client transmission times for message: " << name << "\", filename, append=TRUE)\n";
     stream << "write(mean(" << client << name << "), filename, append=TRUE)\n";
-    stream << "write(\"Quantiles of server to client transmission times for message: " << name << " (min, 25%, median, 75%, max) \", filename, append=TRUE)\n";
-    stream << "write(quantile(" << client << name << "), filename, append=TRUE)\n";
+    stream << "write(\"Quantiles of server to client transmission times for message: " << name << " (min, 10%, 20%, 30%, 40%, 50%, 60%, 70%, 80%, 90%, max) \", filename, append=TRUE)\n";
+    stream << "write(quantile(" << client << name << ", probs = seq(0, 1, 0.1)), filename, append=TRUE)\n";
     stream << "write(\"Percentage of messages to reach client in " << clientTimeReq << " ms for message: " << name << "\", filename, append=TRUE)\n";
     stream << "write(" << ((double)serverToClientInTime/ ((double)numberOfClientsForwarded)) << ", filename, append=TRUE)\n";
 
@@ -511,8 +511,8 @@ bool RScriptGenerator::generateScriptForServerMessage(std::list<int> clientRecvT
 
     stream << "write(\"\nMean value of send time intervals for message: " << name << "\", filename, append=TRUE)\n";
     stream << "write(mean(sendtimes_" << name << "), filename, append=TRUE)\n";
-    stream << "write(\"Quantiles of send time intervals for message: " << name << " (min, 25%, median, 75%, max) \", filename, append=TRUE)\n";
-    stream << "write(quantile(sendtimes_" << name << "), filename, append=TRUE)\n";
+    stream << "write(\"Quantiles of send time intervals for message: " << name << " (min, 10%, 20%, 30%, 40%, 50%, 60%, 70%, 80%, 90%, max) \", filename, append=TRUE)\n";
+    stream << "write(quantile(sendtimes_" << name << ", probs = seq(0, 1, 0.1)), filename, append=TRUE)\n";
 
     stream << "\n#Vector for message sizes for message " << name;
 
@@ -523,8 +523,8 @@ bool RScriptGenerator::generateScriptForServerMessage(std::list<int> clientRecvT
 
     stream << "write(\"\nMean value of message sizes for message: " << name << "\", filename, append=TRUE)\n";
     stream << "write(mean(messagesizes_" << name << "), filename, append=TRUE)\n";
-    stream << "write(\"Quantiles of message sizes for message: " << name << " (min, 25%, median, 75%, max) \", filename, append=TRUE)\n";
-    stream << "write(quantile(messagesizes_" << name << "), filename, append=TRUE)\n";
+    stream << "write(\"Quantiles of message sizes for message: " << name << " (min, 10%, 20%, 30%, 40%, 50%, 60%, 70%, 80%, 90%, max) \", filename, append=TRUE)\n";
+    stream << "write(quantile(messagesizes_" << name << ", probs = seq(0, 1, 0.1)), filename, append=TRUE)\n";
 
     stream << "\n#Server to client step function for message: " << name << std::endl;
     stream << clientFunc << name << " = ecdf(c(" << client << name << ", " << client << name << "_lost)" << ");\n";
