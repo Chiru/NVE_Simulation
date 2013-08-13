@@ -29,7 +29,6 @@
 #include "ns3/error-model.h"
 #include "ns3/channel.h"
 #include "ns3/flow-monitor-helper.h"
-#include "ns3/netanim-module.h"
 #include "XML_parser.h"
 #include "Server.h"
 #include "StatisticsCollector.h"
@@ -74,8 +73,6 @@ void printAddresses(NetDeviceContainer *deviceContainer, Ipv4InterfaceContainer 
 void printHelpAndQuit();
 
 int start(Args args, MainWindow *mw){
-
-   // LogComponentEnable("nve_simulator", LOG_LEVEL_INFO);
 
     int runningTime;
 
@@ -287,6 +284,10 @@ int start(Args args, MainWindow *mw){
     {
         secondPassed(mw);
     }
+    else
+    {
+        std::cout << "Running simulation..." << std::endl;
+    }
     Simulator::Stop(Seconds(runningTime));
     Simulator::Run();
 
@@ -348,9 +349,9 @@ void printAddresses(NetDeviceContainer *deviceContainer, Ipv4InterfaceContainer 
 
 void printHelpAndQuit(){
 
-    PRINT_INFO("Usage: nve_simulator --filename <file>  [--verbose]\n" << "--help    Print this help message.\n"
+    std::cout << "Usage: nve_simulator --filename <file>  [--verbose]\n" << "--help    Print this help message.\n"
               << "--filename <file>     Give filename (mandatory)\n"
-              << "--verbose     Print info about configuration" << std::endl);
+              << "--verbose     Print info about configuration" << std::endl;
 
     exit(EXIT_SUCCESS);
 
