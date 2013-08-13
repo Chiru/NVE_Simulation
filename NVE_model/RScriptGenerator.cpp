@@ -749,17 +749,6 @@ bool RScriptGenerator::parseOverallPcapStats(const std::string &sourceFile, cons
 
     writeRVectorToStream<std::list<double> >(sentBytesInSecond, uplinkString, stream);
 
-    if(isServer)
-    {
-        stream << "plot(seq(0,length(" << uplinkString << ") - 1), " << uplinkString
-               << ", main=\"Overall bandwidths\", type='s', col=\"red\", lwd=2, xlim=c(0,length("
-               << uplinkString << ")), xlab=\"Simulation time (seconds)\", ylab=\"Bandwidth usage (Mbps)\")\n";
-    }
-    else
-    {
-        stream << "lines(seq(" << joinTime - 1 << "," << joinTime - 1 + sentBytesInSecond.size() - 1 << "), " << uplinkString << ", type='s', col=\"palegreen2\")\n";
-    }
-
     stream << "\n#Dowlink bandwidth usage per second for node: " << addr << "\n";
 
     if(isServer)
@@ -774,11 +763,18 @@ bool RScriptGenerator::parseOverallPcapStats(const std::string &sourceFile, cons
 
     if(isServer)
     {
+        stream << "plot(seq(0,length(" << uplinkString << ") - 1), " << uplinkString
+                    << ", main=\"Overall bandwidths\", type='s', col=\"red\", lwd=2, xlim=c(0,length("
+                    << uplinkString << ")), ylim=c(0, max(" << uplinkString << ", " << downlinkString
+                    << ")), xlab=\"Simulation time (seconds)\", ylab=\"Bandwidth usage (Mbps)\")\n";
         stream << "lines(seq(0,length(" << downlinkString << ") - 1), " << downlinkString << ", col=\"darkblue\", lty=2, type='s', lwd=3)\n";
     }
     else
     {
-        stream << "lines(seq(" << joinTime - 1  << "," << joinTime - 1 + recvBytesInSecond.size() - 1 << "), " << downlinkString << ", col=\"orange4\", type='s', lty=2, lwd=2)\n";
+        stream << "lines(seq(" << joinTime - 1 << "," << joinTime - 1 + sentBytesInSecond.size() - 1
+               << "), " << uplinkString << ", type='s', col=\"palegreen2\")\n";
+        stream << "lines(seq(" << joinTime - 1  << "," << joinTime - 1 + recvBytesInSecond.size() - 1
+               << "), " << downlinkString << ", col=\"orange4\", type='s', lty=2, lwd=2)\n";
     }
 
     if(isServer)
