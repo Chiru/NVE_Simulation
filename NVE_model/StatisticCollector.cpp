@@ -644,6 +644,7 @@ bool StatisticsCollector::generateOverallGraphFromPcap()
     bool pcap = true;
     struct stat pcapFile;
     std::string fileName;
+    std::string clientName;
 
     std::map<Ipv4Address, ClientInfo>::const_iterator it;
     isServer = true;
@@ -683,7 +684,9 @@ bool StatisticsCollector::generateOverallGraphFromPcap()
             {
                 fileName = "./results/client-";
                 fileName.append(stream.str());
+                clientName = fileName;
                 fileName.append(".pcap");
+                clientName.append("_network_stats.txt");
             }
 
             stream.str("");
@@ -694,7 +697,18 @@ bool StatisticsCollector::generateOverallGraphFromPcap()
             {
                 if((pid = fork()) == 0)
                 {
-                    int fd = open("temp.txt",  O_RDWR | O_CREAT | O_TRUNC, S_IRWXO | S_IRWXG | S_IRWXU);
+                    int fd;
+
+                    if(isServer)
+                    {
+                        fd = open("./results/server_network_stats.txt",  O_RDWR | O_CREAT | O_TRUNC, S_IRWXO | S_IRWXG | S_IRWXU);
+                    }
+                    else
+                    {
+                        fd = open(clientName.c_str(),  O_RDWR | O_CREAT | O_TRUNC, S_IRWXO | S_IRWXG | S_IRWXU);
+                    }
+
+
                     dup2(fd, 1);
                     close(fd);
 
@@ -713,9 +727,9 @@ bool StatisticsCollector::generateOverallGraphFromPcap()
                     return false;
 
                 if(isServer)
-                    scriptGen->parseOverallPcapStats("temp.txt", addr, 0, true, startTime);
+                    scriptGen->parseOverallPcapStats("./results/server_network_stats.txt", addr, 0, true, startTime);
                 else
-                    scriptGen->parseOverallPcapStats("temp.txt", addr, clientNumber, false, startTime, it->second.joinTime);
+                    scriptGen->parseOverallPcapStats(clientName.c_str(), addr, clientNumber, false, startTime, it->second.joinTime);
 
             }
         }

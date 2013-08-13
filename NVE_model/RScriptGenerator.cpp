@@ -541,7 +541,7 @@ bool RScriptGenerator::generateScriptForServerMessage(std::list<int> clientRecvT
               << "\"black\", \"darkgrey\"), lty=c(1,2), inset=.05)" << std::endl;
 
     stream << "#Message generation time intervals for " << name;
-    stream << "\nplot(tabulate(sendtimes_" << name << "), type=\"h\", xlab=\"Time(ms)\", ylab =\"Message count\", main=\"Message genereation time intervals for: " <<  name <<"\")" << std::endl;
+    stream << "\nplot(tabulate(sendtimes_" << name << "), type=\"h\", xlab=\"Time(ms)\", ylab =\"Message count\", main=\"Message generation time intervals for: " <<  name <<"\")" << std::endl;
 
     stream << "\n#Packet sizes for message " << name << std::endl;
     stream << "\nplot(tabulate(messagesizes_" << name << "), type=\"h\", xlab=\"Message size(bytes)\", ylab =\"Message count\", main=\"Message sizes for: " <<  name <<"\")" << std::endl;
