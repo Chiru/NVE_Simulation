@@ -51,7 +51,8 @@ FORMS    += GUI/mainwindow.ui
 
 OTHER_FILES += \
     .gitignore \
-    licence.txt
+    licence.txt \
+    README.txt
 
 INCLUDEPATH += NVE_model \
     ../build
