@@ -7,7 +7,6 @@
 #ifndef APPLICATION_PROTOCOL_H
 #define APPLICATION_PROTOCOL_H
 
-#include "ns3/applications-module.h"
 #include "ns3/nstime.h"
 #include "ns3/core-module.h"
 #include <vector>

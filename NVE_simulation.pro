@@ -55,17 +55,16 @@ OTHER_FILES += \
     README.txt
 
 INCLUDEPATH += NVE_model \
-    ../build
+    NS3/build/ \
 
-LIBS +=  -L ../build/ \
-    -lns3.17-core-debug \
-    -lns3.17-internet-debug \
-    -lns3.17-network-debug \
-    -lns3.17-flow-monitor-debug \
-    -lns3.17-point-to-point-debug \
-    -lns3.17-mpi-debug \
-    -lns3.17-bridge-debug
+LIBS +=  -L ../NVE\ simulation/NS3/build/ \
+    -lns3.17-core-optimized \
+    -lns3.17-internet-optimized \
+    -lns3.17-network-optimized \
+    -lns3.17-flow-monitor-optimized \
+    -lns3.17-point-to-point-optimized \
+    -lns3.17-mpi-optimized \
+    -lns3.17-bridge-optimized
 
 
-DEFINES += NS3_LOG_ENABLE
-DEFINES += NS3_ASSERT_ENABLE
+
