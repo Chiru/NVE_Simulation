@@ -57,7 +57,7 @@ OTHER_FILES += \
 INCLUDEPATH += NVE_model \
     NS3/build/ \
 
-LIBS +=  -L ../NVE\ simulation/NS3/build/ \
+LIBS +=  -L./NS3/build/ \
     -lns3.17-core-optimized \
     -lns3.17-internet-optimized \
     -lns3.17-network-optimized \
