@@ -27,7 +27,8 @@ ClientWidget::ClientWidget(int number, int simTime, QWidget *parent, const Clien
 
 }
 
-ClientWidget::ClientWidget(int number, int count, int delay, double loss, double uplink, double downlink, int arriveTime, int exitTime, bool pcap, bool graph,
+ClientWidget::ClientWidget(int number, int count, int delay, double loss, double uplink,
+                           double downlink, int arriveTime, int exitTime, bool pcap, bool graph,
                            int simTime, QWidget *parent)
     : QGroupBox(parent),
       clientNumber(number)

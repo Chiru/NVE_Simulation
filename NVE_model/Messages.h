@@ -27,9 +27,10 @@ class DataGenerator;
 
 enum MessageType{USER_ACTION, OTHER_DATA};
 
-class Message{
-
-    friend std::ostream& operator<<( std::ostream& out, const Message& msg){
+class Message
+{
+    friend std::ostream& operator<<( std::ostream& out, const Message& msg)
+    {
         msg.printStats(out);
         return out;
     }
@@ -37,9 +38,10 @@ class Message{
 
 public:
 
-    struct StringComparator{
-        bool operator() (const std::string& s1, const std::string& s2) const{
-
+    struct StringComparator
+    {
+        bool operator() (const std::string& s1, const std::string& s2) const
+        {
             if(s1.compare(s2) > 0)
                 return true;
             else
@@ -90,7 +92,8 @@ public:
     bool useRcvSize;
     bool forwardBack;
 
-    typedef struct{    //these must be remembered in order to get messagesizes when they are generated with random values
+    typedef struct      //these must be remembered in order to get messagesizes when they are generated with random values
+    {
         uint16_t number;
         uint16_t size;
         uint16_t forwardSize;
@@ -102,7 +105,8 @@ public:
 };
 
 
-class UserActionMessage : public Message{
+class UserActionMessage : public Message
+{
 
     friend class XMLParser;
 
@@ -120,15 +124,19 @@ public:
 
     static std::map<std::string ,uint16_t, StringComparator> userActionMessageNameMap;
 
-    static inline uint16_t getUAMNameIndex(const std::string& name){
+    static inline uint16_t getUAMNameIndex(const std::string& name)
+    {
        return UserActionMessage::userActionMessageNameMap.find(name)->second;
     }
-    static std::string& getUAMIndexName(uint16_t index){
+    static std::string& getUAMIndexName(uint16_t index)
+    {
         static std::map<std::string, uint16_t, StringComparator>::iterator it;
         static std::string failReturn("This should never happen!");
 
-        for(it = UserActionMessage::userActionMessageNameMap.begin(); it != UserActionMessage::userActionMessageNameMap.end(); it++){
-            if(it->second == index){
+        for(it = UserActionMessage::userActionMessageNameMap.begin(); it != UserActionMessage::userActionMessageNameMap.end(); it++)
+        {
+            if(it->second == index)
+            {
                 return const_cast<std::string&>(it->first);
             }
         }
@@ -137,19 +145,20 @@ public:
 
 private:
     UserActionMessage(std::string name, bool reliable, int timeInterval, uint16_t messageSize, double clientsOfInterest, uint32_t clientRequirement,
-                      uint32_t serverRequirement, uint16_t streamNumber, uint16_t forwardSize, bool forwardBack, bool rcvSize, RandomVariable* ranvarTimeInterval = 0,
-                      RandomVariable* ranvarSize = 0, RandomVariable* ranvarForwardSize = 0);
+                      uint32_t serverRequirement, uint16_t streamNumber, uint16_t forwardSize, bool forwardBack, bool rcvSize,
+                      RandomVariable* ranvarTimeInterval = 0, RandomVariable* ranvarSize = 0, RandomVariable* ranvarForwardSize = 0);
 
     double clientsOfInterest;
-    uint32_t clientTimeRequirement;  //time requirement for messages to travel from client to client
-    uint32_t serverTimeRequirement;  //time requirement for messages to reach server
+    uint32_t clientTimeRequirement;
+    uint32_t serverTimeRequirement;
     void sendData();
     void printStats(std::ostream& out) const;
     static int newMessageNumber(uint16_t streamNumber);
 
 };
 
-class OtherDataMessage : public Message{
+class OtherDataMessage : public Message
+{
 
     friend class XMLParser;
 
@@ -165,15 +174,19 @@ public:
 
     static std::map<std::string ,uint16_t, StringComparator> otherDataMessageNameMap;
 
-    static inline uint16_t getODMNameIndex(const std::string& name){
+    static inline uint16_t getODMNameIndex(const std::string& name)
+    {
        return OtherDataMessage::otherDataMessageNameMap.find(name)->second;
     }
-    static std::string& getODMIndexName(uint16_t index){
+    static std::string& getODMIndexName(uint16_t index)
+    {
         static std::map<std::string, uint16_t, StringComparator>::iterator it;
         static std::string failReturn("This should never happen!");
 
-        for(it = OtherDataMessage::otherDataMessageNameMap.begin(); it != OtherDataMessage::otherDataMessageNameMap.end(); it++){
-            if(it->second == index){
+        for(it = OtherDataMessage::otherDataMessageNameMap.begin(); it != OtherDataMessage::otherDataMessageNameMap.end(); it++)
+        {
+            if(it->second == index)
+            {
                 return const_cast<std::string&>(it->first);
             }
         }

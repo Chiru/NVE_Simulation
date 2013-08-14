@@ -11,17 +11,19 @@
 #include <sys/wait.h>
 #include "utilities.h"
 
-class RScriptGenerator{
+class RScriptGenerator
+{
 
 public:
     RScriptGenerator(const std::string& filename, const std::string& resultPdfFile, std::string& resultTextFile);
     ~RScriptGenerator();
-    bool generateScriptForStream(const std::list<int64_t>* transmitTimesToClients,  const std::list<int64_t>* transmitTimesToServer, const std::list<int64_t>* transmitTimesFromServer,
-                                 uint16_t maxStreams);
-    bool generateScriptForClientMessage(std::list<int> clientRecvTimes, std::list<int> serverRecvTimes, std::list<int> sendIntervals, const std::string& name, int serverTimeReq,
-                                        int clientTimeReq, uint32_t numberOfClientsForwarded, std::list<uint16_t> sizes);
-    bool generateScriptForServerMessage(std::list<int> clientRecvTimes, std::list<int> sendIntervals, const std::string& name, int clientTimeReq, uint16_t numberOfClientsForwarded,
+    bool generateScriptForStream(const std::list<int64_t>* transmitTimesToClients,  const std::list<int64_t>* transmitTimesToServer,
+                                 const std::list<int64_t>* transmitTimesFromServer, uint16_t maxStreams);
+    bool generateScriptForClientMessage(std::list<int> clientRecvTimes, std::list<int> serverRecvTimes, std::list<int> sendIntervals,
+                                        const std::string& name, int serverTimeReq, int clientTimeReq, uint32_t numberOfClientsForwarded,
                                         std::list<uint16_t> sizes);
+    bool generateScriptForServerMessage(std::list<int> clientRecvTimes, std::list<int> sendIntervals, const std::string& name,
+                                        int clientTimeReq, uint16_t numberOfClientsForwarded, std::list<uint16_t> sizes);
     bool writeAndExecuteResultScript();
     bool generateBandwidthHistogram(double clientDownlink, double clientUplink, double serverDownlink, double serverUplink);
     bool addClientBandwidth(const Ipv4Address& addr, double downLink, double upLink, bool isClient = true);

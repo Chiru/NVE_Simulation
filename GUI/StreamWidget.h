@@ -21,8 +21,8 @@ class StreamWidget : public QGroupBox
 
 public:
     StreamWidget(int number, MainWindow* mw,QWidget* parent = 0);
-    StreamWidget(int number, MainWindow* mw, bool tcpUsed, bool appProto, bool ordered, bool nagle, int serverGameTick, int clientGameTick, QList<MessageTemplate*> messages,
-                 QWidget* parent = 0);
+    StreamWidget(int number, MainWindow* mw, bool tcpUsed, bool appProto, bool ordered, bool nagle,
+                 int serverGameTick, int clientGameTick, QList<MessageTemplate*> messages, QWidget* parent = 0);
     ~StreamWidget();
     bool isAppProtoEnabled() const{return appProto->isChecked();}
     bool tcpUsed() const {return tcp->isChecked();}

@@ -72,10 +72,9 @@ void secondPassed(MainWindow* mw);
 void printAddresses(NetDeviceContainer *deviceContainer, Ipv4InterfaceContainer *ipv4Container,  int count);
 void printHelpAndQuit();
 
-int start(Args args, MainWindow *mw){
-
+int start(Args args, MainWindow *mw)
+{
     int runningTime;
-
     int i;
     std::stringstream str;
     std::string addressBase;
@@ -84,7 +83,6 @@ int start(Args args, MainWindow *mw){
     Ipv4InterfaceContainer routerServerIpInterfaces;
     Ipv4AddressHelper address;
     NodeContainer allNodes;
-
     uint16_t* serverPorts;
     bool verbose = false, clientLog = false, serverLog = false;
     std::string XML_filename;
@@ -92,24 +90,21 @@ int start(Args args, MainWindow *mw){
     FlowMonitorHelper flowMonHelper;
     struct stat resultDir, scriptDir;
 
-
     stat("./results", &resultDir);
     stat("./results/Rscripts", &scriptDir);
 
-    if((resultDir.st_mode & S_IFMT) != S_IFDIR || (scriptDir.st_mode& S_IFMT) != S_IFDIR ){
+    if((resultDir.st_mode & S_IFMT) != S_IFDIR || (scriptDir.st_mode& S_IFMT) != S_IFDIR )
+    {
 
-        if(system("mkdir ./results") == -1 || system("mkdir ./results/Rscripts") == 1){
-
+        if(system("mkdir ./results") == -1 || system("mkdir ./results/Rscripts") == 1)
+        {
             PRINT_ERROR("Can't create directories results and results/Rscripts, please create them." << std::endl);
-
         }
     }
 
-
     DropTailQueue::GetTypeId();
 
-    Config::SetDefault("ns3::DropTailQueue::MaxPackets", UintegerValue(2000));    //TODO: change to be configurable
-
+    Config::SetDefault("ns3::DropTailQueue::MaxPackets", UintegerValue(2000)); //hard coding
 
     if(args.isVerbose())
     {
@@ -141,8 +136,8 @@ int start(Args args, MainWindow *mw){
 
     XMLParser parser = XMLParser(XML_filename);
 
-    if(!parser.isFileCorrect()){
-
+    if(!parser.isFileCorrect())
+    {
         std::string err = parser.getErrorMessage();
 
         if(mw != 0)
@@ -169,7 +164,8 @@ int start(Args args, MainWindow *mw){
 
     NodeContainer clientRouterNodes[numberOfClients];
 
-    for(int i = 0; i < numberOfClients; i++){
+    for(int i = 0; i < numberOfClients; i++)
+    {
         clientRouterNodes[i] = NodeContainer(allNodes.Get(i), allNodes.Get(numberOfClients));
     }
 
@@ -184,16 +180,10 @@ int start(Args args, MainWindow *mw){
         pointToPoint[i] = new PointToPointHelper();
     }
 
-    //for(int i = 0; i<numberOfClients; i++)
-      //  csma[i].SetChannelAttribute("DataRate", StringValue("5Mbps"));
-
-    //csma[numberOfClients].SetChannelAttribute("DataRate", StringValue("1Gbps"));
-    //csma[numberOfClients + 1].SetChannelAttribute("DataRate", StringValue("1Gbps"));
-
-
     NetDeviceContainer clientRouterDevices[numberOfClients];
 
-    for(i = 0; i < numberOfClients; i++){
+    for(i = 0; i < numberOfClients; i++)
+    {
         clientRouterDevices[i] = pointToPoint[i]->Install(clientRouterNodes[i]);
     }
 
@@ -206,7 +196,8 @@ int start(Args args, MainWindow *mw){
 
     Ipv4InterfaceContainer clientRouterIpInterfaces[numberOfClients];
 
-    for(i = 0; i < numberOfClients; i++, str.str("")){
+    for(i = 0; i < numberOfClients; i++, str.str(""))
+    {
         str << "10.1." << i+1 << ".0";
         addressBase = str.str();
         address.SetBase(addressBase.c_str(), "255.255.255.0", "0.0.0.1");
@@ -219,7 +210,8 @@ int start(Args args, MainWindow *mw){
 
     Address serverAddresses[parser.getNumberOfStreams()];       //contains ip address and port number for each stream
 
-    for(i = 0; i < parser.getNumberOfStreams(); i++){
+    for(i = 0; i < parser.getNumberOfStreams(); i++)
+    {
         serverAddresses[i] = InetSocketAddress(routerServerIpInterfaces.GetAddress(1), 10000 + i);
     }
 
@@ -228,14 +220,16 @@ int start(Args args, MainWindow *mw){
 
     stats->setServerPcap(server.pcapEnabled());
 
-    for(uint16_t i = 0; i < numberOfClients; i++){
+    for(uint16_t i = 0; i < numberOfClients; i++)
+    {
         clients[i] = new Client(parser, i+1, clientRouterNodes[i].Get(0), serverAddresses, clientRouterIpInterfaces[i].GetAddress(0));
         PRINT_INFO(*(clients[i]) << std::endl);
         stats->addClientInfo(clients[i]->getAddress(), clients[i]->getRunningTime(), clients[i]->getJoinTime(),
                              clients[i]->getExitTime(), clients[i]->pcapEnabled(), clients[i]->graphsEnabled());
     }
 
-    for(i = 0; i < numberOfClients; i++){
+    for(i = 0; i < numberOfClients; i++)
+    {
         packetLoss[i] = CreateObjectWithAttributes<RateErrorModel>("ErrorUnit", StringValue ("ERROR_UNIT_PACKET"),
                                                                    "ErrorRate", DoubleValue(clients[i]->getLossRate()));
         clientRouterDevices[i].Get(0)->SetAttribute("ReceiveErrorModel", PointerValue(packetLoss[i]));
@@ -254,7 +248,8 @@ int start(Args args, MainWindow *mw){
     routerServerDevices.Get(1)->SetAttribute("DataRate", DataRateValue(DataRate("1Gbps")));
     routerServerDevices.Get(0)->GetChannel()->SetAttribute("Delay", TimeValue(Time("0ms")));
 
-    if(verbose){
+    if(verbose)
+    {
         printAddresses(clientRouterDevices, clientRouterIpInterfaces, numberOfClients);
         printAddresses(&routerServerDevices, &routerServerIpInterfaces, 1);
     }
@@ -272,7 +267,6 @@ int start(Args args, MainWindow *mw){
             pcapFileName << ".pcap";
             pointToPoint[i]->EnablePcap(pcapFileName.str(), clientRouterDevices[i].Get(0), false, true);
         }
-
     }
 
     if(server.pcapEnabled())
@@ -298,7 +292,8 @@ int start(Args args, MainWindow *mw){
         mw->updateSimulationStatus(true);
     }
 
-    for(i = 0; i < numberOfClients; i++){
+    for(i = 0; i < numberOfClients; i++)
+    {
         delete clients[i];
     }
 
@@ -320,22 +315,24 @@ int start(Args args, MainWindow *mw){
 void secondPassed(MainWindow *mw)
 {
     Simulator::Schedule(Time(Seconds(1)), &secondPassed, mw);
-
     mw->updateSimulationStatus(false);
 }
 
 
-void printAddresses(NetDeviceContainer *deviceContainer, Ipv4InterfaceContainer *ipv4Container, int count){
-
+void printAddresses(NetDeviceContainer *deviceContainer, Ipv4InterfaceContainer *ipv4Container, int count)
+{
     NetDevice* device;
     Ipv4InterfaceAddress address;
     Ipv4* tempAddress;
     std::vector<Ptr<NetDevice> >::const_iterator macIt;
     std::vector<std::pair<Ptr<Ipv4>, uint32_t > >::const_iterator ipIt;
 
-    for(int i = 0; i < count; i++){
+    for(int i = 0; i < count; i++)
+    {
 
-        for(macIt =(deviceContainer +i)->Begin(), ipIt = (ipv4Container +i)->Begin(); (macIt != (deviceContainer +i)->End()) && (ipIt != (ipv4Container +i)->End()); macIt++, ipIt++){
+        for(macIt =(deviceContainer +i)->Begin(), ipIt = (ipv4Container +i)->Begin();
+            (macIt != (deviceContainer +i)->End()) && (ipIt != (ipv4Container +i)->End()); macIt++, ipIt++)
+        {
             device = GetPointer(*macIt);
             tempAddress = GetPointer(ipIt->first);
             address = tempAddress->GetAddress(ipIt->second, 0);
@@ -347,14 +344,14 @@ void printAddresses(NetDeviceContainer *deviceContainer, Ipv4InterfaceContainer 
     }
 }
 
-void printHelpAndQuit(){
 
+void printHelpAndQuit()
+{
     std::cout << "Usage: nve_simulator --filename <file>  [--verbose]\n" << "--help    Print this help message.\n"
               << "--filename <file>     Give filename (mandatory)\n"
               << "--verbose     Print info about configuration" << std::endl;
 
     exit(EXIT_SUCCESS);
-
 }
 
 

@@ -28,12 +28,17 @@
 #include "RScriptGenerator.h"
 
 
-class StatisticsCollector{
+class StatisticsCollector
+{
 
-    class MessageStats{
+    class MessageStats
+    {
     public:
-        MessageStats(int no, Time time, uint32_t clientRequirement, uint32_t serverRequirement, uint16_t nameIndex): messageNumber(no), sendTime(time), serverRecvTime(Time("0ms")), clientRecvTimes(0),
-            clientTimeRequirement(clientRequirement), serverTimeRequirement(serverRequirement), numberOfClientsForwarded(0), messageNameIndex(nameIndex){}
+        MessageStats(int no, Time time, uint32_t clientRequirement, uint32_t serverRequirement, uint16_t nameIndex)
+            : messageNumber(no), sendTime(time), serverRecvTime(Time("0ms")), clientRecvTimes(0),
+              clientTimeRequirement(clientRequirement), serverTimeRequirement(serverRequirement),
+              numberOfClientsForwarded(0), messageNameIndex(nameIndex){}
+
         int messageNumber;
         Time sendTime;
         Time serverRecvTime;
@@ -67,15 +72,17 @@ public:
     static void logUserActionMessageReceivedByClient(int messageNumber, Time, uint16_t streamNumber);    //log times when user action messages are finally forwarded to other clients
     static void logServerMessageReceivedByClient(int messageNumber, Time, uint16_t streamNumber);        //log times when server messages reach client
     static void logMessageForwardedByServer(int messageNumber, uint16_t streamNumber, uint16_t size); //counts the messages forwarded to clients
-    static void logMessagesSentFromServer(int messageNumber, Time, uint16_t streamNumber, uint32_t clientTimeRequirement, uint16_t messageNameIndex, uint16_t messageId, uint16_t size);
+    static void logMessagesSentFromServer(int messageNumber, Time, uint16_t streamNumber, uint32_t clientTimeRequirement, uint16_t messageNameIndex,
+                                          uint16_t messageId, uint16_t size);
     static void countMessagesSentFromServer(int messageNumber, uint16_t streamNumber);
     static uint16_t userActionmessageCount;
     static uint16_t otherDataMessageCount;
 
 private:
-    void getStreamResults(std::vector<StatisticsCollector::MessageStats*>& clientStats, std::vector<StatisticsCollector::MessageStats*>& serverStats, uint16_t streamNumber, Time& clientToClientTimeResult,
-                          Time& clientToServerTimeResult, Time& serverToClientTimeResult, uint32_t& clientToClientMsgCount,
-                          uint32_t& clientToServerMsgCount, uint32_t& fromServerToClientCount, uint32_t& toServerInTime, uint32_t& formClientToClientInTime, uint32_t& fromServerToClientInTime,
+    void getStreamResults(std::vector<StatisticsCollector::MessageStats*>& clientStats, std::vector<StatisticsCollector::MessageStats*>& serverStats,
+                          uint16_t streamNumber, Time& clientToClientTimeResult, Time& clientToServerTimeResult, Time& serverToClientTimeResult,
+                          uint32_t& clientToClientMsgCount, uint32_t& clientToServerMsgCount, uint32_t& fromServerToClientCount,
+                          uint32_t& toServerInTime, uint32_t& formClientToClientInTime, uint32_t& fromServerToClientInTime,
                           std::list<int64_t>& clientToServerTimes,  std::list<int64_t>& clientToClientTimes, std::list<int64_t>& serverToClientTimes);
     void getBandwidthResults();
     void getMessageStats(uint16_t streamNumber);

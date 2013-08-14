@@ -8,7 +8,8 @@
 #include <map>
 //
 
-class DataSender{
+class DataSender
+{
 
 public:
     DataSender(ApplicationProtocol* appProto, uint16_t gameTick) : appProto(appProto), gameTick(gameTick), maxDatagramSize(1400), lastSendTimes(){}
@@ -21,13 +22,13 @@ public:
 
 private:
 
-    struct MessageInfo{
+    struct MessageInfo
+    {
         MessageInfo(uint16_t stream, int msgNumber, std::string msgName): streamNumber(stream), messageNumber(msgNumber), name(msgName){}
 
         uint16_t streamNumber;
         int messageNumber;
         std::string name;
-
     };
 
     std::map<Ptr<Socket>, std::string> tcpBuffer;
@@ -40,7 +41,7 @@ private:
     bool isClient;
     uint16_t gameTick;
     uint16_t maxDatagramSize;
-    std::map<std::string, Time, Message::StringComparator> lastSendTimes;   //collect time inter-departure times for each message type in this stream
+    std::map<std::string, Time, Message::StringComparator> lastSendTimes;
 
     int sendAndFragment(Ptr<Socket> socket, uint8_t *buffer, uint16_t size, bool reliable, const Address *const addr = 0);
     Time getMessageSendInterval(const std::string& name);

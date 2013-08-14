@@ -23,7 +23,8 @@
 
 class XMLParser;
 
-class Server{
+class Server
+{
 
 public:
     Server(XMLParser&, int, Ptr<Node>, Address*);

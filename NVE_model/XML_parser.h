@@ -29,9 +29,10 @@
 #include <typeinfo>
 
 
-class XMLParser{
-
-     struct Client{
+class XMLParser
+{
+     struct Client
+     {
         uint16_t clientNumber;
         double uplink;
         double downlink;
@@ -66,18 +67,21 @@ public:
 
 private:
 
-    typedef union{
+    typedef union
+    {
         double doubleVal;
         long longIntVal;
         uint32_t uintVal;
     } RanvarValues;   //these are the different variables that are passed as a parameter to ns-3 distribution functions
 
     //distributions supported by ns-3
-    typedef enum{Uniform = 0, Constant, Sequential, Exponential, Pareto, Weibull, Normal, Lognormal, Gamma, Erlang, Zipf, Zeta, Triangular, Empirical, Extreme, Split, None} Distributions;
+    typedef enum{Uniform = 0, Constant, Sequential, Exponential, Pareto, Weibull, Normal, Lognormal,
+                 Gamma, Erlang, Zipf, Zeta, Triangular, Empirical, Extreme, Split, None} Distributions;
 
 
     //convenience class to operate with distribution enum types
-    class DistributionEnum{
+    class DistributionEnum
+    {
 
     public:
         DistributionEnum();
@@ -99,7 +103,8 @@ private:
         static const std::string distributionStrings[];
         static const int distCount;
 
-        template <class T, class U, class V, class W> bool readCommaSeparatedString(const std::string& csvString, int paramCount, T& val1, U& val2, V& val3, W& val4);
+        template <class T, class U, class V, class W> bool readCommaSeparatedString(const std::string& csvString, int paramCount,
+                                                                                    T& val1, U& val2, V& val3, W& val4);
         bool readEmpiricalDataFile(const std::string& filename, EmpiricalVariable& ranvar);
         RandomVariable* readSplitDistribution(const std::string& params);
         bool readAndRemovePercentage(std::string& dist, double& result);

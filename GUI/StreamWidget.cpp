@@ -27,7 +27,8 @@ StreamWidget::StreamWidget(int number, MainWindow* mw, QWidget *parent)
 }
 
 
-StreamWidget::StreamWidget(int number, MainWindow *mw, bool tcpUsed, bool appProto, bool ordered, bool nagle, int serverGameTick, int clientGameTick,
+StreamWidget::StreamWidget(int number, MainWindow *mw, bool tcpUsed, bool appProto,
+                           bool ordered, bool nagle, int serverGameTick, int clientGameTick,
                            QList<MessageTemplate *> messages, QWidget *parent)
     : QGroupBox(parent),
       messages(messages),
@@ -204,7 +205,8 @@ void StreamWidget::newMessageAdded()
 {
     if(mw->configMessageFromEditor(messageInEditor))
     {
-        if((previousMessageName == "" || previousMessageName != messageInEditor->getMessageName()) && messageNames.contains(messageInEditor->getMessageName()))
+        if((previousMessageName == "" || previousMessageName != messageInEditor->getMessageName())
+                && messageNames.contains(messageInEditor->getMessageName()))
         {
             mw->setMsgConfigErrorMessage("Message name already in use!");
         }

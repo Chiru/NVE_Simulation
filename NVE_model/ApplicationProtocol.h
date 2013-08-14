@@ -30,7 +30,8 @@
 #include "Messages.h"
 
 
-class ApplicationProtocol{
+class ApplicationProtocol
+{
 
     friend class XMLParser;
 
@@ -48,13 +49,17 @@ public:
 
 
     //IP fragmentation over UDP doesn't work like a charm, so send big packets in separate datagrams
-    int sendAndFragment(Ptr<Socket> socket, uint8_t* buffer, uint16_t size, bool reliable, const Address* const addr = 0);
+    int sendAndFragment(Ptr<Socket> socket, uint8_t* buffer,
+                        uint16_t size, bool reliable, const Address* const addr = 0);
 
     //recursive function used to send all messages that fit into single datagram
-    static int sendFragment(const std::string& buffer, const size_t index, Ptr<Socket> sock, uint16_t maxDatagramSize, const Address* const addr = 0,
-                            ApplicationProtocol* appProto = 0, bool reliable = false, uint16_t headerSize = 0);
+    static int sendFragment(const std::string& buffer, const size_t index,
+                            Ptr<Socket> sock, uint16_t maxDatagramSize,
+                            const Address* const addr = 0, ApplicationProtocol* appProto = 0,
+                            bool reliable = false, uint16_t headerSize = 0);
 private:
-    ApplicationProtocol(uint16_t ackSize, uint16_t delayedAck, uint16_t retransmit, uint16_t headerSize);
+    ApplicationProtocol(uint16_t ackSize, uint16_t delayedAck, uint16_t retransmit,
+                        uint16_t headerSize);
 
 
     class ReliablePacket{
@@ -71,7 +76,8 @@ private:
         uint8_t* buffer;
     };
 
-    enum AppProtoPacketType{UNRELIABLE, RELIABLE, DUPLICATE, ACK, ERROR, UNORDERED}; //distinguish between different application proto headers
+    //distinguish between different application proto headers
+    enum AppProtoPacketType{UNRELIABLE, RELIABLE, DUPLICATE, ACK, ERROR, UNORDERED};
 
     std::list<ReliablePacket*> packetsWaitingAcks;
     std::list<ReliablePacket*> packetsOutOfOrder;
@@ -83,7 +89,6 @@ private:
     uint16_t headerSize;
     uint64_t totalBytesSent;
     std::map<const Address, uint32_t> reliableMsgNumber;
-    //uint32_t reliableMsgNumber;
     Ptr<Socket> socket;
     uint16_t maxDatagramSize;
     Callback<void, uint8_t*, uint16_t, Address&> forwardToApplication;
@@ -95,7 +100,7 @@ private:
     void resendCheckServer(std::map<const Address, uint32_t>& reliableMsgNumber, const Address& addr);
     void rememberReliablePacket(uint32_t msgNumber, uint16_t msgSize, uint8_t* msgContents, void (ApplicationProtocol::*fptr)(uint32_t));
     void rememberReliablePacket(std::map<const Address, uint32_t>&, uint16_t messageSize, const uint8_t *messageContents, const Address& addr,
-                                                     void (ApplicationProtocol::*fptr)(std::map<const Address, uint32_t>&, const Address&));
+                                void (ApplicationProtocol::*fptr)(std::map<const Address,uint32_t>&, const Address&));
     AppProtoPacketType parseAppProtoHeader(uint8_t* buffer, const Address& addr, uint32_t& msgNumber);
     bool sendAck(int* messagesToAck, uint16_t numberOfMessages, const Address& addr, Ptr<Socket> sock);
     uint16_t createAck(char* ack, int* numbers, uint16_t numberOfMessages);

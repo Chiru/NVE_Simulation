@@ -4,7 +4,8 @@
 #include <QGroupBox>
 #include <QDoubleSpinBox>
 
-typedef enum{Uniform = 0, Constant, Sequential, Exponential, Pareto, Weibull, Normal, Lognormal, Gamma, Erlang, Zipf, Zeta, Triangular, Extreme, Empirical, Split, None} Distribution;
+typedef enum{Uniform = 0, Constant, Sequential, Exponential, Pareto, Weibull, Normal, Lognormal, Gamma, Erlang, Zipf,
+             Zeta, Triangular, Extreme, Empirical, Split, None} Distribution;
 
 class DistributionElement
 {

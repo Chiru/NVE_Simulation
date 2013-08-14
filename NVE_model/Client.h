@@ -24,15 +24,18 @@
 class XMLParser;
 
 
-class Client{
+class Client
+{
 
-    friend std::ostream& operator<<(std::ostream &out, const Client &client){
-
-        out << "Client number: " << client.clientNumber << "  Network delay: " << client.networkDelay
-            << "  Downlink bandwidth: " << client.downlinkBandwidth << "  Uplink bandwidth: " << client.uplinkBandwidth
+    friend std::ostream& operator<<(std::ostream &out, const Client &client)
+    {
+        out << "Client number: " << client.clientNumber << "  Network delay: "
+            << client.networkDelay  << "  Downlink bandwidth: " << client.downlinkBandwidth
+            << "  Uplink bandwidth: " << client.uplinkBandwidth
             << "  Packet loss rate: " << client.lossRate;
 
-        for(int i = 0; i < client.numberOfStreams; i++){
+        for(int i = 0; i < client.numberOfStreams; i++)
+        {
              if((client.streams[i]) != 0)
                 out << *(client.streams[i]);
         }
@@ -70,7 +73,6 @@ private:
     bool graph;
     int joinTime;
     int exitTime;
-
 };
 
 

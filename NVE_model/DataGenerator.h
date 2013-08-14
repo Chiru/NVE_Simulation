@@ -28,16 +28,20 @@
 #include "DataSender.h"
 #include <vector>
 
-class DataGenerator : public ns3::Application{
+class DataGenerator : public ns3::Application
+{
 
-    friend std::ostream& operator<<(std::ostream& out, const DataGenerator &stream){
-
+    friend std::ostream& operator<<(std::ostream& out, const DataGenerator &stream)
+    {
         out << "\n\tStream: " << stream.streamNumber << "  protocol: "
-            << (stream.proto == TCP_NAGLE_DISABLED ? "TCP  Nagle's disabled" : stream.proto == TCP_NAGLE_ENABLED ? "TCP  Nagle's enabled" :
-            (stream.appProto == 0 ? "UDP  Application protocol: no" :  stream.isOrdered()  ? "UDP  Application protocol: yes   ordering: ordered" :
-                                                                                             "UDP  Application protocol: no   ordering: unordered" ));
+            << (stream.proto == TCP_NAGLE_DISABLED ? "TCP  Nagle's disabled" :
+                stream.proto == TCP_NAGLE_ENABLED ? "TCP  Nagle's enabled" :
+                (stream.appProto == 0 ? "UDP  Application protocol: no" :
+                stream.isOrdered()  ? "UDP  Application protocol: yes   ordering: ordered" :
+                "UDP  Application protocol: yes   ordering: unordered" ));
 
-        for(std::vector<Message*>::const_iterator it = stream.messages.begin(); it != stream.messages.end(); it++){
+        for(std::vector<Message*>::const_iterator it = stream.messages.begin(); it != stream.messages.end(); it++)
+        {
             out << "\n\t\t";
             out << (**it);
         }
@@ -87,7 +91,8 @@ protected:
 
 };
 
-class ClientDataGenerator : public DataGenerator{
+class ClientDataGenerator : public DataGenerator
+{
 
 public:
     ClientDataGenerator(uint16_t streamNumber, Protocol proto, ApplicationProtocol* appProto, std::vector<Message*> messages, int gametick, bool ordered);
@@ -120,9 +125,11 @@ private:
 };
 
 
-class ServerDataGenerator : public DataGenerator{
+class ServerDataGenerator : public DataGenerator
+{
 
-    class ClientConnection{
+    class ClientConnection
+    {
 
     public:
         ClientConnection(Ptr<Socket>, DataSender&, bool);

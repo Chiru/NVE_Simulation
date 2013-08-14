@@ -158,8 +158,10 @@ void XmlSerializer::addStreamElement(const StreamWidget* stream)
     else
         streamElement->addElement(new XmlValue("ordered", "no"));
 
-    streamElement->addElement(new XmlValue("servergametick", QString::number(stream->serverGameTick->value())));
-    streamElement->addElement(new XmlValue("clientgametick", QString::number(stream->clientGameTick->value())));
+    streamElement->addElement(new XmlValue("servergametick",
+                                           QString::number(stream->serverGameTick->value())));
+    streamElement->addElement(new XmlValue("clientgametick",
+                                           QString::number(stream->clientGameTick->value())));
 
     addMessages(streamElement, stream->messages);
 
@@ -178,21 +180,26 @@ void XmlSerializer::addMessages(XmlStruct* stream, const QList<MessageTemplate*>
     {
         XmlStruct* singleMessage = new XmlStruct("message");
 
-        singleMessage->addElement(new XmlValue("type", msg->type == MessageTemplate::ServerToClient ? "odt" : "uam"));  //TODO: these names could be changed?
+        singleMessage->addElement(new XmlValue("type", msg->type == MessageTemplate::ServerToClient ? "odt" : "uam"));
         singleMessage->addElement(new XmlValue("name",msg->messageName));
         singleMessage->addElement(new XmlValue("size", msg->messageSize.getDistributionString()));
         singleMessage->addElement(new XmlValue("reliable", msg->reliable == true ? "yes" : "no"));
         singleMessage->addElement(new XmlValue("timeinterval", msg->timeInterval.getDistributionString()));
 
         if(msg->useReceivedMessageSize)
-            singleMessage->addElement(new XmlValue("forwardmessagesize", "rcv"));   //rcv means "same as received"
+            singleMessage->addElement(new XmlValue("forwardmessagesize", "rcv"));
         else
-            singleMessage->addElement(new XmlValue("forwardmessagesize", QString::number(msg->forwardMessageSize)));
+            singleMessage->addElement(new XmlValue("forwardmessagesize",
+                                                   QString::number(msg->forwardMessageSize)));
 
-        singleMessage->addElement(new XmlValue("returntosender", msg->returnToSender ? "yes" : "no"));    //TODO: change from "forwardback" to "returntosender" in xml file parsing
-        singleMessage->addElement(new XmlValue("timerequirementclient", QString::number(msg->timeRequirementClient)));
-        singleMessage->addElement(new XmlValue("timerequirementserver", QString::number(msg->timeRequirementServer)));
-        singleMessage->addElement(new XmlValue("clientsofinterest", QString::number(msg->clientsOfInterest/100)));
+        singleMessage->addElement(new XmlValue("returntosender",
+                                               msg->returnToSender ? "yes" : "no"));
+        singleMessage->addElement(new XmlValue("timerequirementclient",
+                                               QString::number(msg->timeRequirementClient)));
+        singleMessage->addElement(new XmlValue("timerequirementserver",
+                                               QString::number(msg->timeRequirementServer)));
+        singleMessage->addElement(new XmlValue("clientsofinterest",
+                                               QString::number(msg->clientsOfInterest/100)));
 
         messageStruct->addElement(singleMessage);
     }

@@ -19,7 +19,8 @@ DistributionWidget::DistributionWidget(const QString& label, QWidget *parent)
 }
 
 
-DistributionWidget::DistributionWidget(QLabel* label, QPushButton* button, QLineEdit* resultDist, QLayout* layout, QWidget *parent)
+DistributionWidget::DistributionWidget(QLabel* label, QPushButton* button,
+                                       QLineEdit* resultDist, QLayout* layout, QWidget *parent)
     : QFrame(parent),
       distribution(0),
       layout(layout),
@@ -186,151 +187,151 @@ void DistributionDialog::distributionChanged(int dist)
 
     switch(dist)
     {
-    case Uniform:
-        paramDescriptions.append(new QLabel("Low end of the range"));
-        paramDescriptions.append(new QLabel("High end of the range"));
-        params.append(new QDoubleSpinBox());
-        params.append(new QDoubleSpinBox());
-        params[0]->setMaximum(10000);
-        params[1]->setMaximum(10000);
-        break;
-    case Constant:
-        paramDescriptions.append(new QLabel("Constant value"));
-        params.append(new QDoubleSpinBox());
-        params[0]->setMaximum(10000);
-        break;
-    case Sequential:
-        paramDescriptions.append(new QLabel("First value of the sequence"));
-        paramDescriptions.append(new QLabel("One more than the last value of the sequence"));
-        paramDescriptions.append(new QLabel("Increment between sequence values"));
-        paramDescriptions.append(new QLabel(" Number of times each member of the sequence is repeated"));
-        params.append(new QDoubleSpinBox());
-        params.append(new QDoubleSpinBox());
-        params.append(new QDoubleSpinBox());
-        params.append(new QDoubleSpinBox());
-        params[0]->setMaximum(10000);
-        params[1]->setMaximum(10000);
-        params[2]->setMaximum(10000);
-        params[3]->setMaximum(10000);
-        params[3]->setDecimals(0);
-        break;
-    case Exponential:
-        paramDescriptions.append(new QLabel("Mean value of the random variable"));
-        paramDescriptions.append(new QLabel("Upper bound on returned values"));
-        params.append(new QDoubleSpinBox());
-        params.append(new QDoubleSpinBox());
-        params[0]->setMaximum(10000);
-        params[1]->setMaximum(10000);
-        break;
-    case Pareto:
-        paramDescriptions.append(new QLabel("Mean value"));
-        paramDescriptions.append(new QLabel("Shape parameter"));
-        paramDescriptions.append(new QLabel("Upper limit of returned values"));
-        params.append(new QDoubleSpinBox());
-        params.append(new QDoubleSpinBox());
-        params.append(new QDoubleSpinBox());
-        params[0]->setMaximum(10000);
-        params[1]->setMaximum(10000);
-        params[2]->setMaximum(10000);
-        break;
-    case Weibull:
-        paramDescriptions.append(new QLabel("Mean value for the distribution"));
-        paramDescriptions.append(new QLabel("Shape (alpha) parameter for the distribution"));
-        paramDescriptions.append(new QLabel("Upper limit of returned values"));
-        paramDescriptions.append(new QLabel("Location parameter"));
-        params.append(new QDoubleSpinBox());
-        params.append(new QDoubleSpinBox());
-        params.append(new QDoubleSpinBox());
-        params.append(new QDoubleSpinBox());
-        params[0]->setMaximum(10000);
-        params[1]->setMaximum(10000);
-        params[2]->setMaximum(10000);
-        params[3]->setMaximum(10000);
-        break;
-    case Normal:
-        paramDescriptions.append(new QLabel("Mean value"));
-        paramDescriptions.append(new QLabel("Variance"));
-        params.append(new QDoubleSpinBox());
-        params.append(new QDoubleSpinBox());
-        params[0]->setMaximum(10000);
-        params[1]->setMaximum(10000);
-        break;
-    case Lognormal:
-        paramDescriptions.append(new QLabel("Log scale parameter"));
-        paramDescriptions.append(new QLabel("Shape"));
-        params.append(new QDoubleSpinBox());
-        params.append(new QDoubleSpinBox());
-        params[0]->setMaximum(10000);
-        params[1]->setMaximum(10000);
-        params[0]->setMinimum(-10000);
-        params[1]->setMinimum(-10000);
-        break;
-    case Gamma:
-        paramDescriptions.append(new QLabel("Alpha parameter of the gamma distribution"));
-        paramDescriptions.append(new QLabel("Beta parameter of the gamma distribution"));
-        params.append(new QDoubleSpinBox());
-        params.append(new QDoubleSpinBox());
-        params[0]->setMaximum(10000);
-        params[1]->setMaximum(10000);
-        break;
-    case Erlang:
-        paramDescriptions.append(new QLabel("Shape parameter of the Erlang distribution"));
-        paramDescriptions.append(new QLabel("Rate parameter of the Erlang distribution"));
-        params.append(new QDoubleSpinBox());
-        params.append(new QDoubleSpinBox());
-        params[0]->setMaximum(10000);
-        params[1]->setMaximum(10000);
-        params[0]->setMinimum(1);
-        params[0]->setDecimals(0);
-        break;
-    case Zipf:
-        paramDescriptions.append(new QLabel("The number of possible items"));
-        paramDescriptions.append(new QLabel("The alpha parameter"));
-        params.append(new QDoubleSpinBox());
-        params.append(new QDoubleSpinBox());
-        params[0]->setMaximum(10000);
-        params[1]->setMaximum(10000);
-        params[0]->setMinimum(1);
-        params[0]->setDecimals(0);
-        break;
-    case Zeta:
-        paramDescriptions.append(new QLabel("The alpha parameter"));
-        params.append(new QDoubleSpinBox());
-        params[0]->setMaximum(10000);
-        params[0]->setMinimum(1);
-        break;
-    case Triangular:
-        paramDescriptions.append(new QLabel("Low end of the range"));
-        paramDescriptions.append(new QLabel("High end of the range"));
-        paramDescriptions.append(new QLabel("Mean value of the distribution"));
-        params.append(new QDoubleSpinBox());
-        params.append(new QDoubleSpinBox());
-        params.append(new QDoubleSpinBox());
-        params[0]->setMaximum(10000);
-        params[1]->setMaximum(10000);
-        params[2]->setMaximum(10000);
-        break;
-    case Empirical:
-        paramDescriptions.append(new QLabel("Filename (must contain comma-separated values)"));
-        fileName = new QLineEdit();
-        break;
-    case Extreme:    //TODO: check if this is supported in ns-3 version
-        paramDescriptions.append(new QLabel("Location parameter"));
-        paramDescriptions.append(new QLabel("Scale parameter"));
-        paramDescriptions.append(new QLabel("Upper bound of returned values"));
-        params.append(new QDoubleSpinBox());
-        params.append(new QDoubleSpinBox());
-        params.append(new QDoubleSpinBox());
-        params[0]->setMaximum(10000);
-        params[1]->setMaximum(10000);
-        params[2]->setMaximum(10000);
-        break;
-    case Split: //TODO: check if this is supported in ns-3 version
-        numberOfDistributionsSplit++;
-        splitDistributionButton = new QPushButton("Add");
-        QObject::connect(splitDistributionButton, SIGNAL(clicked()), this, SLOT(createDistributionDialog()));
-        this->buttonBox->button(QDialogButtonBox::Ok)->setEnabled(false);
-        break;
+        case Uniform:
+            paramDescriptions.append(new QLabel("Low end of the range"));
+            paramDescriptions.append(new QLabel("High end of the range"));
+            params.append(new QDoubleSpinBox());
+            params.append(new QDoubleSpinBox());
+            params[0]->setMaximum(10000);
+            params[1]->setMaximum(10000);
+            break;
+        case Constant:
+            paramDescriptions.append(new QLabel("Constant value"));
+            params.append(new QDoubleSpinBox());
+            params[0]->setMaximum(10000);
+            break;
+        case Sequential:
+            paramDescriptions.append(new QLabel("First value of the sequence"));
+            paramDescriptions.append(new QLabel("One more than the last value of the sequence"));
+            paramDescriptions.append(new QLabel("Increment between sequence values"));
+            paramDescriptions.append(new QLabel(" Number of times each member of the sequence is repeated"));
+            params.append(new QDoubleSpinBox());
+            params.append(new QDoubleSpinBox());
+            params.append(new QDoubleSpinBox());
+            params.append(new QDoubleSpinBox());
+            params[0]->setMaximum(10000);
+            params[1]->setMaximum(10000);
+            params[2]->setMaximum(10000);
+            params[3]->setMaximum(10000);
+            params[3]->setDecimals(0);
+            break;
+        case Exponential:
+            paramDescriptions.append(new QLabel("Mean value of the random variable"));
+            paramDescriptions.append(new QLabel("Upper bound on returned values"));
+            params.append(new QDoubleSpinBox());
+            params.append(new QDoubleSpinBox());
+            params[0]->setMaximum(10000);
+            params[1]->setMaximum(10000);
+            break;
+        case Pareto:
+            paramDescriptions.append(new QLabel("Mean value"));
+            paramDescriptions.append(new QLabel("Shape parameter"));
+            paramDescriptions.append(new QLabel("Upper limit of returned values"));
+            params.append(new QDoubleSpinBox());
+            params.append(new QDoubleSpinBox());
+            params.append(new QDoubleSpinBox());
+            params[0]->setMaximum(10000);
+            params[1]->setMaximum(10000);
+            params[2]->setMaximum(10000);
+            break;
+        case Weibull:
+            paramDescriptions.append(new QLabel("Mean value for the distribution"));
+            paramDescriptions.append(new QLabel("Shape (alpha) parameter for the distribution"));
+            paramDescriptions.append(new QLabel("Upper limit of returned values"));
+            paramDescriptions.append(new QLabel("Location parameter"));
+            params.append(new QDoubleSpinBox());
+            params.append(new QDoubleSpinBox());
+            params.append(new QDoubleSpinBox());
+            params.append(new QDoubleSpinBox());
+            params[0]->setMaximum(10000);
+            params[1]->setMaximum(10000);
+            params[2]->setMaximum(10000);
+            params[3]->setMaximum(10000);
+            break;
+        case Normal:
+            paramDescriptions.append(new QLabel("Mean value"));
+            paramDescriptions.append(new QLabel("Variance"));
+            params.append(new QDoubleSpinBox());
+            params.append(new QDoubleSpinBox());
+            params[0]->setMaximum(10000);
+            params[1]->setMaximum(10000);
+            break;
+        case Lognormal:
+            paramDescriptions.append(new QLabel("Log scale parameter"));
+            paramDescriptions.append(new QLabel("Shape"));
+            params.append(new QDoubleSpinBox());
+            params.append(new QDoubleSpinBox());
+            params[0]->setMaximum(10000);
+            params[1]->setMaximum(10000);
+            params[0]->setMinimum(-10000);
+            params[1]->setMinimum(-10000);
+            break;
+        case Gamma:
+            paramDescriptions.append(new QLabel("Alpha parameter of the gamma distribution"));
+            paramDescriptions.append(new QLabel("Beta parameter of the gamma distribution"));
+            params.append(new QDoubleSpinBox());
+            params.append(new QDoubleSpinBox());
+            params[0]->setMaximum(10000);
+            params[1]->setMaximum(10000);
+            break;
+        case Erlang:
+            paramDescriptions.append(new QLabel("Shape parameter of the Erlang distribution"));
+            paramDescriptions.append(new QLabel("Rate parameter of the Erlang distribution"));
+            params.append(new QDoubleSpinBox());
+            params.append(new QDoubleSpinBox());
+            params[0]->setMaximum(10000);
+            params[1]->setMaximum(10000);
+            params[0]->setMinimum(1);
+            params[0]->setDecimals(0);
+            break;
+        case Zipf:
+            paramDescriptions.append(new QLabel("The number of possible items"));
+            paramDescriptions.append(new QLabel("The alpha parameter"));
+            params.append(new QDoubleSpinBox());
+            params.append(new QDoubleSpinBox());
+            params[0]->setMaximum(10000);
+            params[1]->setMaximum(10000);
+            params[0]->setMinimum(1);
+            params[0]->setDecimals(0);
+            break;
+        case Zeta:
+            paramDescriptions.append(new QLabel("The alpha parameter"));
+            params.append(new QDoubleSpinBox());
+            params[0]->setMaximum(10000);
+            params[0]->setMinimum(1);
+            break;
+        case Triangular:
+            paramDescriptions.append(new QLabel("Low end of the range"));
+            paramDescriptions.append(new QLabel("High end of the range"));
+            paramDescriptions.append(new QLabel("Mean value of the distribution"));
+            params.append(new QDoubleSpinBox());
+            params.append(new QDoubleSpinBox());
+            params.append(new QDoubleSpinBox());
+            params[0]->setMaximum(10000);
+            params[1]->setMaximum(10000);
+            params[2]->setMaximum(10000);
+            break;
+        case Empirical:
+            paramDescriptions.append(new QLabel("Filename (must contain comma-separated values)"));
+            fileName = new QLineEdit();
+            break;
+        case Extreme:
+            paramDescriptions.append(new QLabel("Location parameter"));
+            paramDescriptions.append(new QLabel("Scale parameter"));
+            paramDescriptions.append(new QLabel("Upper bound of returned values"));
+            params.append(new QDoubleSpinBox());
+            params.append(new QDoubleSpinBox());
+            params.append(new QDoubleSpinBox());
+            params[0]->setMaximum(10000);
+            params[1]->setMaximum(10000);
+            params[2]->setMaximum(10000);
+            break;
+        case Split:
+            numberOfDistributionsSplit++;
+            splitDistributionButton = new QPushButton("Add");
+            QObject::connect(splitDistributionButton, SIGNAL(clicked()), this, SLOT(createDistributionDialog()));
+            this->buttonBox->button(QDialogButtonBox::Ok)->setEnabled(false);
+            break;
 
     }
 
@@ -439,11 +440,11 @@ void DistributionDialog::createDistributionComboBox()
     availableDistributions->insertItem(Zipf, "Zipf");
     availableDistributions->insertItem(Zeta, "Zeta");
     availableDistributions->insertItem(Triangular, "Triangular");
-    availableDistributions->insertItem(Extreme, "Extreme");   //TODO: check if ns-3 version supports this
+    availableDistributions->insertItem(Extreme, "Extreme");
     if(!alreadySplit)
     {
         availableDistributions->insertItem(Empirical, "Empirical");
-        availableDistributions->insertItem(Split, "Split");  //TODO: check if ns-3 version supports this
+        availableDistributions->insertItem(Split, "Split");
     }
 }
 
