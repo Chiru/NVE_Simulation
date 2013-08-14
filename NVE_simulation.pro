@@ -50,7 +50,8 @@ HEADERS += GUI/mainwindow.h \
 FORMS    += GUI/mainwindow.ui
 
 OTHER_FILES += \
-    .gitignore
+    .gitignore \
+    licence.txt
 
 INCLUDEPATH += NVE_model \
     ../build
