@@ -1,3 +1,8 @@
+/**
+* Copyright (c) 2013 Center for Internet Excellence, University of Oulu, All Rights Reserved
+* For conditions of distribution and use, see copyright notice in license.txt
+*/
+
 #ifndef CLIENTWIDGET_H
 #define CLIENTWIDGET_H
 
