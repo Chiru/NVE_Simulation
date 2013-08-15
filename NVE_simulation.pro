@@ -71,3 +71,7 @@ LIBS +=  -L./NS3/build/ \
 
 QMAKE_RPATHDIR += ./NS3/build/
 
+OBJECTS_DIR = build
+MOC_DIR = build
+UI_DIR = build
+
