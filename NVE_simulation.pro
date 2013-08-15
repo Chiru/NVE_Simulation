@@ -53,7 +53,8 @@ OTHER_FILES += \
     .gitignore \
     licence.txt \
     README.txt \
-    build.sh
+    build.sh \
+    configuration.txt
 
 INCLUDEPATH += NVE_model \
     NS3/build/ \
