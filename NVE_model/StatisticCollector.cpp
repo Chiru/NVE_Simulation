@@ -664,7 +664,7 @@ bool StatisticsCollector::generateSingleNodeStatsFromPcap()
             {
                 if((pid = fork()) == 0)
                 {
-                    int fd = open("temp.txt", O_RDWR | O_CREAT | O_TRUNC, S_IRWXO | S_IRWXG | S_IRWXU);
+                    int fd = open("./results/temp.txt", O_RDWR | O_CREAT | O_TRUNC, S_IRWXO | S_IRWXG | S_IRWXU);
                     dup2(fd, 1);
                     close(fd);
 
@@ -679,11 +679,11 @@ bool StatisticsCollector::generateSingleNodeStatsFromPcap()
                 if(status == EXIT_FAILURE)
                     return false;
 
-                scriptGen->parseSingleNodePcapStats("temp.txt", false, addr, clientNumber, isServer);
+                scriptGen->parseSingleNodePcapStats("./results/temp.txt", false, addr, clientNumber, isServer);
 
                 if((pid = fork()) == 0)
                 {
-                    int fd = open("temp.txt", O_RDWR | O_CREAT | O_TRUNC, S_IRWXO | S_IRWXG | S_IRWXU);
+                    int fd = open("./results/temp.txt", O_RDWR | O_CREAT | O_TRUNC, S_IRWXO | S_IRWXG | S_IRWXU);
                     dup2(fd, 1);
                     close(fd);
 
@@ -698,7 +698,7 @@ bool StatisticsCollector::generateSingleNodeStatsFromPcap()
                 if(status == EXIT_FAILURE)
                     return false;
 
-                scriptGen->parseSingleNodePcapStats("temp.txt", true, addr, clientNumber, isServer);
+                scriptGen->parseSingleNodePcapStats("./results/temp.txt", true, addr, clientNumber, isServer);
             }
         }
     }
