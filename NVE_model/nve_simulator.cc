@@ -336,9 +336,10 @@ void printAddresses(NetDeviceContainer *deviceContainer, Ipv4InterfaceContainer 
 
 void printHelpAndQuit()
 {
-    std::cout << "Usage: nve_simulator --filename <file>  [--verbose]\n" << "--help    Print this help message.\n"
-              << "--filename <file>     Give filename (mandatory)\n"
-              << "--verbose     Print info about configuration" << std::endl;
+    std::cout << "Usage: NVE_simulation --filename <file>  [--verbose] [--help]\n" << "--help    Print this help message.\n"
+              << "--filename <file>     Give filename \n"
+              << "--verbose     Print info about configuration" << std::endl
+              << "If no parameters are given, graphical user interface is started" << std::endl;
 
     exit(EXIT_SUCCESS);
 }
