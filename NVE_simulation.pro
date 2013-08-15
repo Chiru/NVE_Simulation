@@ -52,7 +52,8 @@ FORMS    += GUI/mainwindow.ui
 OTHER_FILES += \
     .gitignore \
     licence.txt \
-    README.txt
+    README.txt \
+    build.sh
 
 INCLUDEPATH += NVE_model \
     NS3/build/ \
@@ -64,7 +65,9 @@ LIBS +=  -L./NS3/build/ \
     -lns3.17-flow-monitor-optimized \
     -lns3.17-point-to-point-optimized \
     -lns3.17-mpi-optimized \
-    -lns3.17-bridge-optimized
+    -lns3.17-bridge-optimized \
 
 
+
+QMAKE_RPATHDIR += ./NS3/build/
 
