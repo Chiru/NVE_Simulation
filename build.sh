@@ -7,7 +7,7 @@ echo "Checking dependencies..."
 tput sgr0
 
 #RScript
-sudo apt-get install Rscript
+sudo apt-get install r-base
 
 #tshark
 sudo apt-get install tshark
@@ -39,6 +39,9 @@ cd ..
 
 
 #Build the NVE_simulation tool
+
+
+qmake
 make clean
 
 if [ $? != 0 ]
@@ -48,8 +51,6 @@ then
     tput sgr0
     return 1
 fi
-
-qmake
 
 if [ $? != 0 ]
 then
