@@ -146,6 +146,10 @@ bool MainWindow::executeFileDialog()
 void MainWindow::chooseConfigurationFile()
 {
     fileName = QFileDialog::getOpenFileName(this, "Open configuration");
+
+    if(fileName == "")
+        fileName = "configuration.txt";
+
     configuration->done(1);
 }
 
