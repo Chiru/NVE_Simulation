@@ -12,6 +12,11 @@ sudo apt-get install r-base
 #tshark
 sudo apt-get install tshark
 
+#Qt
+sudo apt-get install libqt4-dev
+
+#Qmake
+sudo apt-get install qt4-qmake
 
 nprocs=`grep -c "^processor" /proc/cpuinfo`
 

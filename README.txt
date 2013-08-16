@@ -4,7 +4,7 @@ Building the simulation tool:
 Running from the terminal:
     ./NVE_simulation
 
-More information in help.pdf...
+More information in manual.pdf...
 
 Author: Ville Saarinen
 email: ville.saarinen@cie.fi
